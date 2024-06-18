@@ -8,6 +8,8 @@ AWS.config.update({
     region: 'eu-west-2'
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const {getRandomDynamoDBItem} = require('./cards');
+const {getUsersBalance, saveUserBalance} = require('./userBalanceCds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
   intents: [
@@ -77,17 +79,28 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "claim") {
             // get a random card from the storage and store the details to be able to be used in bellow embeded message
-            const embed = new EmbedBuilder()
-                .setColor(0x0099ff)
-                .setTitle(authorTag)
-                .setDescription("\n\u200B\n**Claim Recieved**\n") // changed depeneding on the card recieced
-                .setImage(
-                    "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/NJ_HR_HB.png",
-                ) // changed depending on the card recieved
-                .setThumbnail(authorAvatarURL)
-                .setTimestamp();
-            msg.reply({ embeds: [embed] });
-            // after all that tell the database this user now has this card in their inv
+            const tableName = 'cards';
+            (async () => {
+                    try {
+                        // Call the function and store the returned URL in a const
+                        const randomCard = await getRandomDynamoDBItem(tableName);
+                        const embed = new EmbedBuilder()
+                            .setColor(0x0099ff)
+                            .setTitle("\n\u200B\n**Claim Recieved!**\n")
+                            .setDescription(`**You have dropped ${randomCard['GroupName']} ${randomCard['GroupMember']}**`)
+                            .setImage(
+                                randomCard['cardUrl'],
+                            ) // changed depending on the card recieved
+                            .setThumbnail(authorAvatarURL)
+                            .setFooter({ text: `${msg.author.tag}`})
+                            .setTimestamp();
+                        msg.reply({ embeds: [embed] });
+                        // after all that tell the database this user now has this card in their inv
+                        
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+            })();
         }
 
         if (command === "drop") {
@@ -161,9 +174,7 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send('Please provide a valid amount!');
                 return;
             }
-            console.log("checking user");
             const userExists = await checkUserExists(targetUser.id);
-            console.log("checked user");
             if (!userExists) {
                 msg.channel.send(`**This user is not registered yet, please tell them to do .start**`);
                 return;
@@ -173,8 +184,7 @@ client.on("messageCreate", async (msg) => {
                 // Load balances for both users
                 const userBalance = await getUsersBalance(userId);
                 const targetUserBalance = await getUsersBalance(targetUserId);
-                console.log(userBalance + targetUserBalance);
-
+                
                 if (userBalance === null) {
                 msg.channel.send('No balance found for you.');
                 return;
@@ -189,10 +199,16 @@ client.on("messageCreate", async (msg) => {
                 await saveUserBalance(userId, userBalance - amount);
                 await saveUserBalance(targetUserId, (targetUserBalance || 0) + amount);
 
-                msg.channel.send(`You have paid ${amount} to ${targetUser.username}`);
+                const transactionEmbed = new EmbedBuilder()
+                    .setColor('#0099ff') 
+                    .setTitle('Currency Transaction')
+                    .setDescription(`**You have paid ${amount} to ${targetUser.username}**`)
+                    .setTimestamp(); 
+
+                msg.channel.send({ embeds: [transactionEmbed] });
             }
                 
-            }
+        }
 
         client.on(Events.InteractionCreate, async (interaction) => {
             if (!interaction.isButton()) return;
@@ -230,7 +246,6 @@ client.on("messageCreate", async (msg) => {
 
         try {
             await dynamodb.put(params).promise();
-            console.log('Data saved:', userId);
         } catch (err) {
             console.error('Unable to save data:', err);
         }
@@ -276,43 +291,6 @@ client.on("messageCreate", async (msg) => {
         
     }*/
 
-    async function getUsersBalance(userId) {
-        const params = {
-            TableName: 'Dani-bot-playerbase',
-            Key: {
-                'user-id': userId 
-            }
-        };
-
-        try {
-            const data = await dynamodb.get(params).promise();
-            return data.Item ? data.Item.Balance : null;
-        } catch (err) {
-            console.error('Unable to load balance:', err);
-            return null;
-        }
-    }
-
-    async function saveUserBalance(userId, bal) {
-        const params = {
-            TableName: 'Dani-bot-playerbase',
-            Key: {
-                "user-id": userId
-            },
-            UpdateExpression: 'SET Balance = :bal',
-            ExpressionAttributeValues: {
-                ':bal': bal
-            },
-        };
-        console.log("test");
-
-        try {
-            await dynamodb.update(params).promise();
-            console.log('Balance saved:', userId, bal);
-        } catch (err) {
-            console.error('Unable to save balance:', err);
-        }
-    }
 });
 
 client.login(process.env.Token);
