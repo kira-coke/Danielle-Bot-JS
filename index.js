@@ -55,10 +55,11 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send({ embeds: [noUserdata] });
                 return;  
             }
-        } 
-        if(command === "start"){
-            msg.channel.send(`**You are already registered!**`);
-            return;
+        } else{
+            if(command === "start"){
+                msg.channel.send(`**You are already registered!**`);
+                return;
+            }
         }
         
         if (command === "profile") {
@@ -147,6 +148,10 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "pay"){
             const amount = parseFloat(args[1]);
+            if(amount < 0){
+                msg.channel.send('You are not allowed to steal monies bad oddy');
+                return;
+            }
             let targetUser = msg.mentions.users.first();
             if(targetUser === undefined){
                 msg.channel.send('Please mention a user.');
