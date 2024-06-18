@@ -28,34 +28,39 @@ client.on("messageCreate", async (msg) => {
         const args = msg.content.slice(prefix.length).trim().split(' ');
         const command = args.shift().toLowerCase();
         const userId = msg.author.id;
-        
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const authorAvatarURL = msg.author.displayAvatarURL();
+        const userExists = await checkUserExists(userId);
         if (msg.author.bot) return;
-
-        if (command === "start") {
-            const userExists = await checkUserExists(userId);
-
-            if (userExists) {
-                msg.channel.send(`**You are already registered!**`);
-                return;
+        if(!userExists){
+            if (command === "start") {
+                const embed = new EmbedBuilder()
+                    .setColor(0x0099ff)
+                    .setTitle("**Welcome to Danielle Bot **" + authorTag + "**!**")
+                    .setDescription(
+                        "**Enjoy your stay <:daniheart:1251995500308336723> You have been given 10,000 coins as a welcome gift!**",
+                    )// add an amount of currency here and add it to the users balance after they start
+                    .setImage(
+                        "https://media.discordapp.net/attachments/863906210582626335/1252011345168175225/newjeans-danielle-omg-4k-wallpaper-uhdpaper.com-2350i.jpg?ex=6670a9ed&is=666f586d&hm=985b63d3eb9d63aa6a86c8479f85e6a1d8aa61d47e5329d011978f35ab3e67a1&=&format=webp&width=1177&height=662",
+                    )
+                    .setTimestamp();
+                msg.reply({ embeds: [embed] });
+                await saveUserData(userId);
             }
-            
-            const embed = new EmbedBuilder()
-                .setColor(0x0099ff)
-                .setTitle("**Welcome to Danielle Bot **" + authorTag + "**!**")
-                .setDescription(
-                    "**Enjoy your stay <:daniheart:1251995500308336723> You have been given 10,000 coins as a welcome gift!**",
-                )// add an amount of currency here and add it to the users balance after they start
-                .setImage(
-                    "https://media.discordapp.net/attachments/863906210582626335/1252011345168175225/newjeans-danielle-omg-4k-wallpaper-uhdpaper.com-2350i.jpg?ex=6670a9ed&is=666f586d&hm=985b63d3eb9d63aa6a86c8479f85e6a1d8aa61d47e5329d011978f35ab3e67a1&=&format=webp&width=1177&height=662",
-                )
-                .setTimestamp();
-            msg.reply({ embeds: [embed] });
-            await saveUserData(userId);
-            //msg.channel.send(`Welcome to danielle bot ${msg.author.username}`);
+            else{
+                const noUserdata = new EmbedBuilder()
+                    .setColor('#EE4B2B')
+                    .setDescription(`Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`)
+                    .setTimestamp();
+                msg.channel.send({ embeds: [noUserdata] });
+                return;  
+            }
+        } 
+        if(command === "start"){
+            msg.channel.send(`**You are already registered!**`);
+            return;
         }
-
+        
         if (command === "profile") {
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff) //should be able to change colour
@@ -119,6 +124,71 @@ client.on("messageCreate", async (msg) => {
             msg.reply({ embeds: [embed], components: [row] });
         }
 
+        if(command === "bal"){
+            const userBal = await getUsersBalance(userId);
+            if (userBal === null) {
+                const noBalanceEmbed = new EmbedBuilder()
+                    .setColor('#EE4B2B')
+                    .setTitle(`${msg.author.username}'s Balance`)
+                    .setDescription(`No balance found for this user. Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`)
+                    .setTimestamp();
+                msg.channel.send({ embeds: [noBalanceEmbed] });
+                return;
+            }
+
+            const balanceEmbed = new EmbedBuilder()
+                .setColor('#00FF00')
+                .setTitle(`${msg.author.username}'s Balance`)
+                .setDescription(`**${userBal}**`)
+                .setTimestamp();
+            msg.channel.send({ embeds: [balanceEmbed] });
+            
+        }
+
+        if(command === "pay"){
+            const amount = parseFloat(args[1]);
+            let targetUser = msg.mentions.users.first();
+            if(targetUser === undefined){
+                msg.channel.send('Please mention a user.');
+                return;
+            }
+            if (isNaN(amount)) {
+                msg.channel.send('Please provide a valid amount!');
+                return;
+            }
+            console.log("checking user");
+            const userExists = await checkUserExists(targetUser.id);
+            console.log("checked user");
+            if (!userExists) {
+                msg.channel.send(`**This user is not registered yet, please tell them to do .start**`);
+                return;
+            }else{
+                const targetUserId = targetUser.id;
+
+                // Load balances for both users
+                const userBalance = await getUsersBalance(userId);
+                const targetUserBalance = await getUsersBalance(targetUserId);
+                console.log(userBalance + targetUserBalance);
+
+                if (userBalance === null) {
+                msg.channel.send('No balance found for you.');
+                return;
+                }
+
+                if (userBalance < amount) {
+                msg.channel.send('Insufficient funds.');
+                return;
+                }
+
+                // Update balances
+                await saveUserBalance(userId, userBalance - amount);
+                await saveUserBalance(targetUserId, (targetUserBalance || 0) + amount);
+
+                msg.channel.send(`You have paid ${amount} to ${targetUser.username}`);
+            }
+                
+            }
+
         client.on(Events.InteractionCreate, async (interaction) => {
             if (!interaction.isButton()) return;
 
@@ -141,6 +211,7 @@ client.on("messageCreate", async (msg) => {
         });
     }
 
+    //function for the inital adding of a user to the database only
     async function saveUserData(userId) {
         const params = {
             TableName: 'Dani-bot-playerbase',
@@ -148,7 +219,7 @@ client.on("messageCreate", async (msg) => {
                 'user-id': userId,
                 'Balance': 10000,
                 'Enabled': true,
-                'Join date': msg.createdTimestamp
+                'JoinDate': msg.createdAt.toString()
             }
         };
 
@@ -158,7 +229,7 @@ client.on("messageCreate", async (msg) => {
         } catch (err) {
             console.error('Unable to save data:', err);
         }
-    }
+    } 
 
     async function checkUserExists(userId) {
         const params = {
@@ -174,6 +245,67 @@ client.on("messageCreate", async (msg) => {
         } catch (err) {
             console.error('Unable to check if user exists:', err);
             return false;
+        }
+    }
+
+   /* async function getUserData(userId){
+        try {
+            const params = {
+                TableName: 'Dani-bot-playerbase',
+                Key: {
+                    'user-id': userId // Assuming userId is the partition key
+                }
+            };
+
+            const { Item } = await dynamodb.get(params).promise();
+
+            if (!Item) {
+                throw new Error('User not found'); // Handle case where user is not found
+            }
+
+            return Item; // Return the entire item for the user
+        } catch (error) {
+            console.error('Error getting user data:', error);
+            throw error; // Handle or propagate the error as needed
+        }
+        
+    }*/
+
+    async function getUsersBalance(userId) {
+        const params = {
+            TableName: 'Dani-bot-playerbase',
+            Key: {
+                'user-id': userId 
+            }
+        };
+
+        try {
+            const data = await dynamodb.get(params).promise();
+            return data.Item ? data.Item.Balance : null;
+        } catch (err) {
+            console.error('Unable to load balance:', err);
+            return null;
+        }
+    }
+
+    async function saveUserBalance(userId, bal) {
+        const params = {
+            TableName: 'Dani-bot-playerbase',
+            Key: {
+                "user-id": userId
+            },
+            UpdateExpression: 'SET Balance = :bal',
+            ExpressionAttributeValues: {
+                ':bal': bal
+            },
+        };
+        console.log("test");
+
+        try {
+            await dynamodb.update(params).promise();
+            console.log('Balance saved:', userId, bal);
+        } catch (err) {
+            console.error('Unable to save balance:', err);
         }
     }
 });
