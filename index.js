@@ -8,7 +8,7 @@ AWS.config.update({
     region: 'eu-west-2'
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const {getRandomDynamoDBItem} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -79,15 +79,15 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "claim") {
             // get a random card from the storage and store the details to be able to be used in bellow embeded message
-            const tableName = 'cards';
             (async () => {
                     try {
+                        const tableName = 'cards';
                         // Call the function and store the returned URL in a const
                         const randomCard = await getRandomDynamoDBItem(tableName);
                         const embed = new EmbedBuilder()
                             .setColor(0x0099ff)
                             .setTitle("\n\u200B\n**Claim Recieved!**\n")
-                            .setDescription(`**You have dropped ${randomCard['GroupName']} ${randomCard['GroupMember']}**`)
+                            .setDescription(`You have dropped **${randomCard['GroupName']} ${randomCard['GroupMember']}**`)
                             .setImage(
                                 randomCard['cardUrl'],
                             ) // changed depending on the card recieved
@@ -96,11 +96,35 @@ client.on("messageCreate", async (msg) => {
                             .setTimestamp();
                         msg.reply({ embeds: [embed] });
                         // after all that tell the database this user now has this card in their inv
+                    try{
+                        const secondTableName = 'user-cards';
+                        const attributeName = randomCard['card-id']
+                        console.log("first point");
+                        const numberOfCopies = await countEntriesWithSameSecondaryKey(secondTableName, userId, attributeName);       
+                        console.log(numberOfCopies);
+                        const item = {
+                            'user-id': userId, //primary key
+                            'secondary-card-id': randomCard['card-id']+(numberOfCopies)+1, //secondary key
+                            'card-id': randomCard['card-id'], //id for which base card it is
+                            'upgradable': false,
+                        };
+                        writeToDynamoDB(secondTableName, item)
+                        .then(() => {
+                            console.log('Successfully wrote item to DynamoDB');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                        
+                    }catch (error) {
+                            console.error('Error:', error);
+                        }
                         
                     } catch (error) {
                         console.error('Error:', error);
                     }
-            })();
+                    }    
+            )();
         }
 
         if (command === "drop") {
