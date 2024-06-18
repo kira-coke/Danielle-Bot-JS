@@ -33,7 +33,14 @@ client.on("messageCreate", async (msg) => {
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const authorAvatarURL = msg.author.displayAvatarURL();
         const userExists = await checkUserExists(userId);
+        const userDisabled = await checkUserDisabled(userId);
         if (msg.author.bot) return;
+        
+        if(!userDisabled){//returns false if they are no longer allowed to play (not enabled)
+            msg.reply('**You have been blacklisted from the game**');
+            return;
+        }
+        
         if(!userExists){
             if (command === "start") {
                 const embed = new EmbedBuilder()
@@ -286,6 +293,22 @@ client.on("messageCreate", async (msg) => {
         try {
             const data = await dynamodb.get(params).promise();
             return !!data.Item;
+        } catch (err) {
+            console.error('Unable to check if user exists:', err);
+            return false;
+        }
+    }
+
+    async function checkUserDisabled(userId){
+        const params = {
+            TableName: 'Dani-bot-playerbase',
+            Key: {
+                'user-id': userId
+            }
+        };
+        try {
+            const data = await dynamodb.get(params).promise();
+            return !!data.Item.Enabled;;
         } catch (err) {
             console.error('Unable to check if user exists:', err);
             return false;
