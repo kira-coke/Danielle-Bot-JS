@@ -148,8 +148,8 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "pay"){
             const amount = parseFloat(args[1]);
-            if(amount < 0){
-                msg.channel.send('You are not allowed to steal monies bad oddy');
+            if((amount < 0) | !(Number.isInteger(amount))){
+                msg.channel.send('**Ensure you have entered a valid amount to pay**');
                 return;
             }
             let targetUser = msg.mentions.users.first();
