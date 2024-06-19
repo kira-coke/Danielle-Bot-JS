@@ -32,10 +32,9 @@ client.on("messageCreate", async (msg) => {
         const command = args.shift().toLowerCase();
         const userId = msg.author.id;
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
-        const authorAvatarURL = msg.author.displayAvatarURL();
         const userExists = await checkUserExists(userId);
         const claimCd = 5; 
-        const dropCd = 600;
+        const dropCd = 5;
         if (msg.author.bot) return;
 
         //check for if theyre blacklisted
@@ -181,7 +180,6 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "drop") {
             // get a 3 random cards from the storage and store the details to be able to be used in bellow embeded message
-            // put those 3 cards into a collage and send it to the user
             // register which button the user clicked and then which image (card) corresponds
             // add card to their inv in database
             if (isCooldownExpired(userId, command, dropCd)) {
@@ -191,59 +189,111 @@ client.on("messageCreate", async (msg) => {
                 msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
                 return;
             }
-            //get 3 random cards from database and store them in an array
-            const embed = new EmbedBuilder()
-                .setColor(0x0099ff)
-                .setTitle("**Drop recieved**")
-                .setDescription(
-                    "\n\u200B\n**Click an option bellow to claim a card**\n",
-                )
-                .setImage(
-                    "https://media.discordapp.net/attachments/1112196173491601409/1252084517733142640/Untitled_1.png?ex=6670ee13&is=666f9c93&hm=c939ea279d4235e16386948c6b2adb308741eb6ddf75e68ecffa2d652fec571d&=&format=webp&quality=lossless&width=687&height=340",
-                )
-                .setFooter({
-                    text: msg.author.tag,
-                    iconURL: msg.author.displayAvatarURL({ dynamic: true })
-                })
-                .setTimestamp();
+            (async () => {
+                try {
+                    const tableName = "cards";
+                    const randomCardOne = await getRandomDynamoDBItem(tableName);
+                    const randomCardTwo = await getRandomDynamoDBItem(tableName);
+                    const randomCardThree = await getRandomDynamoDBItem(tableName);
 
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("button1")
-                    .setLabel("Button 1")
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId("Card2")
-                    .setLabel("Button 2")
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId("Card3")
-                    .setLabel("Button 3")
-                    .setStyle(ButtonStyle.Primary),
-            );
+                    const embed = new EmbedBuilder()
+                        .setColor(0x0099ff)
+                        .setTitle("**Drop recieved**")
+                        .setDescription(
+                            "\n\u200B\n**Click an option bellow to claim a card**\n\u200B\n",
+                        )
+                        .setFooter({
+                            text: msg.author.tag,
+                            iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                        })
+                        .setTimestamp();
 
-            client.on(Events.InteractionCreate, async (interaction) => {
-                if (!interaction.isButton()) return;
+                    const row = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId("button1")
+                            .setLabel(String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")")
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId("button2")
+                            .setLabel(String(randomCardTwo["GroupMember"]) + " (" + String(randomCardTwo["Theme"]) +")")
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId("button3")
+                            .setLabel(String(randomCardThree["GroupMember"]) + " (" + String(randomCardThree["Theme"]) +")")
+                            .setStyle(ButtonStyle.Secondary),
+                    );
 
-                await interaction.deferUpdate();
-                let response;
+                    client.on(Events.InteractionCreate, async (interaction) => {
+                        if (interaction.user.id !== msg.author.id) { //can only interact with your own command
+                            //await interaction.reply({ content: 'This is not your command', ephemeral: true });
+                            return;
+                        }
+                        //add something to have it so you can only click one button and only once
+                        
+                        if (!interaction.isButton()) return;
 
-                switch (interaction.customId) {
-                    case "button1":
-                        response = "You have claimed card 1!";
-                        break;
-                    case "button2":
-                        response = "You have claimed card 2!";
-                        break;
-                    case "button3":
-                        response = "You have claimed card 3!";
-                        break;
+                        await interaction.deferUpdate();
+                        let response;
+                        const thirdTableName = "bot-data";
+                        const newCardID = await getNewCardId(thirdTableName);
+
+                        switch (interaction.customId) {
+                            case "button1":
+                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                const card1 = {
+                                    "user-id": userId, //primary key
+                                    "secondary-card-id": newCardID, //secondary key
+                                    "card-id": randomCardOne["card-id"], //id for which base card it is
+                                    upgradable: false,
+                                };
+                                writeToDynamoDB("user-cards", card1);
+                                const item1 = {
+                                    botName: "Danielle Bot",
+                                    nextCardID: Number(newCardID),
+                                };
+                                writeToDynamoDB(thirdTableName, item1)
+                                break;
+                            case "button2":
+                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                const card2 = {
+                                    "user-id": userId, //primary key
+                                    "secondary-card-id": newCardID, //secondary key
+                                    "card-id": randomCardOne["card-id"], //id for which base card it is
+                                    upgradable: false,
+                                };
+                                writeToDynamoDB("user-cards", card2);
+                                const item2 = {
+                                    botName: "Danielle Bot",
+                                    nextCardID: Number(newCardID),
+                                };
+                                writeToDynamoDB(thirdTableName, item2)
+                                break;
+                            case "button3":
+                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                const card3 = {
+                                    "user-id": userId, //primary key
+                                    "secondary-card-id": newCardID, //secondary key
+                                    "card-id": randomCardOne["card-id"], //id for which base card it is
+                                    upgradable: false,
+                                };
+                                writeToDynamoDB("user-cards", card3);
+                                const item3 = {
+                                    botName: "Danielle Bot",
+                                    nextCardID: Number(newCardID),
+                                };
+                                writeToDynamoDB(thirdTableName, item3)
+                                break;
+                        }
+                        await interaction.followUp({ content: response, ephemeral: true });
+                    });
+                    msg.reply({ embeds: [embed], components: [row] });
+                } catch (error) {
+                    console.error("Error:", error);
                 }
+            })();
 
-                await interaction.followUp({ content: response, ephemeral: true });
-            });
-
-            msg.reply({ embeds: [embed], components: [row] });
         }
 
         if(command === "bal"){
@@ -444,6 +494,7 @@ client.on("messageCreate", async (msg) => {
             return false;
         }
     }
+
 
 });
 
