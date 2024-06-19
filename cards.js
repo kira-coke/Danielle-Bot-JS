@@ -95,6 +95,7 @@ async function getCardFromTable(tableName, key) {
     }
 }
 
+//ensure in the table there is a dummy item with cardId 0 or wont work for now
 async function getNewCardId(tableName){
     //get highest numvber, and return it + 1
     const botName = "Danielle Bot";
@@ -102,13 +103,14 @@ async function getNewCardId(tableName){
     try {
         const params = {
             TableName: tableName,
-            KeyConditionExpression: '#pk = :pkValue',
+            KeyConditionExpression: '#pk = :pkValue AND #sk >= :skValue',
             ExpressionAttributeNames: {
                 '#pk': 'botName', // Replace with your partition key attribute name
                 '#sk': sortKeyAttribute // Replace with your sort key attribute name
             },
                 ExpressionAttributeValues: {
                     ':pkValue': botName,
+                    ':skValue': 0
                 },
                 ScanIndexForward: false, // Set to false to get the highest value first
                 Limit: 1 // Limit to the top item
@@ -118,10 +120,13 @@ async function getNewCardId(tableName){
         const data = await dynamodb.query(params).promise();
 
         if (!data.Items) {
-            throw new Error('Item not found in DynamoDB');
+            throw new Error('No Items found in DynamoDB');
         }
-        console.log('Retrieved item from DynamoDB:', data.Items);
-        return data.Items; // Return the retrieved item
+        const highestCurrentID = data.Items[0];
+        const newCardID = highestCurrentID.nextCardID +1 ;
+        const cardIDString = newCardID.toString();
+        console.log(newCardID);
+        return cardIDString; // Return the newCardID for the next card
         
         }catch (error) {
         console.error('Error retrieving item from DynamoDB:', error);
@@ -129,8 +134,6 @@ async function getNewCardId(tableName){
         }
 
 }
-
-
 
 
 /*async function getRandomCard(bucketName){

@@ -10,7 +10,7 @@ AWS.config.update({
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
 const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId} = require('./cards');
-const {getUsersBalance, saveUserBalance} = require('./userBalanceCds');
+const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
   intents: [
@@ -104,52 +104,79 @@ client.on("messageCreate", async (msg) => {
             }
             // get a random card from the storage and store the details to be able to be used in bellow embeded message
             (async () => {
+                try {
+                    const tableName = "cards";
+                    // Call the function and store the returned URL in a const
+                    const randomCard = await getRandomDynamoDBItem(tableName);
                     try {
-                        const tableName = 'cards';
-                        // Call the function and store the returned URL in a const
-                        const randomCard = await getRandomDynamoDBItem(tableName);
+                        const secondTableName = "user-cards";
+                        const attributeName = randomCard["card-id"];
+                        const numberOfCopies = await getHowManyCopiesOwned(
+                            secondTableName,
+                            userId,
+                            attributeName,
+                        );
+                        const thirdTableName = "bot-data";
+                        const newCardID = await getNewCardId(thirdTableName);
+                        //reaplce number of copies in the second-card-id field by a method that adds 1 to it
+                        const item = {
+                            "user-id": userId, //primary key
+                            "secondary-card-id": newCardID, //secondary key
+                            "card-id": randomCard["card-id"], //id for which base card it is
+                            upgradable: false,
+                        };
+                        writeToDynamoDB(secondTableName, item)
+                            .then(() => {
+                                console.log(
+                                    "Successfully wrote item to DynamoDB first table",
+                                );
+                            })
+                            .catch((error) => {
+                                console.error("Error:", error);
+                            });
+                        const item2 = {
+                            botName: "Danielle Bot",
+                            nextCardID: Number(newCardID),
+                        };
+                        writeToDynamoDB(thirdTableName, item2)
+                            .then(() => {
+                                console.log(
+                                    "Successfully wrote item to DynamoDB second table",
+                                );
+                            })
+                            .catch((error) => {
+                                console.error("Error:", error);
+                            });
+
                         const embed = new EmbedBuilder()
                             .setColor(0x0099ff)
                             .setTitle("\n\u200B\n**Claim Recieved!**\n")
-                            .setDescription(`You have dropped **${randomCard['GroupName']} ${randomCard['GroupMember']}**`)
-                            .setImage(
-                                randomCard['cardUrl'],
-                            ) // changed depending on the card recieved
+                            .setDescription(
+                                `You have dropped **${randomCard["GroupName"]} ${randomCard["GroupMember"]}**`,
+                            )
+                            .addFields(
+                                {
+                                    name: "Copies now Owned",
+                                    value: String(numberOfCopies + 1),
+                                    inline: true,
+                                }, // You can set inline to true if you want the field to display inline.
+                            )
+                            .setImage(randomCard["cardUrl"]) // changed depending on the card recieved
                             .setFooter({
                                 text: msg.author.tag,
-                                iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                                iconURL: msg.author.displayAvatarURL({
+                                    dynamic: true,
+                                }),
                             })
                             .setTimestamp();
                         msg.reply({ embeds: [embed] });
-                        // after all that tell the database this user now has this card in their inv
-                    try{
-                        const secondTableName = 'user-cards';
-                        const attributeName = randomCard['card-id']
-                        const numberOfCopies = await getHowManyCopiesOwned(secondTableName, userId, attributeName);       
-                        console.log(numberOfCopies);
-                        //reaplce number of copies in the second-card-id field by a method that adds 1 to it
-                        const item = {
-                            'user-id': userId, //primary key
-                            'secondary-card-id': '1', //secondary key
-                            'card-id': randomCard['card-id'], //id for which base card it is
-                            'upgradable': false,
-                        };
-                        writeToDynamoDB(secondTableName, item)
-                        .then(() => {
-                            console.log('Successfully wrote item to DynamoDB first table');
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                        });
-                    }catch (error) {
-                            console.error('Error:', error);
-                        }
-                        
+                    } catch (error) {
+                        console.error("Error:", error);
+                    }
                 } catch (error) {
-                    console.error('Error:', error);
+                    console.error("Error:", error);
                 }
-                }    
-            )();
+            })();
         }
 
         if (command === "drop") {
