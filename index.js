@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -191,6 +191,7 @@ client.on("messageCreate", async (msg) => {
                 msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
                 return;
             }
+            //get 3 random cards from database and store them in an array
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
                 .setTitle("**Drop recieved**")
@@ -220,6 +221,27 @@ client.on("messageCreate", async (msg) => {
                     .setLabel("Button 3")
                     .setStyle(ButtonStyle.Primary),
             );
+
+            client.on(Events.InteractionCreate, async (interaction) => {
+                if (!interaction.isButton()) return;
+
+                await interaction.deferUpdate();
+                let response;
+
+                switch (interaction.customId) {
+                    case "button1":
+                        response = "You have claimed card 1!";
+                        break;
+                    case "button2":
+                        response = "You have claimed card 2!";
+                        break;
+                    case "button3":
+                        response = "You have claimed card 3!";
+                        break;
+                }
+
+                await interaction.followUp({ content: response, ephemeral: true });
+            });
 
             msg.reply({ embeds: [embed], components: [row] });
         }
@@ -304,6 +326,34 @@ client.on("messageCreate", async (msg) => {
             //write cooldown embed
         }
 
+        if(command === "index"){ //TOTO modify it so it only shows like 10 per pages or something 
+            const listOfCards = await (getTotalCards('cards'));
+            listOfCards.Items.forEach(element => {
+                console.log(element.GroupMember);
+                console.log(element.GroupName);
+            })
+
+            const embed = new EmbedBuilder()
+                .setTitle(`Displaying all the current cards in circulation`)
+                .setColor(0x00AE86)
+                .setFooter({
+                    text: msg.author.tag,
+                    iconURL: msg.author.displayAvatarURL({
+                        dynamic: true,
+                    }),
+                })
+            listOfCards.Items.forEach(attribute => {
+                embed.addFields(
+                    { name: 'Group Name', value: attribute.GroupName, inline: true },
+                    { name: 'Member Name', value: attribute.GroupMember, inline: true },
+                    { name: 'Card ID', value: attribute["card-id"], inline: true},
+                );
+            });
+            msg.channel.send({ embeds: [embed] });
+            //scan the cards table and return every item
+            //list these items in an embed
+        }
+
         if(command === "view"){
             //get second parameter entered by the user and parse that as the cardid to get from table
             const cardId = args[0];
@@ -340,28 +390,6 @@ client.on("messageCreate", async (msg) => {
             )();
             
         }
-
-        //temporary button shit idt it works minus saying u clicked something atm and they only show up on drop idk
-        client.on(Events.InteractionCreate, async (interaction) => {
-            if (!interaction.isButton()) return;
-
-            await interaction.deferUpdate();
-            let response;
-
-            switch (interaction.customId) {
-                case "button1":
-                    response = "You have claimed card 1!";
-                    break;
-                case "button2":
-                    response = "You have claimed card 2!";
-                    break;
-                case "button3":
-                    response = "You have claimed card 3!";
-                    break;
-            }
-
-            await interaction.followUp({ content: response, ephemeral: true });
-        });
     }
 
     //function for the inital adding of a user to the database only
@@ -416,30 +444,6 @@ client.on("messageCreate", async (msg) => {
             return false;
         }
     }
-
-
-   /* async function getUserData(userId){
-        try {
-            const params = {
-                TableName: 'Dani-bot-playerbase',
-                Key: {
-                    'user-id': userId // Assuming userId is the partition key
-                }
-            };
-
-            const { Item } = await dynamodb.get(params).promise();
-
-            if (!Item) {
-                throw new Error('User not found'); // Handle case where user is not found
-            }
-
-            return Item; // Return the entire item for the user
-        } catch (error) {
-            console.error('Error getting user data:', error);
-            throw error; // Handle or propagate the error as needed
-        }
-        
-    }*/
 
 });
 

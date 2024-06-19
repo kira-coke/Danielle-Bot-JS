@@ -135,6 +135,26 @@ async function getNewCardId(tableName){
 
 }
 
+async function getTotalCards(tableName){
+    //get all items from table
+    try {
+        // Scan the table to get all items
+        const scanParams = {
+            TableName: tableName
+        };
+        const data = await dynamodb.scan(scanParams).promise();
+
+        if (!data.Items || data.Items.length === 0) {
+            throw new Error('No items found in the table');
+        }
+        //console.log(data);
+        return data;
+    } catch (error) {
+        console.error('Error retrieving items from DynamoDB:', error);
+        throw error;
+    }
+}
+
 
 /*async function getRandomCard(bucketName){
     try {
@@ -164,4 +184,4 @@ async function getNewCardId(tableName){
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId };
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards };
