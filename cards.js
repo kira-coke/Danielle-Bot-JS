@@ -127,4 +127,4 @@ async function getItemFromTable(tableName, key) {
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey };
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey, getItemFromTable };

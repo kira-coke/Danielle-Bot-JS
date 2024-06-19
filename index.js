@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey, getItemFromTable} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -34,15 +34,17 @@ client.on("messageCreate", async (msg) => {
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const authorAvatarURL = msg.author.displayAvatarURL();
         const userExists = await checkUserExists(userId);
-        const userDisabled = await checkUserDisabled(userId);
         const claimCd = 300; 
         const dropCd = 600;
         if (msg.author.bot) return;
 
         
-        if(!userDisabled){//returns false if they are no longer allowed to play (not enabled)
-            msg.reply('**You have been blacklisted from the game**');
-            return;
+        if(userExists){
+            const userDisabled = await checkUserDisabled(userId);
+            if(!userDisabled){//returns false if they are no longer allowed to play (not enabled)
+                msg.reply('**You have been blacklisted from the game**');
+                return;
+            }
         }
         
         if(!userExists){
@@ -215,6 +217,10 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
             let targetUser = msg.mentions.users.first();
+            if(targetUser === msg.author){
+                msg.channel.send('** Trying to give yourself money? **');
+                return;
+            }
             if(targetUser === undefined){
                 msg.channel.send('Please mention a user.');
                 return;
@@ -261,6 +267,34 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "cd"){
             //write cooldown embed
+        }
+
+        if(command === "view"){
+            //const cardId = parseFloat(args[1]);
+            //console.log(cardId);
+            (async () => {
+                    try {
+                        const tableName = 'cards';
+                        // Call the function and store the returned URL in a const
+                        const cardToView = await getItemFromTable(tableName, 'NJDNOMG');
+                        const embed = new EmbedBuilder()
+                            .setColor(0x0099ff)
+                            .setTitle("\n\u200B\n**Claim Recieved!**\n")
+                            .setDescription(`You are viewing **${cardToView['GroupName']} ${randomCard['GroupMember']}**`)
+                            .setImage(
+                                cardToView['cardUrl'],
+                            ) // changed depending on the card recieved
+                            .setThumbnail(authorAvatarURL)
+                            .setFooter({ text: `${msg.author.tag}`})
+                            .setTimestamp();
+                        msg.reply({ embeds: [embed] });
+
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                    }    
+            )();
+            
         }
 
         client.on(Events.InteractionCreate, async (interaction) => {
@@ -330,6 +364,7 @@ client.on("messageCreate", async (msg) => {
         };
         try {
             const data = await dynamodb.get(params).promise();
+            //console.log(data);
             return !!data.Item.Enabled;;
         } catch (err) {
             console.error('Unable to check if user exists:', err);
