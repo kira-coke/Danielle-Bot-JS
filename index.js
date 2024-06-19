@@ -8,6 +8,7 @@ AWS.config.update({
     region: 'eu-west-2'
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
 const {getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
@@ -34,7 +35,10 @@ client.on("messageCreate", async (msg) => {
         const authorAvatarURL = msg.author.displayAvatarURL();
         const userExists = await checkUserExists(userId);
         const userDisabled = await checkUserDisabled(userId);
+        const claimCd = 300; 
+        const dropCd = 600;
         if (msg.author.bot) return;
+
         
         if(!userDisabled){//returns false if they are no longer allowed to play (not enabled)
             msg.reply('**You have been blacklisted from the game**');
@@ -85,6 +89,13 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "claim") {
+            if (isCooldownExpired(userId, command, claimCd)) {
+                setUserCooldown(userId, command);
+            } else {
+                const remainingTime = getUserCooldown(userId, command, claimCd);
+                msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
+                return;
+            }
             // get a random card from the storage and store the details to be able to be used in bellow embeded message
             (async () => {
                     try {
@@ -139,6 +150,13 @@ client.on("messageCreate", async (msg) => {
             // put those 3 cards into a collage and send it to the user
             // register which button the user clicked and then which image (card) corresponds
             // add card to their inv in database
+            if (isCooldownExpired(userId, command, dropCd)) {
+                setUserCooldown(userId, command);
+            } else {
+                const remainingTime = getUserCooldown(userId, command, dropCd);
+                msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
+                return;
+            }
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
                 .setTitle("**Drop recieved**")
@@ -241,6 +259,10 @@ client.on("messageCreate", async (msg) => {
                 
         }
 
+        if(command === "cd"){
+            //write cooldown embed
+        }
+
         client.on(Events.InteractionCreate, async (interaction) => {
             if (!interaction.isButton()) return;
 
@@ -314,6 +336,7 @@ client.on("messageCreate", async (msg) => {
             return false;
         }
     }
+
 
    /* async function getUserData(userId){
         try {
