@@ -26,8 +26,6 @@ async function getRandomDynamoDBItem(tableName) {
 }
 
 async function writeToDynamoDB(tableName, item) {
-    //console.log(item);
-   // console.log(tableName);
     try {
         const params = {
             TableName: tableName,
@@ -43,26 +41,26 @@ async function writeToDynamoDB(tableName, item) {
     }
 }
 
-async function countEntriesWithSameSecondaryKey(tableName, primaryKeyValue, attributeName) {
+async function getHowManyCopiesOwned(tableName, primaryKeyValue, attributeName) {
     try {
-        console.log(attributeName.toString());
         const params = {
             TableName: tableName,
             KeyConditionExpression: '#pk = :pkValue',
-            FilterExpression: `attribute_exists(#attr)`,
+            FilterExpression: '#attr = :attrValue',
             ExpressionAttributeNames: {
                 '#pk': 'user-id',   // Replace with your partition key attribute name
-                '#attr': attributeName // Replace with the attribute name you want to count instances of
+                '#attr': 'card-id' // Replace with the attribute name you want to count instances of
             },
             ExpressionAttributeValues: {
                 ':pkValue': primaryKeyValue,
+                ':attrValue': attributeName,
             },
             Select: 'COUNT'  // Count the number of items matching the condition
         };
 
         // Call DynamoDB query API to count items
         const data = await dynamodb.query(params).promise();
-        console.log(data);
+       // console.log(data);
 
         // The count of items with the same secondary key
         const count = data.Count || 0;
@@ -74,11 +72,13 @@ async function countEntriesWithSameSecondaryKey(tableName, primaryKeyValue, attr
     }
 }
 
-async function getItemFromTable(tableName, key) {
+async function getCardFromTable(tableName, key) {
     try {
         const params = {
             TableName: tableName,
-            Key: key
+            Key: {
+                'card-id': key
+            }
         };
 
         // Call DynamoDB getItem API
@@ -87,13 +87,47 @@ async function getItemFromTable(tableName, key) {
         if (!data.Item) {
             throw new Error('Item not found in DynamoDB');
         }
-
         console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
-        console.error('Error retrieving item from DynamoDB:', error);
+        //console.error('Error retrieving item from DynamoDB:', error);
         throw error;
     }
+}
+
+async function getNewCardId(tableName){
+    //get highest numvber, and return it + 1
+    const botName = "Danielle Bot";
+    const sortKeyAttribute  = 'nextCardID'
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: '#pk = :pkValue',
+            ExpressionAttributeNames: {
+                '#pk': 'botName', // Replace with your partition key attribute name
+                '#sk': sortKeyAttribute // Replace with your sort key attribute name
+            },
+                ExpressionAttributeValues: {
+                    ':pkValue': botName,
+                },
+                ScanIndexForward: false, // Set to false to get the highest value first
+                Limit: 1 // Limit to the top item
+            };
+
+        // Call DynamoDB getItem API
+        const data = await dynamodb.query(params).promise();
+
+        if (!data.Items) {
+            throw new Error('Item not found in DynamoDB');
+        }
+        console.log('Retrieved item from DynamoDB:', data.Items);
+        return data.Items; // Return the retrieved item
+        
+        }catch (error) {
+        console.error('Error retrieving item from DynamoDB:', error);
+        throw error;
+        }
+
 }
 
 
@@ -127,4 +161,4 @@ async function getItemFromTable(tableName, key) {
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey, getItemFromTable };
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId };

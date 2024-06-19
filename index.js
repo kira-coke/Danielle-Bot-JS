@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, countEntriesWithSameSecondaryKey, getItemFromTable} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -34,11 +34,11 @@ client.on("messageCreate", async (msg) => {
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const authorAvatarURL = msg.author.displayAvatarURL();
         const userExists = await checkUserExists(userId);
-        const claimCd = 300; 
+        const claimCd = 5; 
         const dropCd = 600;
         if (msg.author.bot) return;
 
-        
+        //check for if theyre blacklisted
         if(userExists){
             const userDisabled = await checkUserDisabled(userId);
             if(!userDisabled){//returns false if they are no longer allowed to play (not enabled)
@@ -46,7 +46,8 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
         }
-        
+
+        //check if theyre not registered, then let them start, if they are inform them they are registered
         if(!userExists){
             if (command === "start") {
                 const embed = new EmbedBuilder()
@@ -76,20 +77,23 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
         }
-        
+
         if (command === "profile") {
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff) //should be able to change colour
                 .setTitle(authorTag)
                 .setDescription("\u200B\n**Kira's temp profile**\n") //make this communicate with database so users can change desc
-                .setThumbnail(authorAvatarURL)
+                .setFooter({
+                    text: msg.author.tag,
+                    iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                })
                 .setImage(
                     "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/NJ_DN_HB.png",
                 ) //they should be able to change this - change card etc
                 .setTimestamp();
             msg.reply({ embeds: [embed] });
         }
-
+        
         if (command === "claim") {
             if (isCooldownExpired(userId, command, claimCd)) {
                 setUserCooldown(userId, command);
@@ -111,39 +115,40 @@ client.on("messageCreate", async (msg) => {
                             .setImage(
                                 randomCard['cardUrl'],
                             ) // changed depending on the card recieved
-                            .setThumbnail(authorAvatarURL)
-                            .setFooter({ text: `${msg.author.tag}`})
+                            .setFooter({
+                                text: msg.author.tag,
+                                iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                            })
                             .setTimestamp();
                         msg.reply({ embeds: [embed] });
                         // after all that tell the database this user now has this card in their inv
                     try{
                         const secondTableName = 'user-cards';
                         const attributeName = randomCard['card-id']
-                        console.log("first point");
-                        const numberOfCopies = await countEntriesWithSameSecondaryKey(secondTableName, userId, attributeName);       
+                        const numberOfCopies = await getHowManyCopiesOwned(secondTableName, userId, attributeName);       
                         console.log(numberOfCopies);
+                        //reaplce number of copies in the second-card-id field by a method that adds 1 to it
                         const item = {
                             'user-id': userId, //primary key
-                            'secondary-card-id': randomCard['card-id']+(numberOfCopies)+1, //secondary key
+                            'secondary-card-id': '1', //secondary key
                             'card-id': randomCard['card-id'], //id for which base card it is
                             'upgradable': false,
                         };
                         writeToDynamoDB(secondTableName, item)
                         .then(() => {
-                            console.log('Successfully wrote item to DynamoDB');
+                            console.log('Successfully wrote item to DynamoDB first table');
                         })
                         .catch(error => {
                             console.error('Error:', error);
                         });
-                        
                     }catch (error) {
                             console.error('Error:', error);
                         }
                         
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                    }    
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+                }    
             )();
         }
 
@@ -168,7 +173,10 @@ client.on("messageCreate", async (msg) => {
                 .setImage(
                     "https://media.discordapp.net/attachments/1112196173491601409/1252084517733142640/Untitled_1.png?ex=6670ee13&is=666f9c93&hm=c939ea279d4235e16386948c6b2adb308741eb6ddf75e68ecffa2d652fec571d&=&format=webp&quality=lossless&width=687&height=340",
                 )
-                .setThumbnail(authorAvatarURL)
+                .setFooter({
+                    text: msg.author.tag,
+                    iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             const row = new ActionRowBuilder().addComponents(
@@ -270,33 +278,43 @@ client.on("messageCreate", async (msg) => {
         }
 
         if(command === "view"){
-            //const cardId = parseFloat(args[1]);
-            //console.log(cardId);
+            //get second parameter entered by the user and parse that as the cardid to get from table
+            const cardId = args[0];
+            if(cardId === undefined){
+                msg.reply("**Please input a card id**");
+            }
+            console.log(cardId);
             (async () => {
                     try {
                         const tableName = 'cards';
                         // Call the function and store the returned URL in a const
-                        const cardToView = await getItemFromTable(tableName, 'NJDNOMG');
-                        const embed = new EmbedBuilder()
+                        const cardToView = await getCardFromTable(tableName, cardId);
+                        console.log(cardToView);
+                        const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                             .setColor(0x0099ff)
-                            .setTitle("\n\u200B\n**Claim Recieved!**\n")
-                            .setDescription(`You are viewing **${cardToView['GroupName']} ${randomCard['GroupMember']}**`)
+                            //.setTitle("\n\u200B\n**Claim Recieved!**\n")
+                            .setDescription(`You are viewing **${cardToView['GroupName']} ${cardToView['GroupMember']}**`)
                             .setImage(
                                 cardToView['cardUrl'],
                             ) // changed depending on the card recieved
-                            .setThumbnail(authorAvatarURL)
-                            .setFooter({ text: `${msg.author.tag}`})
+                            .setFooter({
+                                text: msg.author.tag,
+                                iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                            })
                             .setTimestamp();
                         msg.reply({ embeds: [embed] });
 
                     } catch (error) {
-                        console.error('Error:', error);
+                        msg.reply("**Please enter a valid card id**");
+                        console.log("Could not find card in table with card-id " + cardId);
+                        //console.error('Error:', error);
                     }
                     }    
             )();
             
         }
 
+        //temporary button shit idt it works minus saying u clicked something atm and they only show up on drop idk
         client.on(Events.InteractionCreate, async (interaction) => {
             if (!interaction.isButton()) return;
 
