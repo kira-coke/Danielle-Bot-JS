@@ -156,7 +156,7 @@ client.on("messageCreate", async (msg) => {
                             .addFields(
                                 {
                                     name: "Copies now Owned",
-                                    value: String(numberOfCopies + 1),
+                                    value: Discord.inlineCode(String(numberOfCopies + 1)),
                                     inline: true,
                                 }, // You can set inline to true if you want the field to display inline.
                             )
@@ -199,9 +199,9 @@ client.on("messageCreate", async (msg) => {
                     const embed = new EmbedBuilder()
                         .setColor(0x0099ff)
                         .setTitle("**Drop recieved**")
-                        .setDescription(
+                        /*.setDescription(
                             "\n\u200B\n**Click an option bellow to claim a card**\n\u200B\n",
-                        )
+                        )*/
                         .setFooter({
                             text: msg.author.tag,
                             iconURL: msg.author.displayAvatarURL({ dynamic: true })
@@ -300,18 +300,22 @@ client.on("messageCreate", async (msg) => {
             const userBal = await getUsersBalance(userId);
             if (userBal === null) {
                 const noBalanceEmbed = new EmbedBuilder()
-                    .setColor('#EE4B2B')
+                    .setColor('#ED4245')
                     .setTitle(`${msg.author.username}'s Balance`)
                     .setDescription(`No balance found for this user. Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`)
                     .setTimestamp();
                 msg.channel.send({ embeds: [noBalanceEmbed] });
                 return;
             }
+            function numberWithCommas(x) {
+                return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+            const balWithCommas = numberWithCommas(userBal);
 
             const balanceEmbed = new EmbedBuilder()
-                .setColor('#00FF00')
+                .setColor('#23272A')
                 .setTitle(`${msg.author.username}'s Balance`)
-                .setDescription(`**${userBal}**`)
+                .setDescription("**Balance: **" + Discord.inlineCode(`${balWithCommas}`))
                 .setTimestamp();
             msg.channel.send({ embeds: [balanceEmbed] });
             
@@ -319,6 +323,7 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "pay"){
             const amount = parseFloat(args[1]);
+            console.log(amount);
             if((amount < 0) | !(Number.isInteger(amount))){
                 msg.channel.send('**Ensure you have entered a valid amount to pay**');
                 return;
@@ -409,20 +414,34 @@ client.on("messageCreate", async (msg) => {
             const cardId = args[0];
             if(cardId === undefined){
                 msg.reply("**Please input a card id**");
-            }
-            console.log(cardId);
+                return;
+            }+
             (async () => {
                     try {
                         const tableName = 'cards';
                         // Call the function and store the returned URL in a const
                         const cardToView = await getCardFromTable(tableName, cardId);
                         console.log(cardToView);
+                        const secondTableName = "user-cards";
+                        const attributeName = cardToView["card-id"];
+                        const numberOfCopies = await getHowManyCopiesOwned(
+                            secondTableName,
+                            userId,
+                            attributeName,
+                        );
                         const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                             .setColor(0x0099ff)
                             .setDescription(`You are viewing **${cardToView['GroupName']} ${cardToView['GroupMember']}**`)
                             .setImage(
                                 cardToView['cardUrl'],
                             ) // changed depending on the card recieved
+                            .addFields(
+                                {
+                                    name: "You Own: ",
+                                    value: Discord.inlineCode(String(numberOfCopies)),
+                                    inline: true,
+                                },
+                            )
                             .setFooter({
                                 text: msg.author.tag,
                                 iconURL: msg.author.displayAvatarURL({ dynamic: true })
