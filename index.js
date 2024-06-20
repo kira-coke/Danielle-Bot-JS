@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -468,7 +468,7 @@ client.on("messageCreate", async (msg) => {
             //first check card id exists, if not tell user to enter a valid card id
             //get how many copies of the parsed cardID the user has
             //if the number is 0, give message saying u do not own enough copies to gift
-            //else get random items from table such that total returned = numberOfCopesToGive
+            //else get items from table such that total returned = numberOfCopesToGive
             //and then rewrite the user-id (aka who now owns it)
             (async () => {
                 const targetUserId = targetUser.id;
@@ -499,6 +499,13 @@ client.on("messageCreate", async (msg) => {
                         return;
                     }else{
                         msg.channel.send('Will write gifing shit in sec');
+                        try {
+                            //call the replaceCardOwner 
+                        }catch(error){
+                            console.log('Failed to gift the cards');
+                            console.log('Error:' + error);
+                        }
+                        //put command that puts the new primary key (user-id) to be the targetUserID
                         //code that rewrites who owns the cards now etc
                     }
                 }catch(error){

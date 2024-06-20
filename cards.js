@@ -153,6 +153,16 @@ async function getTotalCards(tableName){
     }
 }
 
+async function replaceCardOwner(tableName, secondaryCardId, newOwner){
+    //call getCardFromTableWithSK here
+    //could maybe call the new getCardFromTable with a secondary key here
+    // then u have the card object, so u can update the owner also in here
+}
+
+async function getCardFromTableWithSK(tableName, key, secondaryKey){
+    
+}
+
 
 /*async function getRandomCard(bucketName){
     try {
@@ -182,4 +192,4 @@ async function getTotalCards(tableName){
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards };
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner};
