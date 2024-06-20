@@ -7,9 +7,9 @@ AWS.config.update({
     secretAccessKey: process.env['Secret_access_key'],
     region: 'eu-west-2'
 });
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const {saveUserData, checkUserExists, checkUserDisabled, getUser, setUserCard, setUserBio} = require('./users.js');
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, changeNumberOwned, checkIfUserOwnsCard} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, changeNumberOwned, checkIfUserOwnsCard, addToTotalCardCount, checkTotalCardCount} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -45,7 +45,6 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
         }
-
         //check if theyre not registered, then let them start, if they are inform them they are registered
         if(!userExists){
             if (command === "start") {
@@ -60,7 +59,7 @@ client.on("messageCreate", async (msg) => {
                     )
                     .setTimestamp();
                 msg.reply({ embeds: [embed] });
-                await saveUserData(userId);
+                await saveUserData(userId, String(msg.createdAt));
             }
             else{
                 const noUserdata = new EmbedBuilder()
@@ -78,17 +77,53 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "profile") {
+            const userData = await getUser(userId);
+            const userFavcard = await getCardFromTable(
+                "cards",
+                userData["FavCard"],
+            );
+            const favCardUrl = userFavcard["cardUrl"];
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff) //should be able to change colour
-                .setTitle(authorTag)
-                .setDescription("\u200B\n**Kira's temp profile**\n") //make this communicate with database so users can change desc
+                .setTitle(msg.author.username + "'s Profile")
+                .setDescription(userData["Description"]) //should be able to change description
+                .addFields({
+                    name:
+                        "**Balance: **" +
+                        Discord.inlineCode(
+                            String(userData["Balance"])
+                                .toString()
+                                .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+                        ),
+                    value: " ",
+                    inline: true,
+                })
+                .addFields(
+                    {
+                        name: "Looking for: ",
+                        value: Discord.inlineCode(userData["LookingFor"]),
+                        inline: false,
+                    }, // You can set inline to true if you want the field to display inline.
+                )
+                .addFields({
+                    name:
+                        "**Favourite Card: **" +
+                        Discord.inlineCode(userFavcard["card-id"]),
+                    value: " ",
+                    inline: false,
+                })
+                .addFields({
+                    name:
+                        "**Card Count: **" +
+                        Discord.inlineCode(String(userData["cardCount"])),
+                    value: " ",
+                    inline: false,
+                })
                 .setFooter({
                     text: msg.author.tag,
-                    iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                    iconURL: msg.author.displayAvatarURL({ dynamic: true }),
                 })
-                .setImage(
-                    "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/NJ_DN_HB.png",
-                ) //they should be able to change this - change card etc
+                .setImage(favCardUrl) //they should be able to change this - change card etc
                 .setTimestamp();
             msg.reply({ embeds: [embed] });
         }
@@ -111,12 +146,12 @@ client.on("messageCreate", async (msg) => {
                         const attributeName = randomCard["copies-owned"];
                         let item = {};
                         let numberOfCopies = 0;
-                        const cardExistsFoUser = await checkIfUserOwnsCard(
+                        const cardExistsForUser = await checkIfUserOwnsCard(
                             secondTableName,
                             userId,
                             randomCard["card-id"],
                         )
-                        if(cardExistsFoUser===0){
+                        if(cardExistsForUser===0){
                             item = {
                                 "user-id": userId, //primary key
                                 "card-id": randomCard["card-id"], //secondary key
@@ -142,6 +177,14 @@ client.on("messageCreate", async (msg) => {
                                 "copies-owned": (numberOfCopies+1),
                             };
                         }
+                        const cardCount = await checkTotalCardCount("Dani-bot-playerbase", userId)
+                        .catch((error) => {
+                            console.error("Error getting total card count:", error);
+                        })
+                        addToTotalCardCount("Dani-bot-playerbase", userId, parseInt(cardCount)+1)
+                        .catch((error) => {
+                            console.error("Error updating card count:", error);
+                        })
                         writeToDynamoDB(secondTableName, item)
                             .then(() => {
                                 console.log(
@@ -472,7 +515,7 @@ client.on("messageCreate", async (msg) => {
             if(cardId === undefined){
                 msg.reply("**Please input a card id**");
                 return;
-            }+
+            }
             (async () => {
                     try {
                         const tableName = 'cards';
@@ -546,7 +589,7 @@ client.on("messageCreate", async (msg) => {
                 const targetUserId = targetUser.id;
                 const tableName = 'cards';
                 try{
-                    await getCardFromTable(tableName, cardIDToGift); 
+                    card = await getCardFromTable(tableName, cardIDToGift); 
                 }catch(error){
                     console.log('Couldnt find item with this card:' + cardIDToGift);
                     msg.channel.send('**Please enter a valid card id**');
@@ -582,6 +625,22 @@ client.on("messageCreate", async (msg) => {
                             await changeNumberOwned(secondTableName, targetUserId, cardIDToGift, parseInt(currentOwnedByUser2)+numberOfCopiesToGive);
                             //call the changeNumberOwned function here twiocer, once for msg user once for target user
                             //embed informing uve given x amount to targetUser
+                            const embed = new EmbedBuilder()
+                                .setColor("#57F287")
+                                .setDescription(`You have gifted **${Discord.inlineCode(numberOfCopiesToGive)} ${cardIDToGift} to ${targetUser.displayName}**`)
+                                .addFields(
+                                    {
+                                        name: "You now have: ",
+                                        value: Discord.inlineCode(String(currentOwnedByUser1-numberOfCopiesToGive)),
+                                        inline: true,
+                                    },
+                                )
+                                .setFooter({
+                                    text: msg.author.tag,
+                                    iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                                })
+                                .setTimestamp();
+                            msg.reply({ embeds: [embed], allowedMentions: { repliedUser: false }} );
                         }catch(error){
                             console.log('Failed to gift the cards');
                             console.log('Error:' + error);
@@ -593,60 +652,52 @@ client.on("messageCreate", async (msg) => {
                 }    
             )();
         }
-    }
 
-    //function for the inital adding of a user to the database only
-    async function saveUserData(userId) {
-        const params = {
-            TableName: 'Dani-bot-playerbase',
-            Item: {
-                'user-id': userId,
-                'Balance': 10000,
-                'Enabled': true,
-                'JoinDate': msg.createdAt.toString()
+        if(command === "favcard"){
+            const newFavCard = args[0];
+            try{
+                await getCardFromTable("cards", newFavCard);
+            }catch(error){
+                msg.reply("**Please input a valid card id**");
+                return;
             }
-        };
-
-        try {
-            await dynamodb.put(params).promise();
-        } catch (err) {
-            console.error('Unable to save data:', err);
+            //check newfaveCard is valid
+            const tableName = "Dani-bot-playerbase";
+            if(newFavCard === undefined){
+                msg.reply("Please input a card id");
+            }else{
+                (async () => {
+                    try {
+                        await setUserCard(tableName, userId, newFavCard);
+                        msg.reply(`Your favourite card has been set to **${newFavCard}**`);
+                    } catch (error) {
+                        msg.reply("Please enter a valid card id");
+                        console.log("Could not find card in table with card-id " + newFavCard);
+                        console.error('Error:', error);
+                    }
+                })();
+            }
+            //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
-    } 
 
-    async function checkUserExists(userId) {
-        const params = {
-            TableName: 'Dani-bot-playerbase',
-            Key: {
-                'user-id': userId
+        if(command === "bio"){
+            const newBio = args.join(' '); //get all the shit after
+            const tableName = "Dani-bot-playerbase";
+            if(newBio === undefined){
+                msg.reply("Please input a bio");
+            }else{
+                (async () => {
+                    try {
+                        await setUserBio(tableName, userId, newBio);
+                        msg.reply(`you have changed your profile bio to **${newBio}**`);
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                })();
             }
-        };
-
-        try {
-            const data = await dynamodb.get(params).promise();
-            return !!data.Item;
-        } catch (err) {
-            console.error('Unable to check if user exists:', err);
-            return false;
-        }
-    }
-
-    async function checkUserDisabled(userId){
-        const params = {
-            TableName: 'Dani-bot-playerbase',
-            Key: {
-                'user-id': userId
-            }
-        };
-        try {
-            const data = await dynamodb.get(params).promise();
-            return !!data.Item.Enabled;;
-        } catch (err) {
-            console.error('Unable to check if user exists:', err);
-            return false;
+            //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
     }
-
 
 });
 

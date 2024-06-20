@@ -78,7 +78,6 @@ async function getCardFromTable(tableName, key) {
                 'card-id': key
             }
         };
-
         // Call DynamoDB getItem API
         const data = await dynamodb.get(params).promise();
 
@@ -163,10 +162,66 @@ async function changeNumberOwned(tableName, primaryKeyValue, secondaryKeyValue, 
         // Call DynamoDB update API
         const data = await dynamodb.update(params).promise();
 
-        console.log('Update successful:', data);
         return data.Attributes; // Return the updated attributes
     } catch (error) {
         console.error('Error updating item in DynamoDB:', error);
+        throw error;
+    }
+}
+
+async function addToTotalCardCount(tableName, primaryKeyValue, count){
+    const updateCount = 'SET #cardCount = :newCardCount';
+    const expressionAttributeValues = {
+        ':newCardCount': count // New value for 'copies-owned'
+    };
+    const expressionAttributeNames = {
+        '#cardCount': 'cardCount' // Attribute name alias for 'copies-owned'
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': primaryKeyValue, 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
+
+        // Call DynamoDB update API
+        const data = await dynamodb.update(params).promise();
+
+        return data.Attributes; // Return the updated attributes
+    } catch (error) {
+        console.error('Error updating item in DynamoDB:', error);
+        throw error;
+    }
+}
+
+async function checkTotalCardCount(tableName, primaryKeyValue){
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: '#pk = :pkValue',
+            ExpressionAttributeNames: {
+                '#pk': 'user-id',   // Replace with your partition key attribute name
+                '#desiredAttr': 'cardCount',
+            },
+            ExpressionAttributeValues: {
+                ':pkValue': primaryKeyValue,
+            },
+            ProjectionExpression: '#desiredAttr' // Count the number of items matching the condition
+        };
+        // Call DynamoDB query API to count items
+        const data = await dynamodb.query(params).promise();
+        if((data.Items[0] === undefined)){
+            return 0;
+        }
+        const attributeValue = data.Items[0]['cardCount'];
+        return attributeValue;
+    } catch (error) {
+        console.error('Error counting entries in DynamoDB:', error);
         throw error;
     }
 }
@@ -199,4 +254,4 @@ async function changeNumberOwned(tableName, primaryKeyValue, secondaryKeyValue, 
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned};
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount};
