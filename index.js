@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner, checkIfUserOwnsCard} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, changeNumberOwned, checkIfUserOwnsCard} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -516,18 +516,19 @@ client.on("messageCreate", async (msg) => {
             
         }
 
-        /*if(command === "gift"){
+        if(command === "gift"){
             const cardIDToGift = args[1];
             const numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
+            if(msg.mentions.users.first() == undefined){
+                msg.channel.send('Please mention a user.');
+                return;
+            }
             let targetUser = msg.mentions.users.first();
             if(targetUser.id === "1251915536065892413"){
                 msg.channel.send('** Trying to gift the georgeos danielle? **');
                 return;
             }
-            if(targetUser === undefined){
-                msg.channel.send('Please mention a user.');
-                return;
-            }
+
             if(targetUser === msg.author){
                 msg.channel.send('** Trying to gift yourself? **');
                 return;
@@ -541,17 +542,11 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
             const userExists = await checkUserExists(targetUser.id);
-            //first check card id exists, if not tell user to enter a valid card id
-            //get how many copies of the parsed cardID the user has
-            //if the number is 0, give message saying u do not own enough copies to gift
-            //else get items from table such that total returned = numberOfCopesToGive
-            //and then rewrite the user-id (aka who now owns it)
             (async () => {
                 const targetUserId = targetUser.id;
                 const tableName = 'cards';
                 try{
-                    const cardExists = await getCardFromTable(tableName, cardIDToGift); 
-                    console.log(cardExists);
+                    await getCardFromTable(tableName, cardIDToGift); 
                 }catch(error){
                     console.log('Couldnt find item with this card:' + cardIDToGift);
                     msg.channel.send('**Please enter a valid card id**');
@@ -563,33 +558,41 @@ client.on("messageCreate", async (msg) => {
                 }
                 try{
                     const secondTableName = "user-cards";
-                    const attributeName = cardIDToGift;
                     const numberOfCopies = await getHowManyCopiesOwned(
                         secondTableName,
                         userId,
-                        attributeName,
+                        cardIDToGift,
                     );
-                    console.log("Number of copies owned: " + numberOfCopies);
                     if((numberOfCopies == 0) || numberOfCopies < numberOfCopiesToGive){
                         msg.channel.send('**You do not own enough copies of this card to gift**');
                         return;
                     }else{
-                        msg.channel.send('Will write gifing shit in sec');
                         try {
-                            //call the replaceCardOwner 
+                            const currentOwnedByUser1 = await getHowManyCopiesOwned(secondTableName, userId, cardIDToGift);
+                            const currentOwnedByUser2 = await getHowManyCopiesOwned(secondTableName, targetUserId, cardIDToGift);
+                            if(currentOwnedByUser1===1){
+                                msg.reply("**You must own more than 1 copy to gift duplicates**");
+                                return;
+                            }
+                            if(currentOwnedByUser2===0){
+                                msg.reply("**The user must own at least one copy to be gifted**");
+                                return;
+                            }
+                            await changeNumberOwned(secondTableName, userId, cardIDToGift, parseInt(currentOwnedByUser1)-numberOfCopiesToGive);
+                            await changeNumberOwned(secondTableName, targetUserId, cardIDToGift, parseInt(currentOwnedByUser2)+numberOfCopiesToGive);
+                            //call the changeNumberOwned function here twiocer, once for msg user once for target user
+                            //embed informing uve given x amount to targetUser
                         }catch(error){
                             console.log('Failed to gift the cards');
                             console.log('Error:' + error);
                         }
-                        //put command that puts the new primary key (user-id) to be the targetUserID
-                        //code that rewrites who owns the cards now etc
                     }
                 }catch(error){
                     console.log("Couldn't find item in table user-cards with this card id: " + cardIDToGift);
                 }
                 }    
             )();
-        }*/
+        }
     }
 
     //function for the inital adding of a user to the database only

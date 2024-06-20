@@ -59,6 +59,9 @@ async function getHowManyCopiesOwned(tableName, primaryKeyValue, secondaryKeyVal
         };
         // Call DynamoDB query API to count items
         const data = await dynamodb.query(params).promise();
+        if((data.Items[0] === undefined)){
+            return 0;
+        }
         const attributeValue = data.Items[0]['copies-owned'];
         return attributeValue;
     } catch (error) {
@@ -109,53 +112,11 @@ async function checkIfUserOwnsCard(tableName, key, secondaryKeyValue){
         if(data.Items.length === 0){
             return 0;
         }
-        //console.log(data);
         return data.Items.Count;
     } catch (error) {
         console.error('Error finding entry in DynamoDB:', error);
         throw error;
     }
-}
-
-
-//ensure in the table there is a dummy item with cardId 0 or wont work for now
-async function getNewCardId(tableName){
-    //get highest numvber, and return it + 1
-    const botName = "Danielle Bot";
-    const sortKeyAttribute  = 'nextCardID'
-    try {
-        const params = {
-            TableName: tableName,
-            KeyConditionExpression: '#pk = :pkValue AND #sk >= :skValue',
-            ExpressionAttributeNames: {
-                '#pk': 'botName', // Replace with your partition key attribute name
-                '#sk': sortKeyAttribute // Replace with your sort key attribute name
-            },
-                ExpressionAttributeValues: {
-                    ':pkValue': botName,
-                    ':skValue': 0
-                },
-                ScanIndexForward: false, // Set to false to get the highest value first
-                Limit: 1 // Limit to the top item
-            };
-
-        // Call DynamoDB getItem API
-        const data = await dynamodb.query(params).promise();
-
-        if (!data.Items) {
-            throw new Error('No Items found in DynamoDB');
-        }
-        const highestCurrentID = data.Items[0];
-        const newCardID = highestCurrentID.nextCardID +1 ;
-        const cardIDString = newCardID.toString();
-        console.log(newCardID);
-        return cardIDString; // Return the newCardID for the next card
-        
-        }catch (error) {
-        console.error('Error retrieving item from DynamoDB:', error);
-        throw error;
-        }
-
 }
 
 async function getTotalCards(tableName){
@@ -178,12 +139,37 @@ async function getTotalCards(tableName){
     }
 }
 
-async function replaceCardOwner(tableName, secondaryCardId, newOwner){
-    //call getCardFromTableWithSK here
-    //could maybe call the new getCardFromTable with a secondary key here
-    // then u have the card object, so u can update the owner also in here
-}
+async function changeNumberOwned(tableName, primaryKeyValue, secondaryKeyValue, count){
+    const updateCount = 'SET #copiesOwned = :newCopiesOwned';
+    const expressionAttributeValues = {
+        ':newCopiesOwned': count // New value for 'copies-owned'
+    };
+    const expressionAttributeNames = {
+        '#copiesOwned': 'copies-owned' // Attribute name alias for 'copies-owned'
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': primaryKeyValue, 
+                'card-id': secondaryKeyValue 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
 
+        // Call DynamoDB update API
+        const data = await dynamodb.update(params).promise();
+
+        console.log('Update successful:', data);
+        return data.Attributes; // Return the updated attributes
+    } catch (error) {
+        console.error('Error updating item in DynamoDB:', error);
+        throw error;
+    }
+}
 
 /*async function getRandomCard(bucketName){
     try {
@@ -213,4 +199,4 @@ async function replaceCardOwner(tableName, secondaryCardId, newOwner){
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner, checkIfUserOwnsCard};
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned};
