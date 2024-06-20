@@ -419,7 +419,6 @@ client.on("messageCreate", async (msg) => {
                         console.log(cardToView);
                         const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                             .setColor(0x0099ff)
-                            //.setTitle("\n\u200B\n**Claim Recieved!**\n")
                             .setDescription(`You are viewing **${cardToView['GroupName']} ${cardToView['GroupMember']}**`)
                             .setImage(
                                 cardToView['cardUrl'],
@@ -434,11 +433,79 @@ client.on("messageCreate", async (msg) => {
                     } catch (error) {
                         msg.reply("**Please enter a valid card id**");
                         console.log("Could not find card in table with card-id " + cardId);
-                        //console.error('Error:', error);
+                        console.error('Error:', error);
                     }
                     }    
             )();
             
+        }
+
+        if(command === "gift"){
+            const cardIDToGift = args[1];
+            const numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
+            let targetUser = msg.mentions.users.first();
+            if(targetUser.id === "1251915536065892413"){
+                msg.channel.send('** Trying to gift the georgeos danielle? **');
+                return;
+            }
+            if(targetUser === undefined){
+                msg.channel.send('Please mention a user.');
+                return;
+            }
+            if(targetUser === msg.author){
+                msg.channel.send('** Trying to gift yourself? **');
+                return;
+            }
+            if (isNaN(numberOfCopiesToGive)) {
+                msg.channel.send('Please ensure you have given a card id and amount to gift'); //theyve tried to give an invalid amount
+                return;
+            }
+            if(numberOfCopiesToGive == 0){
+                msg.channel.send('Please give a non zero amount to gift'); //theyve tried to give an invalid amount
+                return;
+            }
+            const userExists = await checkUserExists(targetUser.id);
+            //first check card id exists, if not tell user to enter a valid card id
+            //get how many copies of the parsed cardID the user has
+            //if the number is 0, give message saying u do not own enough copies to gift
+            //else get random items from table such that total returned = numberOfCopesToGive
+            //and then rewrite the user-id (aka who now owns it)
+            (async () => {
+                const targetUserId = targetUser.id;
+                const tableName = 'cards';
+                try{
+                    const cardExists = await getCardFromTable(tableName, cardIDToGift); 
+                    console.log(cardExists);
+                }catch(error){
+                    console.log('Couldnt find item with this card:' + cardIDToGift);
+                    msg.channel.send('**Please enter a valid card id**');
+                    return;
+                }
+                if(!userExists){
+                    msg.channel.send(`**This user is not registered yet, please tell them to do .start**`);
+                    return;
+                }
+                try{
+                    const secondTableName = "user-cards";
+                    const attributeName = cardIDToGift;
+                    const numberOfCopies = await getHowManyCopiesOwned(
+                        secondTableName,
+                        userId,
+                        attributeName,
+                    );
+                    console.log("Number of copies owned: " + numberOfCopies);
+                    if((numberOfCopies == 0) || numberOfCopies < numberOfCopiesToGive){
+                        msg.channel.send('**You do not own enough copies of this card to gift**');
+                        return;
+                    }else{
+                        msg.channel.send('Will write gifing shit in sec');
+                        //code that rewrites who owns the cards now etc
+                    }
+                }catch(error){
+                    console.log("Couldn't find item in table user-cards with this card id: " + cardIDToGift);
+                }
+                }    
+            )();
         }
     }
 

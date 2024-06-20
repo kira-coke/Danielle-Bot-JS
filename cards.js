@@ -60,8 +60,6 @@ async function getHowManyCopiesOwned(tableName, primaryKeyValue, attributeName) 
 
         // Call DynamoDB query API to count items
         const data = await dynamodb.query(params).promise();
-       // console.log(data);
-
         // The count of items with the same secondary key
         const count = data.Count || 0;
         console.log(`Number of instances of ${attributeName} for userId ${primaryKeyValue}:`, count);
@@ -87,7 +85,7 @@ async function getCardFromTable(tableName, key) {
         if (!data.Item) {
             throw new Error('Item not found in DynamoDB');
         }
-        console.log('Retrieved item from DynamoDB:', data.Item);
+        //console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
         //console.error('Error retrieving item from DynamoDB:', error);
