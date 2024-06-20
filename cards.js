@@ -41,29 +41,26 @@ async function writeToDynamoDB(tableName, item) {
     }
 }
 
-async function getHowManyCopiesOwned(tableName, primaryKeyValue, attributeName) {
+async function getHowManyCopiesOwned(tableName, primaryKeyValue, secondaryKeyValue) {
     try {
         const params = {
             TableName: tableName,
-            KeyConditionExpression: '#pk = :pkValue',
-            FilterExpression: '#attr = :attrValue',
+            KeyConditionExpression: '#pk = :pkValue AND #sk = :skValue',
             ExpressionAttributeNames: {
                 '#pk': 'user-id',   // Replace with your partition key attribute name
-                '#attr': 'card-id' // Replace with the attribute name you want to count instances of
+                '#sk': 'card-id', // Replace with the attribute name you want to count instances of
+                '#desiredAttr': 'copies-owned',
             },
             ExpressionAttributeValues: {
                 ':pkValue': primaryKeyValue,
-                ':attrValue': attributeName,
+                ':skValue': secondaryKeyValue,
             },
-            Select: 'COUNT'  // Count the number of items matching the condition
+            ProjectionExpression: '#desiredAttr' // Count the number of items matching the condition
         };
-
         // Call DynamoDB query API to count items
         const data = await dynamodb.query(params).promise();
-        // The count of items with the same secondary key
-        const count = data.Count || 0;
-        console.log(`Number of instances of ${attributeName} for userId ${primaryKeyValue}:`, count);
-        return count;
+        const attributeValue = data.Items[0]['copies-owned'];
+        return attributeValue;
     } catch (error) {
         console.error('Error counting entries in DynamoDB:', error);
         throw error;
@@ -92,6 +89,34 @@ async function getCardFromTable(tableName, key) {
         throw error;
     }
 }
+
+async function checkIfUserOwnsCard(tableName, key, secondaryKeyValue){
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: '#pk = :pkValue AND #sk = :skValue',
+            ExpressionAttributeNames: {
+                '#pk': 'user-id',   // Replace with your partition key attribute name
+                '#sk': 'card-id',
+            },
+            ExpressionAttributeValues: {
+                ':pkValue': key,
+                ':skValue': secondaryKeyValue,
+            },
+        };
+        // Call DynamoDB query API to count items
+        const data = await dynamodb.query(params).promise();
+        if(data.Items.length === 0){
+            return 0;
+        }
+        //console.log(data);
+        return data.Items.Count;
+    } catch (error) {
+        console.error('Error finding entry in DynamoDB:', error);
+        throw error;
+    }
+}
+
 
 //ensure in the table there is a dummy item with cardId 0 or wont work for now
 async function getNewCardId(tableName){
@@ -159,10 +184,6 @@ async function replaceCardOwner(tableName, secondaryCardId, newOwner){
     // then u have the card object, so u can update the owner also in here
 }
 
-async function getCardFromTableWithSK(tableName, key, secondaryKey){
-    
-}
-
 
 /*async function getRandomCard(bucketName){
     try {
@@ -192,4 +213,4 @@ async function getCardFromTableWithSK(tableName, key, secondaryKey){
     }
 }*/
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner};
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner, checkIfUserOwnsCard};

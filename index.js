@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner} = require('./cards');
+const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getNewCardId, getTotalCards, replaceCardOwner, checkIfUserOwnsCard} = require('./cards');
 const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
 const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
 const client = new Discord.Client({
@@ -33,7 +33,7 @@ client.on("messageCreate", async (msg) => {
         const userId = msg.author.id;
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const userExists = await checkUserExists(userId);
-        const claimCd = 5; 
+        const claimCd = 1; 
         const dropCd = 5;
         if (msg.author.bot) return;
 
@@ -105,42 +105,47 @@ client.on("messageCreate", async (msg) => {
             (async () => {
                 try {
                     const tableName = "cards";
-                    // Call the function and store the returned URL in a const
                     const randomCard = await getRandomDynamoDBItem(tableName);
                     try {
                         const secondTableName = "user-cards";
-                        const attributeName = randomCard["card-id"];
-                        const numberOfCopies = await getHowManyCopiesOwned(
+                        const attributeName = randomCard["copies-owned"];
+                        let item = {};
+                        let numberOfCopies = 0;
+                        const cardExistsFoUser = await checkIfUserOwnsCard(
                             secondTableName,
                             userId,
-                            attributeName,
-                        );
-                        const thirdTableName = "bot-data";
-                        const newCardID = await getNewCardId(thirdTableName);
-                        //reaplce number of copies in the second-card-id field by a method that adds 1 to it
-                        const item = {
-                            "user-id": userId, //primary key
-                            "secondary-card-id": newCardID, //secondary key
-                            "card-id": randomCard["card-id"], //id for which base card it is
-                            upgradable: false,
-                        };
+                            randomCard["card-id"],
+                        )
+                        if(cardExistsFoUser===0){
+                            item = {
+                                "user-id": userId, //primary key
+                                "card-id": randomCard["card-id"], //secondary key
+                                "exp": 0,
+                                "level": 0,
+                                "upgradable": false,
+                                "copies-owned": 1,
+                            };
+                        }else{
+                            //msg.channel.send("You do own card, will write code to incremenet value");
+                            numberOfCopies = await getHowManyCopiesOwned(
+                                secondTableName,
+                                userId,
+                                randomCard["card-id"],
+                                attributeName,
+                            );
+                            item = {
+                                "user-id": userId, //primary key
+                                "card-id": randomCard["card-id"], //secondary key
+                                "exp": 0,
+                                "level": 0,
+                                "upgradable": false,
+                                "copies-owned": (numberOfCopies+1),
+                            };
+                        }
                         writeToDynamoDB(secondTableName, item)
                             .then(() => {
                                 console.log(
                                     "Successfully wrote item to DynamoDB first table",
-                                );
-                            })
-                            .catch((error) => {
-                                console.error("Error:", error);
-                            });
-                        const item2 = {
-                            botName: "Danielle Bot",
-                            nextCardID: Number(newCardID),
-                        };
-                        writeToDynamoDB(thirdTableName, item2)
-                            .then(() => {
-                                console.log(
-                                    "Successfully wrote item to DynamoDB second table",
                                 );
                             })
                             .catch((error) => {
@@ -156,7 +161,9 @@ client.on("messageCreate", async (msg) => {
                             .addFields(
                                 {
                                     name: "Copies now Owned",
-                                    value: Discord.inlineCode(String(numberOfCopies + 1)),
+                                    value: Discord.inlineCode(
+                                        String(numberOfCopies + 1),
+                                    ),
                                     inline: true,
                                 }, // You can set inline to true if you want the field to display inline.
                             )
@@ -192,9 +199,12 @@ client.on("messageCreate", async (msg) => {
             (async () => {
                 try {
                     const tableName = "cards";
-                    const randomCardOne = await getRandomDynamoDBItem(tableName);
-                    const randomCardTwo = await getRandomDynamoDBItem(tableName);
-                    const randomCardThree = await getRandomDynamoDBItem(tableName);
+                    const randomCardOne =
+                        await getRandomDynamoDBItem(tableName);
+                    const randomCardTwo =
+                        await getRandomDynamoDBItem(tableName);
+                    const randomCardThree =
+                        await getRandomDynamoDBItem(tableName);
 
                     const embed = new EmbedBuilder()
                         .setColor(0x0099ff)
@@ -204,32 +214,50 @@ client.on("messageCreate", async (msg) => {
                         )*/
                         .setFooter({
                             text: msg.author.tag,
-                            iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                            iconURL: msg.author.displayAvatarURL({
+                                dynamic: true,
+                            }),
                         })
                         .setTimestamp();
 
                     const row = new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
                             .setCustomId("button1")
-                            .setLabel(String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")")
+                            .setLabel(
+                                String(randomCardOne["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardOne["Theme"]) +
+                                    ")",
+                            )
                             .setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder()
                             .setCustomId("button2")
-                            .setLabel(String(randomCardTwo["GroupMember"]) + " (" + String(randomCardTwo["Theme"]) +")")
+                            .setLabel(
+                                String(randomCardTwo["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardTwo["Theme"]) +
+                                    ")",
+                            )
                             .setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder()
                             .setCustomId("button3")
-                            .setLabel(String(randomCardThree["GroupMember"]) + " (" + String(randomCardThree["Theme"]) +")")
+                            .setLabel(
+                                String(randomCardThree["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardThree["Theme"]) +
+                                    ")",
+                            )
                             .setStyle(ButtonStyle.Secondary),
                     );
 
                     client.on(Events.InteractionCreate, async (interaction) => {
-                        if (interaction.user.id !== msg.author.id) { //can only interact with your own command
+                        if (interaction.user.id !== msg.author.id) {
+                            //can only interact with your own command
                             //await interaction.reply({ content: 'This is not your command', ephemeral: true });
                             return;
                         }
                         //add something to have it so you can only click one button and only once
-                        
+
                         if (!interaction.isButton()) return;
 
                         await interaction.deferUpdate();
@@ -239,23 +267,41 @@ client.on("messageCreate", async (msg) => {
 
                         switch (interaction.customId) {
                             case "button1":
-                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                response =
+                                    "You have claimed: " +
+                                    String(randomCardOne["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardOne["Theme"]) +
+                                    ")";
                                 const card1 = {
                                     "user-id": userId, //primary key
                                     "secondary-card-id": newCardID, //secondary key
                                     "card-id": randomCardOne["card-id"], //id for which base card it is
+                                    exp: 0,
+                                    level: 0,
                                     upgradable: false,
+                                    "copies-owned": numberOfCopies,
                                 };
                                 writeToDynamoDB("user-cards", card1);
                                 const item1 = {
                                     botName: "Danielle Bot",
                                     nextCardID: Number(newCardID),
                                 };
-                                writeToDynamoDB(thirdTableName, item1)
+                                writeToDynamoDB(thirdTableName, item1);
                                 break;
                             case "button2":
-                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
-                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                response =
+                                    "You have claimed: " +
+                                    String(randomCardOne["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardOne["Theme"]) +
+                                    ")";
+                                response =
+                                    "You have claimed: " +
+                                    String(randomCardOne["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardOne["Theme"]) +
+                                    ")";
                                 const card2 = {
                                     "user-id": userId, //primary key
                                     "secondary-card-id": newCardID, //secondary key
@@ -267,11 +313,21 @@ client.on("messageCreate", async (msg) => {
                                     botName: "Danielle Bot",
                                     nextCardID: Number(newCardID),
                                 };
-                                writeToDynamoDB(thirdTableName, item2)
+                                writeToDynamoDB(thirdTableName, item2);
                                 break;
                             case "button3":
-                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
-                                response = "You have claimed: " + String(randomCardOne["GroupMember"]) + " (" + String(randomCardOne["Theme"]) +")";
+                                response =
+                                    "You have claimed: " +
+                                    String(randomCardOne["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardOne["Theme"]) +
+                                    ")";
+                                response =
+                                    "You have claimed: " +
+                                    String(randomCardOne["GroupMember"]) +
+                                    " (" +
+                                    String(randomCardOne["Theme"]) +
+                                    ")";
                                 const card3 = {
                                     "user-id": userId, //primary key
                                     "secondary-card-id": newCardID, //secondary key
@@ -283,17 +339,19 @@ client.on("messageCreate", async (msg) => {
                                     botName: "Danielle Bot",
                                     nextCardID: Number(newCardID),
                                 };
-                                writeToDynamoDB(thirdTableName, item3)
+                                writeToDynamoDB(thirdTableName, item3);
                                 break;
                         }
-                        await interaction.followUp({ content: response, ephemeral: true });
+                        await interaction.followUp({
+                            content: response,
+                            ephemeral: true,
+                        });
                     });
                     msg.reply({ embeds: [embed], components: [row] });
                 } catch (error) {
                     console.error("Error:", error);
                 }
             })();
-
         }
 
         if(command === "bal"){
@@ -323,7 +381,6 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "pay"){
             const amount = parseFloat(args[1]);
-            console.log(amount);
             if((amount < 0) | !(Number.isInteger(amount))){
                 msg.channel.send('**Ensure you have entered a valid amount to pay**');
                 return;
@@ -421,7 +478,6 @@ client.on("messageCreate", async (msg) => {
                         const tableName = 'cards';
                         // Call the function and store the returned URL in a const
                         const cardToView = await getCardFromTable(tableName, cardId);
-                        console.log(cardToView);
                         const secondTableName = "user-cards";
                         const attributeName = cardToView["card-id"];
                         const numberOfCopies = await getHowManyCopiesOwned(
@@ -429,6 +485,7 @@ client.on("messageCreate", async (msg) => {
                             userId,
                             attributeName,
                         );
+                        //get current exp and level
                         const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                             .setColor(0x0099ff)
                             .setDescription(`You are viewing **${cardToView['GroupName']} ${cardToView['GroupMember']}**`)
@@ -459,7 +516,7 @@ client.on("messageCreate", async (msg) => {
             
         }
 
-        if(command === "gift"){
+        /*if(command === "gift"){
             const cardIDToGift = args[1];
             const numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
             let targetUser = msg.mentions.users.first();
@@ -532,7 +589,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 }    
             )();
-        }
+        }*/
     }
 
     //function for the inital adding of a user to the database only
@@ -580,7 +637,6 @@ client.on("messageCreate", async (msg) => {
         };
         try {
             const data = await dynamodb.get(params).promise();
-            //console.log(data);
             return !!data.Item.Enabled;;
         } catch (err) {
             console.error('Unable to check if user exists:', err);
