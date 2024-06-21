@@ -1,12 +1,14 @@
 const Discord = require("discord.js");
 const { EmbedBuilder, ActionRowBuilder,ButtonBuilder, } = require("discord.js");
+const {getCardFromTable} = require("./cards.js");
 
-const generateEmbedInv = (page, totalPages, listOfCards, msg) => {
+async function generateEmbedInv(page, totalPages, listOfCards, msg) {
     const embed = new EmbedBuilder()
         .setTitle(
             `Displaying all the current cards in circulation (Page ${page + 1}/${totalPages})`,
         )
         .setColor("#feb69e")
+        .setDescription("hi")
         .setFooter({
             text: msg.author.tag,
             iconURL: msg.author.displayAvatarURL({
@@ -42,13 +44,14 @@ const generateEmbedInv = (page, totalPages, listOfCards, msg) => {
 
   const cardSubset = listOfCards.slice(startIndex, endIndex);
 
-  cardSubset.forEach((attribute) => {
+    for (const attribute of cardSubset) {
+      const cardData = await getCardFromTable("cards", attribute["card-id"]);
       embed.addFields(
-          { name: " ", value: Discord.blockQuote(String(attribute["GroupName"] || "N/A")), inline: true },
-          { name: " ", value: String(attribute["GroupMember"] || "N/A"), inline: true },
-          { name: " ", value: Discord.inlineCode(String(attribute["card-id"] || "N/A")), inline: true }
+          { name: " ", value: Discord.blockQuote(String(cardData["GroupName"] || "N/A")), inline: true },
+          { name: " ", value: String(cardData["GroupMember"] || "N/A"), inline: true },
+          { name: " ", value: Discord.inlineCode(String(cardData["card-id"] || "N/A")), inline: true }
       );
-  });
+  };
 
     return embed;
 };

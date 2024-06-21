@@ -396,7 +396,7 @@ client.on("messageCreate", async (msg) => {
             const cardsPerPage = 4;
             const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
 
-            const embedMessage = await msg.channel.send({ embeds: [generateEmbedInv(0, totalPages, listOfCards, msg)], components: [generateRowInv(0, totalPages)] });
+            const embedMessage = await msg.channel.send({ embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg)], components: [generateRowInv(0, totalPages)] });
 
             handleCollectorInv(embedMessage, msg, totalPages, listOfCards);
         }
