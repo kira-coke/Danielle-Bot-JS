@@ -11,9 +11,11 @@ const {saveUserData,checkUserExists,checkUserDisabled,getUser,setUserCard,setUse
 const {isCooldownExpired,setUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,getCardFromTable,getTotalCards,
        changeNumberOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
-const {handleDropInteraction} = require( "./buttons");
+//const {handleDropInteraction} = require( "./buttons");
+const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
 const { getUsersBalance, saveUserBalance } = require("./userBalanceCmds");
-const {GatewayIntentBits,ActionRowBuilder,ButtonBuilder,ButtonStyle,Events} = require("discord.js");
+const {GatewayIntentBits,ActionRowBuilder,ButtonBuilder,ButtonStyle} = require("discord.js");
+const { createDropEmbed, interactionCreateListener } = require('./dropButtons');
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -250,61 +252,19 @@ client.on("messageCreate", async (msg) => {
                 msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
                 return;
             }
+
             (async () => {
                 try {
                     const tableName = "cards";
-                    const randomCardOne =
-                        await getRandomDynamoDBItem(tableName);
-                    const randomCardTwo =
-                        await getRandomDynamoDBItem(tableName);
-                    const randomCardThree =
-                        await getRandomDynamoDBItem(tableName);
+                    const randomCardOne = await getRandomDynamoDBItem(tableName);
+                    const randomCardTwo = await getRandomDynamoDBItem(tableName);
+                    const randomCardThree = await getRandomDynamoDBItem(tableName);
 
-                    const embed = new EmbedBuilder()
-                        .setColor(0x0099ff)
-                        .setTitle("**Drop recieved**")
-                        /*.setDescription(
-                            "\n\u200B\n**Click an option bellow to claim a card**\n\u200B\n",
-                        )*/
-                        .setFooter({
-                            text: msg.author.tag,
-                            iconURL: msg.author.displayAvatarURL({
-                                dynamic: true,
-                            }),
-                        })
-                        .setTimestamp();
+                    const { embed, row } = createDropEmbed(msg, randomCardOne, randomCardTwo, randomCardThree);
 
-                    const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder()
-                            .setCustomId("button1")
-                            .setLabel(
-                                String(randomCardOne["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardOne["Theme"]) +
-                                    ")",
-                            )
-                            .setStyle(ButtonStyle.Secondary),
-                        new ButtonBuilder()
-                            .setCustomId("button2")
-                            .setLabel(
-                                String(randomCardTwo["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardTwo["Theme"]) +
-                                    ")",
-                            )
-                            .setStyle(ButtonStyle.Secondary),
-                        new ButtonBuilder()
-                            .setCustomId("button3")
-                            .setLabel(
-                                String(randomCardThree["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardThree["Theme"]) +
-                                    ")",
-                            )
-                            .setStyle(ButtonStyle.Secondary),
-                    );
+                    await msg.reply({ embeds: [embed], components: [row] });
 
-                    msg.reply({ embeds: [embed], components: [row] });
+                    client.on("interactionCreate", (interaction) => interactionCreateListener(interaction, msg, client));
                 } catch (error) {
                     console.error("Error:", error);
                 }
@@ -408,103 +368,12 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "index") {
             const listOfCards = await getTotalCards("cards");
-            const cardsPerPage = 2;
+            const cardsPerPage = 4;
             const totalPages = Math.ceil(listOfCards.Items.length / cardsPerPage);
 
-            let currentPage = 0;
+            const embedMessage = await msg.channel.send({ embeds: [generateEmbed(0, totalPages, listOfCards, msg)], components: [generateRow(0, totalPages)] });
 
-            const generateEmbed = (page) => {
-                const embed = new EmbedBuilder()
-                    .setTitle(`Displaying all the current cards in circulation (Page ${page + 1}/${totalPages})`)
-                    .setColor("#feb69e")
-                    .setFooter({
-                        text: msg.author.tag,
-                        iconURL: msg.author.displayAvatarURL({
-                            dynamic: true,
-                        }),
-                    });
-
-                const startIndex = page * cardsPerPage;
-                const endIndex = Math.min(startIndex + cardsPerPage, listOfCards.Items.length);
-                const cardSubset = listOfCards.Items.slice(startIndex, endIndex);
-
-                embed.addFields(
-                    {
-                        name: "Group Name",
-                        value: " ",
-                        inline: true,
-                    },
-                    {
-                        name: "Member Name",
-                        value: " ",
-                        inline: true,
-                    },
-                    {
-                        name: "Card ID",
-                        value: " ",
-                        inline: true,
-                    }
-                );
-
-                cardSubset.forEach((attribute) => {
-                    embed.addFields(
-                        {
-                            name: " ",
-                            value: Discord.blockQuote(attribute.GroupName),
-                            inline: true,
-                        },
-                        {
-                            name: " ",
-                            value: attribute.GroupMember,
-                            inline: true,
-                        },
-                        {
-                            name: " ",
-                            value: Discord.inlineCode(attribute["card-id"]),
-                            inline: true,
-                        }
-                    );
-                });
-
-                return embed;
-            };
-
-            const generateRow = (page) => {
-                return new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('prev')
-                            .setLabel('◀')
-                            .setStyle('Primary')
-                            .setDisabled(page === 0),
-                        new ButtonBuilder()
-                            .setCustomId('next')
-                            .setLabel('▶')
-                            .setStyle('Primary')
-                            .setDisabled(page === totalPages - 1)
-                    );
-            };
-
-            const embedMessage = await msg.channel.send({ embeds: [generateEmbed(currentPage)], components: [generateRow(currentPage)] });
-
-            const filter = i => i.user.id === msg.author.id;
-            const collector = embedMessage.createMessageComponentCollector({ filter, time: 60000 });
-
-            collector.on('collect', async i => {
-                await i.deferUpdate(); // Defer the interaction to prevent multiple acknowledgments
-
-                if (i.customId === 'prev' && currentPage > 0) {
-                    currentPage--;
-                } else if (i.customId === 'next' && currentPage < totalPages - 1) {
-                    currentPage++;
-                }
-
-                await embedMessage.edit({ embeds: [generateEmbed(currentPage)], components: [generateRow(currentPage)] });
-            });
-
-            collector.on('end', collected => {
-                embedMessage.edit({ components: [] });
-            });
+            handleCollector(embedMessage, msg, totalPages, listOfCards);
         }
 
         if (command === "view") {
@@ -754,7 +623,7 @@ client.on("messageCreate", async (msg) => {
             //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
         
-        const interactionCreateListener = async (interaction) =>{ //interactino for drops
+        /*const interactionCreateListener = async (interaction) =>{ //interactino for drops
             if (interaction.user.id !== msg.author.id) {
                 //can only interact with your own command
                 await interaction.reply({
@@ -766,7 +635,13 @@ client.on("messageCreate", async (msg) => {
 
             if (!interaction.isButton()) return;
 
-           // await interaction.deferReply();
+            //await interaction.deferReply();
+            await interaction.deferReply()
+            .then((msg) => { 
+              setInterval(() => {
+                msg.delete()
+              }, 1000)
+            });
 
             if (interaction.customId === "button1" || interaction.customId === "button2" || interaction.customId === "button3") {
                 // Handle button interactions
@@ -779,7 +654,7 @@ client.on("messageCreate", async (msg) => {
             client.removeListener("interactionCreate", interactionCreateListener);
         };
 
-        client.on("interactionCreate", interactionCreateListener);
+        client.on("interactionCreate", interactionCreateListener);*/
         
     }
 });
