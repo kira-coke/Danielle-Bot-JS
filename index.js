@@ -1,76 +1,82 @@
 require("dotenv").config();
-const prefix = '.';
+const prefix = ".";
 const Discord = require("discord.js");
-const AWS = require('aws-sdk');
+const AWS = require("aws-sdk");
 AWS.config.update({
-    accessKeyId: process.env['Access_key'],
-    secretAccessKey: process.env['Secret_access_key'],
-    region: 'eu-west-2'
+    accessKeyId: process.env["Access_key"],
+    secretAccessKey: process.env["Secret_access_key"],
+    region: "eu-west-2",
 });
-const {saveUserData, checkUserExists, checkUserDisabled, getUser, setUserCard, setUserBio} = require('./users.js');
-const {isCooldownExpired, setUserCooldown, getUserCooldown} = require('./cooldowns');
-const {getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, changeNumberOwned, checkIfUserOwnsCard, addToTotalCardCount, checkTotalCardCount} = require('./cards');
-const {getUsersBalance, saveUserBalance} = require('./userBalanceCmds');
-const {GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events} = require('discord.js');
+const {saveUserData,checkUserExists,checkUserDisabled,getUser,setUserCard,setUserBio} = require("./users.js");
+const {isCooldownExpired,setUserCooldown,getUserCooldown} = require("./cooldowns");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,getCardFromTable,getTotalCards,
+       changeNumberOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
+const {handleDropInteraction} = require( "./buttons");
+const { getUsersBalance, saveUserBalance } = require("./userBalanceCmds");
+const {GatewayIntentBits,ActionRowBuilder,ButtonBuilder,ButtonStyle,Events} = require("discord.js");
 const client = new Discord.Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-  ],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers,
+    ],
 });
 const { EmbedBuilder } = require("discord.js");
 
 client.on("ready", () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+    console.log(`Logged in as ${client.user.tag}!`);
 });
 
 client.on("messageCreate", async (msg) => {
-    if (msg.content.startsWith(prefix)){
-        const args = msg.content.slice(prefix.length).trim().split(' ');
+    if (msg.content.startsWith(prefix)) {
+        const args = msg.content.slice(prefix.length).trim().split(" ");
         const command = args.shift().toLowerCase();
         const userId = msg.author.id;
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const userExists = await checkUserExists(userId);
-        const claimCd = 1; 
+        const claimCd = 1;
         const dropCd = 5;
         if (msg.author.bot) return;
 
         //check for if theyre blacklisted
-        if(userExists){
+        if (userExists) {
             const userDisabled = await checkUserDisabled(userId);
-            if(!userDisabled){//returns false if they are no longer allowed to play (not enabled)
-                msg.reply('**You have been blacklisted from the game**');
+            if (!userDisabled) {
+                //returns false if they are no longer allowed to play (not enabled)
+                msg.reply("**You have been blacklisted from the game**");
                 return;
             }
         }
         //check if theyre not registered, then let them start, if they are inform them they are registered
-        if(!userExists){
+        if (!userExists) {
             if (command === "start") {
                 const embed = new EmbedBuilder()
                     .setColor(0x0099ff)
-                    .setTitle("**Welcome to Danielle Bot **" + authorTag + "**!**")
+                    .setTitle(
+                        "**Welcome to Danielle Bot **" + authorTag + "**!**",
+                    )
                     .setDescription(
                         "**Enjoy your stay <:daniheart:1251995500308336723> You have been given 10,000 coins as a welcome gift!**",
-                    )// add an amount of currency here and add it to the users balance after they start
+                    ) // add an amount of currency here and add it to the users balance after they start
                     .setImage(
                         "https://media.discordapp.net/attachments/863906210582626335/1252011345168175225/newjeans-danielle-omg-4k-wallpaper-uhdpaper.com-2350i.jpg?ex=6670a9ed&is=666f586d&hm=985b63d3eb9d63aa6a86c8479f85e6a1d8aa61d47e5329d011978f35ab3e67a1&=&format=webp&width=1177&height=662",
                     )
                     .setTimestamp();
                 msg.reply({ embeds: [embed] });
                 await saveUserData(userId, String(msg.createdAt));
-            }
-            else{
+            } else {
                 const noUserdata = new EmbedBuilder()
-                    .setColor('#EE4B2B')
-                    .setDescription(`Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`)
+                    .setColor("#EE4B2B")
+                    .setDescription(
+                        `Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`,
+                    )
                     .setTimestamp();
                 msg.channel.send({ embeds: [noUserdata] });
-                return;  
+                return;
             }
-        } else{
-            if(command === "start"){
+        } else {
+            if (command === "start") {
                 msg.channel.send(`**You are already registered!**`);
                 return;
             }
@@ -84,7 +90,7 @@ client.on("messageCreate", async (msg) => {
             );
             const favCardUrl = userFavcard["cardUrl"];
             const embed = new EmbedBuilder()
-                .setColor(0x0099ff) //should be able to change colour
+                .setColor("#fffac2") //should be able to change colour
                 .setTitle(msg.author.username + "'s Profile")
                 .setDescription(userData["Description"]) //should be able to change description
                 .addFields({
@@ -127,7 +133,7 @@ client.on("messageCreate", async (msg) => {
                 .setTimestamp();
             msg.reply({ embeds: [embed] });
         }
-        
+
         if (command === "claim") {
             if (isCooldownExpired(userId, command, claimCd)) {
                 setUserCooldown(userId, command);
@@ -150,17 +156,17 @@ client.on("messageCreate", async (msg) => {
                             secondTableName,
                             userId,
                             randomCard["card-id"],
-                        )
-                        if(cardExistsForUser===0){
+                        );
+                        if (cardExistsForUser === 0) {
                             item = {
                                 "user-id": userId, //primary key
                                 "card-id": randomCard["card-id"], //secondary key
-                                "exp": 0,
-                                "level": 0,
-                                "upgradable": false,
+                                exp: 0,
+                                level: 0,
+                                upgradable: false,
                                 "copies-owned": 1,
                             };
-                        }else{
+                        } else {
                             //msg.channel.send("You do own card, will write code to incremenet value");
                             numberOfCopies = await getHowManyCopiesOwned(
                                 secondTableName,
@@ -171,20 +177,28 @@ client.on("messageCreate", async (msg) => {
                             item = {
                                 "user-id": userId, //primary key
                                 "card-id": randomCard["card-id"], //secondary key
-                                "exp": 0,
-                                "level": 0,
-                                "upgradable": false,
-                                "copies-owned": (numberOfCopies+1),
+                                exp: 0,
+                                level: 0,
+                                upgradable: false,
+                                "copies-owned": numberOfCopies + 1,
                             };
                         }
-                        const cardCount = await checkTotalCardCount("Dani-bot-playerbase", userId)
-                        .catch((error) => {
-                            console.error("Error getting total card count:", error);
-                        })
-                        addToTotalCardCount("Dani-bot-playerbase", userId, parseInt(cardCount)+1)
-                        .catch((error) => {
+                        const cardCount = await checkTotalCardCount(
+                            "Dani-bot-playerbase",
+                            userId,
+                        ).catch((error) => {
+                            console.error(
+                                "Error getting total card count:",
+                                error,
+                            );
+                        });
+                        addToTotalCardCount(
+                            "Dani-bot-playerbase",
+                            userId,
+                            parseInt(cardCount) + 1,
+                        ).catch((error) => {
                             console.error("Error updating card count:", error);
-                        })
+                        });
                         writeToDynamoDB(secondTableName, item)
                             .then(() => {
                                 console.log(
@@ -196,8 +210,8 @@ client.on("messageCreate", async (msg) => {
                             });
 
                         const embed = new EmbedBuilder()
-                            .setColor(0x0099ff)
-                            .setTitle("\n\u200B\n**Claim Recieved!**\n")
+                            .setColor("#ffd5b3")
+                            //.setTitle("\n\u200B\n**Claim Recieved!**\n")
                             .setDescription(
                                 `You have dropped **${randomCard["GroupName"]} ${randomCard["GroupMember"]}**`,
                             )
@@ -229,9 +243,6 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "drop") {
-            // get a 3 random cards from the storage and store the details to be able to be used in bellow embeded message
-            // register which button the user clicked and then which image (card) corresponds
-            // add card to their inv in database
             if (isCooldownExpired(userId, command, dropCd)) {
                 setUserCooldown(userId, command);
             } else {
@@ -293,103 +304,6 @@ client.on("messageCreate", async (msg) => {
                             .setStyle(ButtonStyle.Secondary),
                     );
 
-                    client.on(Events.InteractionCreate, async (interaction) => {
-                        if (interaction.user.id !== msg.author.id) {
-                            //can only interact with your own command
-                            //await interaction.reply({ content: 'This is not your command', ephemeral: true });
-                            return;
-                        }
-                        //add something to have it so you can only click one button and only once
-
-                        if (!interaction.isButton()) return;
-
-                        await interaction.deferUpdate();
-                        let response;
-                        const thirdTableName = "bot-data";
-                        const newCardID = await getNewCardId(thirdTableName);
-
-                        switch (interaction.customId) {
-                            case "button1":
-                                response =
-                                    "You have claimed: " +
-                                    String(randomCardOne["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardOne["Theme"]) +
-                                    ")";
-                                const card1 = {
-                                    "user-id": userId, //primary key
-                                    "secondary-card-id": newCardID, //secondary key
-                                    "card-id": randomCardOne["card-id"], //id for which base card it is
-                                    exp: 0,
-                                    level: 0,
-                                    upgradable: false,
-                                    "copies-owned": numberOfCopies,
-                                };
-                                writeToDynamoDB("user-cards", card1);
-                                const item1 = {
-                                    botName: "Danielle Bot",
-                                    nextCardID: Number(newCardID),
-                                };
-                                writeToDynamoDB(thirdTableName, item1);
-                                break;
-                            case "button2":
-                                response =
-                                    "You have claimed: " +
-                                    String(randomCardOne["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardOne["Theme"]) +
-                                    ")";
-                                response =
-                                    "You have claimed: " +
-                                    String(randomCardOne["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardOne["Theme"]) +
-                                    ")";
-                                const card2 = {
-                                    "user-id": userId, //primary key
-                                    "secondary-card-id": newCardID, //secondary key
-                                    "card-id": randomCardOne["card-id"], //id for which base card it is
-                                    upgradable: false,
-                                };
-                                writeToDynamoDB("user-cards", card2);
-                                const item2 = {
-                                    botName: "Danielle Bot",
-                                    nextCardID: Number(newCardID),
-                                };
-                                writeToDynamoDB(thirdTableName, item2);
-                                break;
-                            case "button3":
-                                response =
-                                    "You have claimed: " +
-                                    String(randomCardOne["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardOne["Theme"]) +
-                                    ")";
-                                response =
-                                    "You have claimed: " +
-                                    String(randomCardOne["GroupMember"]) +
-                                    " (" +
-                                    String(randomCardOne["Theme"]) +
-                                    ")";
-                                const card3 = {
-                                    "user-id": userId, //primary key
-                                    "secondary-card-id": newCardID, //secondary key
-                                    "card-id": randomCardOne["card-id"], //id for which base card it is
-                                    upgradable: false,
-                                };
-                                writeToDynamoDB("user-cards", card3);
-                                const item3 = {
-                                    botName: "Danielle Bot",
-                                    nextCardID: Number(newCardID),
-                                };
-                                writeToDynamoDB(thirdTableName, item3);
-                                break;
-                        }
-                        await interaction.followUp({
-                            content: response,
-                            ephemeral: true,
-                        });
-                    });
                     msg.reply({ embeds: [embed], components: [row] });
                 } catch (error) {
                     console.error("Error:", error);
@@ -397,13 +311,15 @@ client.on("messageCreate", async (msg) => {
             })();
         }
 
-        if(command === "bal"){
+        if (command === "bal") {
             const userBal = await getUsersBalance(userId);
             if (userBal === null) {
                 const noBalanceEmbed = new EmbedBuilder()
-                    .setColor('#ED4245')
+                    .setColor("#ee9090")
                     .setTitle(`${msg.author.username}'s Balance`)
-                    .setDescription(`No balance found for this user. Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`)
+                    .setDescription(
+                        `No balance found for this user. Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`,
+                    )
                     .setTimestamp();
                 msg.channel.send({ embeds: [noBalanceEmbed] });
                 return;
@@ -414,94 +330,132 @@ client.on("messageCreate", async (msg) => {
             const balWithCommas = numberWithCommas(userBal);
 
             const balanceEmbed = new EmbedBuilder()
-                .setColor('#23272A')
+                .setColor("#ffa791")
                 .setTitle(`${msg.author.username}'s Balance`)
-                .setDescription("**Balance: **" + Discord.inlineCode(`${balWithCommas}`))
+                .setDescription(
+                    "**Balance: **" + Discord.inlineCode(`${balWithCommas}`),
+                )
                 .setTimestamp();
             msg.channel.send({ embeds: [balanceEmbed] });
-            
         }
 
-        if(command === "pay"){
+        if (command === "pay") {
             const amount = parseFloat(args[1]);
-            if((amount < 0) | !(Number.isInteger(amount))){
-                msg.channel.send('**Ensure you have entered a valid amount to pay**');
+            if ((amount < 0) | !Number.isInteger(amount)) {
+                msg.channel.send(
+                    "**You are not allowed to steal monies bad oddy**",
+                );
                 return;
             }
             let targetUser = msg.mentions.users.first();
-            if(targetUser === msg.author){
-                msg.channel.send('** Trying to give yourself money? **');
+            if (targetUser === msg.author) {
+                msg.channel.send("** Trying to give yourself money? **");
                 return;
             }
-            if(targetUser === undefined){
-                msg.channel.send('Please mention a user.');
+            if (targetUser === undefined) {
+                msg.channel.send("Please mention a user.");
                 return;
             }
             if (isNaN(amount)) {
-                msg.channel.send('Please provide a valid amount!');
+                msg.channel.send("Please provide a valid amount!");
                 return;
             }
             const userExists = await checkUserExists(targetUser.id);
             if (!userExists) {
-                msg.channel.send(`**This user is not registered yet, please tell them to do .start**`);
+                msg.channel.send(
+                    `**This user is not registered yet, please tell them to do .start**`,
+                );
                 return;
-            }else{
+            } else {
                 const targetUserId = targetUser.id;
 
                 // Load balances for both users
                 const userBalance = await getUsersBalance(userId);
                 const targetUserBalance = await getUsersBalance(targetUserId);
-                
+
                 if (userBalance === null) {
-                msg.channel.send('No balance found for you.');
-                return;
+                    msg.channel.send("No balance found for you.");
+                    return;
                 }
 
                 if (userBalance < amount) {
-                msg.channel.send('Insufficient funds.');
-                return;
+                    msg.channel.send("Insufficient funds.");
+                    return;
                 }
 
                 // Update balances
                 await saveUserBalance(userId, userBalance - amount);
-                await saveUserBalance(targetUserId, (targetUserBalance || 0) + amount);
+                await saveUserBalance(
+                    targetUserId,
+                    (targetUserBalance || 0) + amount,
+                );
 
                 const transactionEmbed = new EmbedBuilder()
-                    .setColor('#0099ff') 
-                    .setTitle('Currency Transaction')
-                    .setDescription(`**You have paid ${amount} to ${targetUser.username}**`)
-                    .setTimestamp(); 
+                    .setColor("#90ee90")
+                    .setTitle("Currency Transaction")
+                    .setDescription(
+                        `**You have paid ${amount} to ${targetUser.username}**`,
+                    )
+                    .setTimestamp();
 
                 msg.channel.send({ embeds: [transactionEmbed] });
             }
-                
         }
 
-        if(command === "cd"){
+        if (command === "cd") {
             //write cooldown embed
         }
 
-        if(command === "index"){ //TOTO modify it so it only shows like 10 per pages or something 
-            const listOfCards = await (getTotalCards('cards'));
-            listOfCards.Items.forEach(element => {
+        if (command === "index") {
+            //TOTO modify it so it only shows like 10 per pages or something
+            const listOfCards = await getTotalCards("cards");
+            /*listOfCards.Items.forEach((element) => {
                 console.log(element.GroupMember);
                 console.log(element.GroupName);
-            })
+            });*/
 
             const embed = new EmbedBuilder()
                 .setTitle(`Displaying all the current cards in circulation`)
-                .setColor(0x00AE86)
+                .setColor("#feb69e")
                 .setFooter({
                     text: msg.author.tag,
                     iconURL: msg.author.displayAvatarURL({
                         dynamic: true,
                     }),
-                })
-            listOfCards.Items.forEach(attribute => {
+                });
+            embed.addFields(
+                {
+                    name: "Group Name",
+                    value: " ",
+                    inline: true,
+                },
+                {
+                    name: "Member Name",
+                    value: " ",
+                    inline: true,
+                },
+                {
+                    name: "Card ID",
+                    value: " ",
+                    inline: true,
+                });
+            listOfCards.Items.forEach((attribute) => {
                 embed.addFields(
-                    { name: 'Group Name', value: attribute.GroupName, inline: true },
-                    { name: 'Member Name', value: attribute.GroupMember, inline: true },
-                    { name: 'Card ID', value: attribute["card-id"], inline: true},
+                    {
+                        name: " ",
+                        value: Discord.blockQuote(attribute.GroupName),
+                        inline: true,
+                    },
+                    {
+                        name: " ",
+                        value: attribute.GroupMember,
+                        inline: true,
+                    },
+                    {
+                        name: " ",
+                        value: Discord.inlineCode(attribute["card-id"]),
+                        inline: true,
+                    },
                 );
             });
             msg.channel.send({ embeds: [embed] });
@@ -509,197 +463,283 @@ client.on("messageCreate", async (msg) => {
             //list these items in an embed
         }
 
-        if(command === "view"){
+        if (command === "view") {
             //get second parameter entered by the user and parse that as the cardid to get from table
             const cardId = args[0];
-            if(cardId === undefined){
+            if (cardId === undefined) {
                 msg.reply("**Please input a card id**");
                 return;
             }
             (async () => {
-                    try {
-                        const tableName = 'cards';
-                        // Call the function and store the returned URL in a const
-                        const cardToView = await getCardFromTable(tableName, cardId);
-                        const secondTableName = "user-cards";
-                        const attributeName = cardToView["card-id"];
-                        const numberOfCopies = await getHowManyCopiesOwned(
-                            secondTableName,
-                            userId,
-                            attributeName,
-                        );
-                        //get current exp and level
-                        const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
-                            .setColor(0x0099ff)
-                            .setDescription(`You are viewing **${cardToView['GroupName']} ${cardToView['GroupMember']}**`)
-                            .setImage(
-                                cardToView['cardUrl'],
-                            ) // changed depending on the card recieved
-                            .addFields(
-                                {
-                                    name: "You Own: ",
-                                    value: Discord.inlineCode(String(numberOfCopies)),
-                                    inline: true,
-                                },
-                            )
-                            .setFooter({
-                                text: msg.author.tag,
-                                iconURL: msg.author.displayAvatarURL({ dynamic: true })
-                            })
-                            .setTimestamp();
-                        msg.reply({ embeds: [embed] });
-
-                    } catch (error) {
-                        msg.reply("**Please enter a valid card id**");
-                        console.log("Could not find card in table with card-id " + cardId);
-                        console.error('Error:', error);
-                    }
-                    }    
-            )();
-            
+                try {
+                    const tableName = "cards";
+                    // Call the function and store the returned URL in a const
+                    const cardToView = await getCardFromTable(
+                        tableName,
+                        cardId,
+                    );
+                    const secondTableName = "user-cards";
+                    const attributeName = cardToView["card-id"];
+                    const numberOfCopies = await getHowManyCopiesOwned(
+                        secondTableName,
+                        userId,
+                        attributeName,
+                    );
+                    //get current exp and level
+                    const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
+                        .setColor("#feb69e")
+                        .setDescription(
+                            `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}**`,
+                        )
+                        .setImage(cardToView["cardUrl"]) // changed depending on the card recieved
+                        .addFields({
+                            name: "You Own: ",
+                            value: Discord.inlineCode(String(numberOfCopies)),
+                            inline: true,
+                        })
+                        .setFooter({
+                            text: msg.author.tag,
+                            iconURL: msg.author.displayAvatarURL({
+                                dynamic: true,
+                            }),
+                        })
+                        .setTimestamp();
+                    msg.reply({ embeds: [embed] });
+                } catch (error) {
+                    msg.reply("**Please enter a valid card id**");
+                    console.log(
+                        "Could not find card in table with card-id " + cardId,
+                    );
+                    console.error("Error:", error);
+                }
+            })();
         }
 
-        if(command === "gift"){
+        if (command === "gift") {
             const cardIDToGift = args[1];
             const numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
-            if(msg.mentions.users.first() == undefined){
-                msg.channel.send('Please mention a user.');
+            if (msg.mentions.users.first() == undefined) {
+                msg.channel.send("Please mention a user.");
                 return;
             }
             let targetUser = msg.mentions.users.first();
-            if(targetUser.id === "1251915536065892413"){
-                msg.channel.send('** Trying to gift the georgeos danielle? **');
+            if (targetUser.id === "1251915536065892413") {
+                msg.channel.send("** Trying to gift the georgeos danielle? **");
                 return;
             }
 
-            if(targetUser === msg.author){
-                msg.channel.send('** Trying to gift yourself? **');
+            if (targetUser === msg.author) {
+                msg.channel.send("** Trying to gift yourself? **");
                 return;
             }
             if (isNaN(numberOfCopiesToGive)) {
-                msg.channel.send('Please ensure you have given a card id and amount to gift'); //theyve tried to give an invalid amount
+                msg.channel.send(
+                    "Please ensure you have given a card id and amount to gift",
+                ); //theyve tried to give an invalid amount
                 return;
             }
-            if(numberOfCopiesToGive == 0){
-                msg.channel.send('Please give a non zero amount to gift'); //theyve tried to give an invalid amount
+            if (numberOfCopiesToGive == 0) {
+                msg.channel.send("Please give a non zero amount to gift"); //theyve tried to give an invalid amount
                 return;
             }
             const userExists = await checkUserExists(targetUser.id);
             (async () => {
                 const targetUserId = targetUser.id;
-                const tableName = 'cards';
-                try{
-                    card = await getCardFromTable(tableName, cardIDToGift); 
-                }catch(error){
-                    console.log('Couldnt find item with this card:' + cardIDToGift);
-                    msg.channel.send('**Please enter a valid card id**');
+                const tableName = "cards";
+                try {
+                    card = await getCardFromTable(tableName, cardIDToGift);
+                } catch (error) {
+                    console.log(
+                        "Couldnt find item with this card:" + cardIDToGift,
+                    );
+                    msg.channel.send("**Please enter a valid card id**");
                     return;
                 }
-                if(!userExists){
-                    msg.channel.send(`**This user is not registered yet, please tell them to do .start**`);
+                if (!userExists) {
+                    msg.channel.send(
+                        `**This user is not registered yet, please tell them to do .start**`,
+                    );
                     return;
                 }
-                try{
+                try {
                     const secondTableName = "user-cards";
                     const numberOfCopies = await getHowManyCopiesOwned(
                         secondTableName,
                         userId,
                         cardIDToGift,
                     );
-                    if((numberOfCopies == 0) || numberOfCopies < numberOfCopiesToGive){
-                        msg.channel.send('**You do not own enough copies of this card to gift**');
+                    if (
+                        numberOfCopies == 0 ||
+                        numberOfCopies < numberOfCopiesToGive
+                    ) {
+                        msg.channel.send(
+                            "**You do not own enough copies of this card to gift**",
+                        );
                         return;
-                    }else{
+                    } else {
                         try {
-                            const currentOwnedByUser1 = await getHowManyCopiesOwned(secondTableName, userId, cardIDToGift);
-                            const currentOwnedByUser2 = await getHowManyCopiesOwned(secondTableName, targetUserId, cardIDToGift);
-                            if(currentOwnedByUser1===1){
-                                msg.reply("**You must own more than 1 copy to gift duplicates**");
+                            const currentOwnedByUser1 =
+                                await getHowManyCopiesOwned(
+                                    secondTableName,
+                                    userId,
+                                    cardIDToGift,
+                                );
+                            const currentOwnedByUser2 =
+                                await getHowManyCopiesOwned(
+                                    secondTableName,
+                                    targetUserId,
+                                    cardIDToGift,
+                                );
+                            if (currentOwnedByUser1 === 1) {
+                                msg.reply(
+                                    "**You must own more than 1 copy to gift duplicates**",
+                                );
                                 return;
                             }
-                            if(currentOwnedByUser2===0){
-                                msg.reply("**The user must own at least one copy to be gifted**");
+                            if (currentOwnedByUser2 === 0) {
+                                msg.reply(
+                                    "**The user must own at least one copy to be gifted**",
+                                );
                                 return;
                             }
-                            await changeNumberOwned(secondTableName, userId, cardIDToGift, parseInt(currentOwnedByUser1)-numberOfCopiesToGive);
-                            await changeNumberOwned(secondTableName, targetUserId, cardIDToGift, parseInt(currentOwnedByUser2)+numberOfCopiesToGive);
+                            await changeNumberOwned(
+                                secondTableName,
+                                userId,
+                                cardIDToGift,
+                                parseInt(currentOwnedByUser1) -
+                                    numberOfCopiesToGive,
+                            );
+                            await changeNumberOwned(
+                                secondTableName,
+                                targetUserId,
+                                cardIDToGift,
+                                parseInt(currentOwnedByUser2) +
+                                    numberOfCopiesToGive,
+                            );
                             //call the changeNumberOwned function here twiocer, once for msg user once for target user
                             //embed informing uve given x amount to targetUser
                             const embed = new EmbedBuilder()
                                 .setColor("#57F287")
-                                .setDescription(`You have gifted **${Discord.inlineCode(numberOfCopiesToGive)} ${cardIDToGift} to ${targetUser.displayName}**`)
-                                .addFields(
-                                    {
-                                        name: "You now have: ",
-                                        value: Discord.inlineCode(String(currentOwnedByUser1-numberOfCopiesToGive)),
-                                        inline: true,
-                                    },
+                                .setDescription(
+                                    `You have gifted **${Discord.inlineCode(numberOfCopiesToGive)} ${cardIDToGift} to ${targetUser.displayName}**`,
                                 )
+                                .addFields({
+                                    name: "You now have: ",
+                                    value: Discord.inlineCode(
+                                        String(
+                                            currentOwnedByUser1 -
+                                                numberOfCopiesToGive,
+                                        ),
+                                    ),
+                                    inline: true,
+                                })
                                 .setFooter({
                                     text: msg.author.tag,
-                                    iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                                    iconURL: msg.author.displayAvatarURL({
+                                        dynamic: true,
+                                    }),
                                 })
                                 .setTimestamp();
-                            msg.reply({ embeds: [embed], allowedMentions: { repliedUser: false }} );
-                        }catch(error){
-                            console.log('Failed to gift the cards');
-                            console.log('Error:' + error);
+                            msg.reply({
+                                embeds: [embed],
+                                allowedMentions: { repliedUser: false },
+                            });
+                        } catch (error) {
+                            console.log("Failed to gift the cards");
+                            console.log("Error:" + error);
                         }
                     }
-                }catch(error){
-                    console.log("Couldn't find item in table user-cards with this card id: " + cardIDToGift);
+                } catch (error) {
+                    console.log(
+                        "Couldn't find item in table user-cards with this card id: " +
+                            cardIDToGift,
+                    );
                 }
-                }    
-            )();
+            })();
         }
 
-        if(command === "favcard"){
+        if (command === "favcard") {
             const newFavCard = args[0];
-            try{
+            try {
                 await getCardFromTable("cards", newFavCard);
-            }catch(error){
+            } catch (error) {
                 msg.reply("**Please input a valid card id**");
                 return;
             }
             //check newfaveCard is valid
             const tableName = "Dani-bot-playerbase";
-            if(newFavCard === undefined){
+            if (newFavCard === undefined) {
                 msg.reply("Please input a card id");
-            }else{
+            } else {
                 (async () => {
                     try {
                         await setUserCard(tableName, userId, newFavCard);
-                        msg.reply(`Your favourite card has been set to **${newFavCard}**`);
+                        msg.reply(
+                            `Your favourite card has been set to **${newFavCard}**`,
+                        );
                     } catch (error) {
                         msg.reply("Please enter a valid card id");
-                        console.log("Could not find card in table with card-id " + newFavCard);
-                        console.error('Error:', error);
+                        console.log(
+                            "Could not find card in table with card-id " +
+                                newFavCard,
+                        );
+                        console.error("Error:", error);
                     }
                 })();
             }
             //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
 
-        if(command === "bio"){
-            const newBio = args.join(' '); //get all the shit after
+        if (command === "bio") {
+            const newBio = args.join(" "); //get all the shit after
             const tableName = "Dani-bot-playerbase";
-            if(newBio === undefined){
+            if (newBio === undefined) {
                 msg.reply("Please input a bio");
-            }else{
+            } else {
                 (async () => {
                     try {
                         await setUserBio(tableName, userId, newBio);
-                        msg.reply(`you have changed your profile bio to **${newBio}**`);
+                        msg.reply(
+                            `You have changed your profile bio to **${newBio}**`,
+                        );
                     } catch (error) {
-                        console.error('Error:', error);
+                        console.error("Error:", error);
                     }
                 })();
             }
             //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
-    }
+        
+        const interactionCreateListener = async (interaction) =>{ //interactino for drops
+            if (interaction.user.id !== msg.author.id) {
+                //can only interact with your own command
+                await interaction.reply({
+                    content: "This is not your command",
+                    ephemeral: true,
+                });
+                return;
+            }
 
+            if (!interaction.isButton()) return;
+
+            await interaction.deferReply();
+
+            if (interaction.customId === "button1" || interaction.customId === "button2" || interaction.customId === "button3") {
+                // Handle button interactions
+                const buttonClicked = await handleDropInteraction(interaction);
+                if (parseInt(buttonClicked) === 1){
+                    msg.reply("You have received a card");
+                }
+            } //can add more if statments depending on the custom ids (more buttons)
+
+            client.removeListener("interactionCreate", interactionCreateListener);
+        };
+
+        client.on("interactionCreate", interactionCreateListener);
+        
+    }
 });
 
-client.login(process.env.Token);
 
+
+client.login(process.env.Token);
