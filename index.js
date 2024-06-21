@@ -407,60 +407,104 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "index") {
-            //TOTO modify it so it only shows like 10 per pages or something
             const listOfCards = await getTotalCards("cards");
-            /*listOfCards.Items.forEach((element) => {
-                console.log(element.GroupMember);
-                console.log(element.GroupName);
-            });*/
+            const cardsPerPage = 2;
+            const totalPages = Math.ceil(listOfCards.Items.length / cardsPerPage);
 
-            const embed = new EmbedBuilder()
-                .setTitle(`Displaying all the current cards in circulation`)
-                .setColor("#feb69e")
-                .setFooter({
-                    text: msg.author.tag,
-                    iconURL: msg.author.displayAvatarURL({
-                        dynamic: true,
-                    }),
-                });
-            embed.addFields(
-                {
-                    name: "Group Name",
-                    value: " ",
-                    inline: true,
-                },
-                {
-                    name: "Member Name",
-                    value: " ",
-                    inline: true,
-                },
-                {
-                    name: "Card ID",
-                    value: " ",
-                    inline: true,
-                });
-            listOfCards.Items.forEach((attribute) => {
+            let currentPage = 0;
+
+            const generateEmbed = (page) => {
+                const embed = new EmbedBuilder()
+                    .setTitle(`Displaying all the current cards in circulation (Page ${page + 1}/${totalPages})`)
+                    .setColor("#feb69e")
+                    .setFooter({
+                        text: msg.author.tag,
+                        iconURL: msg.author.displayAvatarURL({
+                            dynamic: true,
+                        }),
+                    });
+
+                const startIndex = page * cardsPerPage;
+                const endIndex = Math.min(startIndex + cardsPerPage, listOfCards.Items.length);
+                const cardSubset = listOfCards.Items.slice(startIndex, endIndex);
+
                 embed.addFields(
                     {
-                        name: " ",
-                        value: Discord.blockQuote(attribute.GroupName),
+                        name: "Group Name",
+                        value: " ",
                         inline: true,
                     },
                     {
-                        name: " ",
-                        value: attribute.GroupMember,
+                        name: "Member Name",
+                        value: " ",
                         inline: true,
                     },
                     {
-                        name: " ",
-                        value: Discord.inlineCode(attribute["card-id"]),
+                        name: "Card ID",
+                        value: " ",
                         inline: true,
-                    },
+                    }
                 );
+
+                cardSubset.forEach((attribute) => {
+                    embed.addFields(
+                        {
+                            name: " ",
+                            value: Discord.blockQuote(attribute.GroupName),
+                            inline: true,
+                        },
+                        {
+                            name: " ",
+                            value: attribute.GroupMember,
+                            inline: true,
+                        },
+                        {
+                            name: " ",
+                            value: Discord.inlineCode(attribute["card-id"]),
+                            inline: true,
+                        }
+                    );
+                });
+
+                return embed;
+            };
+
+            const generateRow = (page) => {
+                return new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('prev')
+                            .setLabel('◀')
+                            .setStyle('Primary')
+                            .setDisabled(page === 0),
+                        new ButtonBuilder()
+                            .setCustomId('next')
+                            .setLabel('▶')
+                            .setStyle('Primary')
+                            .setDisabled(page === totalPages - 1)
+                    );
+            };
+
+            const embedMessage = await msg.channel.send({ embeds: [generateEmbed(currentPage)], components: [generateRow(currentPage)] });
+
+            const filter = i => i.user.id === msg.author.id;
+            const collector = embedMessage.createMessageComponentCollector({ filter, time: 60000 });
+
+            collector.on('collect', async i => {
+                await i.deferUpdate(); // Defer the interaction to prevent multiple acknowledgments
+
+                if (i.customId === 'prev' && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === 'next' && currentPage < totalPages - 1) {
+                    currentPage++;
+                }
+
+                await embedMessage.edit({ embeds: [generateEmbed(currentPage)], components: [generateRow(currentPage)] });
             });
-            msg.channel.send({ embeds: [embed] });
-            //scan the cards table and return every item
-            //list these items in an embed
+
+            collector.on('end', collected => {
+                embedMessage.edit({ components: [] });
+            });
         }
 
         if (command === "view") {
@@ -722,7 +766,7 @@ client.on("messageCreate", async (msg) => {
 
             if (!interaction.isButton()) return;
 
-            await interaction.deferReply();
+           // await interaction.deferReply();
 
             if (interaction.customId === "button1" || interaction.customId === "button2" || interaction.customId === "button3") {
                 // Handle button interactions
