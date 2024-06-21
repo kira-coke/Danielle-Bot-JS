@@ -133,4 +133,32 @@ async function setUserBio(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio};
+async function setUserWishList(tableName, userId, attribute){
+    const updateCount = 'SET #LookingFor = :newWL';
+    const expressionAttributeValues = {
+        ':newWL': attribute 
+    };
+    const expressionAttributeNames = {
+        '#LookingFor': 'LookingFor' 
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId, 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
+
+        const data = await dynamodb.update(params).promise();
+        return data.Attributes; // Return the updated attributes
+      } catch (err) {
+          console.error('Unable to check if user exists:', err);
+          return false;
+      }
+}
+
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList};

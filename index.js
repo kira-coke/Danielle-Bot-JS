@@ -9,7 +9,7 @@ AWS.config.update({
 });
 const{work} = require("./work");
 const {giftcards} = require("./gift.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList} = require("./users.js");
 const {isCooldownExpired,setUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getRandomDynamoDBItem,getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -87,11 +87,11 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        if (command === "profile") {
+        if (command === "profile" || command === "p") {
             await getUserProfile(msg, userId);
         }
 
-        if (command === "claim") {
+        if (command === "claim" || command === "c") {
             if (isCooldownExpired(userId, command, claimCd)) {
                 setUserCooldown(userId, command);
             } else {
@@ -103,7 +103,7 @@ client.on("messageCreate", async (msg) => {
   
         } 
 
-        if (command === "drop") {
+        if (command === "drop" || command === "d") {
             if (isCooldownExpired(userId, command, dropCd)) {
                 setUserCooldown(userId, command);
             } else {
@@ -196,7 +196,7 @@ client.on("messageCreate", async (msg) => {
             handleCollector(embedMessage, msg, totalPages, listOfCards);
         }
 
-        if (command === "view") {
+        if (command === "view" || command === "v") {
             //get second parameter entered by the user and parse that as the cardid to get from table
             const cardId = args[0];
             if (cardId === undefined) {
@@ -279,34 +279,40 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "favcard") {
-            const newFavCard = args[0];
+            const newFavCard = args.filter(code => code.trim() !== "");
+            console.log(newFavCard[0]);
+            if(newFavCard[0] === undefined){
+                msg.reply("**Please input a code**");
+                return;
+            }
+            if(newFavCard.length > 1){
+                msg.reply("**Please only give one code**");
+                return;
+            }
             try {
-                await getCardFromTable("cards", newFavCard);
+                await getCardFromTable("cards", newFavCard[0]);
             } catch (error) {
                 msg.reply("**Please input a valid card id**");
                 return;
             }
             //check newfaveCard is valid
             const tableName = "Dani-bot-playerbase";
-            if (newFavCard === undefined) {
-                msg.reply("Please input a card id");
-            } else {
-                (async () => {
-                    try {
-                        await setUserCard(tableName, userId, newFavCard);
-                        msg.reply(
-                            `Your favourite card has been set to **${newFavCard}**`,
-                        );
-                    } catch (error) {
-                        msg.reply("Please enter a valid card id");
-                        console.log(
-                            "Could not find card in table with card-id " +
-                                newFavCard,
-                        );
-                        console.error("Error:", error);
-                    }
-                })();
-            }
+
+            (async () => {
+                try {
+                    await setUserCard(tableName, userId, newFavCard[0]);
+                    msg.reply(
+                        `Your favourite card has been set to **${newFavCard[0]}**`,
+                    );
+                } catch (error) {
+                    msg.reply("Please enter a valid card id");
+                    console.log(
+                        "Could not find card in table with card-id " +
+                            newFavCard,
+                    );
+                    console.error("Error:", error);
+                }
+            })();
         }
 
         if (command === "bio") {
@@ -328,8 +334,35 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        if(command === "work"){
+        if(command === "work" || command === "w"){
             await work(msg, userId);
+        }
+
+        if(command === "wishlist" || command === "wl"){
+            const codes = args.filter(code => code.trim() !== "");
+            if(codes[0] === undefined){
+                msg.reply("**Please input at least one code**");
+                return;
+            }else{
+                if(codes.length > 10){
+                    msg.reply("**The limit is 10 codes**");
+                    return;
+                }else{
+                    for(let i = 0; i < codes.length; i++){
+                        try{
+                            await getCardFromTable("cards", codes[i]);
+                        }catch(error){
+                            msg.reply("One of your codes is invalid: " + Discord.inlineCode(codes[i]));
+                            return;
+                        }
+                        
+                    }
+                    const codesString = codes.join(', ');
+                    await setUserWishList("Dani-bot-playerbase", userId, codesString);
+                    msg.reply(`You have added the following cards to your wishlist: ${codesString}`);
+                }
+            }
+            
         }
     }
 });
