@@ -57,22 +57,34 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                         level: 0,
                         upgradable: false,
                   }
+                  console.log(item);
                   await writeToDynamoDB(secondTableName, item)
                   .then(() => {
                       console.log(
-                          "Successfully wrote item to DynamoDB first table",
+                          "Successfully wrote first instance of this item to DynamoDB first table",
                       );
                   })
                   .catch((error) => {
                       console.error("Error:", error);
                   });
+                }else{
+                  const currentOwnedByUser2 =
+                    await getHowManyCopiesOwned(
+                        secondTableName,
+                        targetUserId,
+                        cardIDToGift,
+                    );
+                   if(currentOwnedByUser2 >= 1){
+                     await changeNumberOwned(
+                         secondTableName,
+                         targetUserId,
+                         cardIDToGift,
+                         (parseInt(currentOwnedByUser2) +
+                             parseInt(numberOfCopiesToGive)), //to account for the first copy being added
+                     );
+                   }
+                  
                 }
-                const currentOwnedByUser2 =
-                  await getHowManyCopiesOwned(
-                      secondTableName,
-                      targetUserId,
-                      cardIDToGift,
-                  );
                   if (currentOwnedByUser1 === 1) {
                       msg.reply(
                           "**You must own more than 1 copy to gift duplicates**",
@@ -85,13 +97,6 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                       cardIDToGift,
                       parseInt(currentOwnedByUser1) -
                           numberOfCopiesToGive,
-                  );
-                  await changeNumberOwned(
-                      secondTableName,
-                      targetUserId,
-                      cardIDToGift,
-                      (parseInt(currentOwnedByUser2) +
-                          parseInt(numberOfCopiesToGive-1)), //to account for the first copy being added
                   );
                   //call the changeNumberOwned function here twiocer, once for msg user once for target user
                   //embed informing uve given x amount to targetUser
