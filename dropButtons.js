@@ -86,7 +86,11 @@ const interactionCreateListener = async (interaction, msg, client) => {
 
     if (!interaction.isButton()) return;
 
-    await interaction.deferReply();
+    await interaction.deferReply().then((msg) => { 
+      setInterval(() => {
+        msg.delete()
+      }, 1000)
+    });
     setTimeout(() => interaction.deleteReply(), 1000);
 
     if (["button1", "button2", "button3"].includes(interaction.customId)) {

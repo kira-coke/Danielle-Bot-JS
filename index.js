@@ -7,14 +7,16 @@ AWS.config.update({
     secretAccessKey: process.env["Secret_access_key"],
     region: "eu-west-2",
 });
-const {saveUserData,checkUserExists,checkUserDisabled,getUser,setUserCard,setUserBio} = require("./users.js");
+const {giftcards} = require("./gift.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio} = require("./users.js");
 const {isCooldownExpired,setUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,getCardFromTable,getTotalCards,
-       changeNumberOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
-//const {handleDropInteraction} = require( "./buttons");
+const {getRandomDynamoDBItem,getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
+const {getUserProfile} = require("./profile.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
-const { getUsersBalance, saveUserBalance } = require("./userBalanceCmds");
-const {GatewayIntentBits,ActionRowBuilder,ButtonBuilder,ButtonStyle} = require("discord.js");
+const {getUsersBalance} = require("./userBalanceCmds");
+const {getClaim} = require("./claim.js");
+const {GatewayIntentBits} = require("discord.js");
+const {payCommand} = require("./pay.js");
 const { createDropEmbed, interactionCreateListener } = require('./dropButtons');
 const client = new Discord.Client({
     intents: [
@@ -85,55 +87,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "profile") {
-            const userData = await getUser(userId);
-            const userFavcard = await getCardFromTable(
-                "cards",
-                userData["FavCard"],
-            );
-            const favCardUrl = userFavcard["cardUrl"];
-            const embed = new EmbedBuilder()
-                .setColor("#fffac2") //should be able to change colour
-                .setTitle(msg.author.username + "'s Profile")
-                .setDescription(userData["Description"]) //should be able to change description
-                .addFields({
-                    name:
-                        "**Balance: **" +
-                        Discord.inlineCode(
-                            String(userData["Balance"])
-                                .toString()
-                                .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-                        ),
-                    value: " ",
-                    inline: true,
-                })
-                .addFields(
-                    {
-                        name: "Looking for: ",
-                        value: Discord.inlineCode(userData["LookingFor"]),
-                        inline: false,
-                    }, // You can set inline to true if you want the field to display inline.
-                )
-                .addFields({
-                    name:
-                        "**Favourite Card: **" +
-                        Discord.inlineCode(userFavcard["card-id"]),
-                    value: " ",
-                    inline: false,
-                })
-                .addFields({
-                    name:
-                        "**Card Count: **" +
-                        Discord.inlineCode(String(userData["cardCount"])),
-                    value: " ",
-                    inline: false,
-                })
-                .setFooter({
-                    text: msg.author.tag,
-                    iconURL: msg.author.displayAvatarURL({ dynamic: true }),
-                })
-                .setImage(favCardUrl) //they should be able to change this - change card etc
-                .setTimestamp();
-            msg.reply({ embeds: [embed] });
+            await getUserProfile(msg, userId);
         }
 
         if (command === "claim") {
@@ -144,105 +98,9 @@ client.on("messageCreate", async (msg) => {
                 msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
                 return;
             }
-            // get a random card from the storage and store the details to be able to be used in bellow embeded message
-            (async () => {
-                try {
-                    const tableName = "cards";
-                    const randomCard = await getRandomDynamoDBItem(tableName);
-                    try {
-                        const secondTableName = "user-cards";
-                        const attributeName = randomCard["copies-owned"];
-                        let item = {};
-                        let numberOfCopies = 0;
-                        const cardExistsForUser = await checkIfUserOwnsCard(
-                            secondTableName,
-                            userId,
-                            randomCard["card-id"],
-                        );
-                        if (cardExistsForUser === 0) {
-                            item = {
-                                "user-id": userId, //primary key
-                                "card-id": randomCard["card-id"], //secondary key
-                                exp: 0,
-                                level: 0,
-                                upgradable: false,
-                                "copies-owned": 1,
-                            };
-                        } else {
-                            //msg.channel.send("You do own card, will write code to incremenet value");
-                            numberOfCopies = await getHowManyCopiesOwned(
-                                secondTableName,
-                                userId,
-                                randomCard["card-id"],
-                                attributeName,
-                            );
-                            item = {
-                                "user-id": userId, //primary key
-                                "card-id": randomCard["card-id"], //secondary key
-                                exp: 0,
-                                level: 0,
-                                upgradable: false,
-                                "copies-owned": numberOfCopies + 1,
-                            };
-                        }
-                        const cardCount = await checkTotalCardCount(
-                            "Dani-bot-playerbase",
-                            userId,
-                        ).catch((error) => {
-                            console.error(
-                                "Error getting total card count:",
-                                error,
-                            );
-                        });
-                        addToTotalCardCount(
-                            "Dani-bot-playerbase",
-                            userId,
-                            parseInt(cardCount) + 1,
-                        ).catch((error) => {
-                            console.error("Error updating card count:", error);
-                        });
-                        writeToDynamoDB(secondTableName, item)
-                            .then(() => {
-                                console.log(
-                                    "Successfully wrote item to DynamoDB first table",
-                                );
-                            })
-                            .catch((error) => {
-                                console.error("Error:", error);
-                            });
-
-                        const embed = new EmbedBuilder()
-                            .setColor("#ffd5b3")
-                            //.setTitle("\n\u200B\n**Claim Recieved!**\n")
-                            .setDescription(
-                                `You have dropped **${randomCard["GroupName"]} ${randomCard["GroupMember"]}**`,
-                            )
-                            .addFields(
-                                {
-                                    name: "Copies now Owned",
-                                    value: Discord.inlineCode(
-                                        String(numberOfCopies + 1),
-                                    ),
-                                    inline: true,
-                                }, // You can set inline to true if you want the field to display inline.
-                            )
-                            .setImage(randomCard["cardUrl"]) // changed depending on the card recieved
-                            .setFooter({
-                                text: msg.author.tag,
-                                iconURL: msg.author.displayAvatarURL({
-                                    dynamic: true,
-                                }),
-                            })
-                            .setTimestamp();
-                        msg.reply({ embeds: [embed] });
-                    } catch (error) {
-                        console.error("Error:", error);
-                    }
-                } catch (error) {
-                    console.error("Error:", error);
-                }
-            })();
-        }
+            getClaim(msg,userId);
+  
+        } 
 
         if (command === "drop") {
             if (isCooldownExpired(userId, command, dropCd)) {
@@ -306,60 +164,21 @@ client.on("messageCreate", async (msg) => {
                     "**You are not allowed to steal monies bad oddy**",
                 );
                 return;
-            }
-            let targetUser = msg.mentions.users.first();
-            if (targetUser === msg.author) {
-                msg.channel.send("** Trying to give yourself money? **");
-                return;
-            }
-            if (targetUser === undefined) {
-                msg.channel.send("Please mention a user.");
-                return;
-            }
-            if (isNaN(amount)) {
-                msg.channel.send("Please provide a valid amount!");
-                return;
-            }
-            const userExists = await checkUserExists(targetUser.id);
-            if (!userExists) {
-                msg.channel.send(
-                    `**This user is not registered yet, please tell them to do .start**`,
-                );
-                return;
-            } else {
-                const targetUserId = targetUser.id;
-
-                // Load balances for both users
-                const userBalance = await getUsersBalance(userId);
-                const targetUserBalance = await getUsersBalance(targetUserId);
-
-                if (userBalance === null) {
-                    msg.channel.send("No balance found for you.");
-                    return;
-                }
-
-                if (userBalance < amount) {
-                    msg.channel.send("Insufficient funds.");
-                    return;
-                }
-
-                // Update balances
-                await saveUserBalance(userId, userBalance - amount);
-                await saveUserBalance(
-                    targetUserId,
-                    (targetUserBalance || 0) + amount,
-                );
-
-                const transactionEmbed = new EmbedBuilder()
-                    .setColor("#90ee90")
-                    .setTitle("Currency Transaction")
-                    .setDescription(
-                        `**You have paid ${amount} to ${targetUser.username}**`,
-                    )
-                    .setTimestamp();
-
-                msg.channel.send({ embeds: [transactionEmbed] });
-            }
+              }
+          let targetUser = msg.mentions.users.first();
+          if (targetUser === msg.author) {
+            msg.channel.send("** Trying to give yourself money? **");
+            return;
+          }
+          if (targetUser === undefined) {
+            msg.channel.send("Please mention a user.");
+            return;
+          }
+          if (isNaN(amount)) {
+            msg.channel.send("Please provide a valid amount!");
+            return;
+          }
+         await payCommand(msg, userId, targetUser, amount);
         }
 
         if (command === "cd") {
@@ -455,120 +274,7 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send("Please give a non zero amount to gift"); //theyve tried to give an invalid amount
                 return;
             }
-            const userExists = await checkUserExists(targetUser.id);
-            (async () => {
-                const targetUserId = targetUser.id;
-                const tableName = "cards";
-                try {
-                    card = await getCardFromTable(tableName, cardIDToGift);
-                } catch (error) {
-                    console.log(
-                        "Couldnt find item with this card:" + cardIDToGift,
-                    );
-                    msg.channel.send("**Please enter a valid card id**");
-                    return;
-                }
-                if (!userExists) {
-                    msg.channel.send(
-                        `**This user is not registered yet, please tell them to do .start**`,
-                    );
-                    return;
-                }
-                try {
-                    const secondTableName = "user-cards";
-                    const numberOfCopies = await getHowManyCopiesOwned(
-                        secondTableName,
-                        userId,
-                        cardIDToGift,
-                    );
-                    if (
-                        numberOfCopies == 0 ||
-                        numberOfCopies < numberOfCopiesToGive
-                    ) {
-                        msg.channel.send(
-                            "**You do not own enough copies of this card to gift**",
-                        );
-                        return;
-                    } else {
-                        try {
-                            const currentOwnedByUser1 =
-                                await getHowManyCopiesOwned(
-                                    secondTableName,
-                                    userId,
-                                    cardIDToGift,
-                                );
-                            const currentOwnedByUser2 =
-                                await getHowManyCopiesOwned(
-                                    secondTableName,
-                                    targetUserId,
-                                    cardIDToGift,
-                                );
-                            if (currentOwnedByUser1 === 1) {
-                                msg.reply(
-                                    "**You must own more than 1 copy to gift duplicates**",
-                                );
-                                return;
-                            }
-                            if (currentOwnedByUser2 === 0) {
-                                msg.reply(
-                                    "**The user must own at least one copy to be gifted**",
-                                );
-                                return;
-                            }
-                            await changeNumberOwned(
-                                secondTableName,
-                                userId,
-                                cardIDToGift,
-                                parseInt(currentOwnedByUser1) -
-                                    numberOfCopiesToGive,
-                            );
-                            await changeNumberOwned(
-                                secondTableName,
-                                targetUserId,
-                                cardIDToGift,
-                                parseInt(currentOwnedByUser2) +
-                                    numberOfCopiesToGive,
-                            );
-                            //call the changeNumberOwned function here twiocer, once for msg user once for target user
-                            //embed informing uve given x amount to targetUser
-                            const embed = new EmbedBuilder()
-                                .setColor("#57F287")
-                                .setDescription(
-                                    `You have gifted **${Discord.inlineCode(numberOfCopiesToGive)} ${cardIDToGift} to ${targetUser.displayName}**`,
-                                )
-                                .addFields({
-                                    name: "You now have: ",
-                                    value: Discord.inlineCode(
-                                        String(
-                                            currentOwnedByUser1 -
-                                                numberOfCopiesToGive,
-                                        ),
-                                    ),
-                                    inline: true,
-                                })
-                                .setFooter({
-                                    text: msg.author.tag,
-                                    iconURL: msg.author.displayAvatarURL({
-                                        dynamic: true,
-                                    }),
-                                })
-                                .setTimestamp();
-                            msg.reply({
-                                embeds: [embed],
-                                allowedMentions: { repliedUser: false },
-                            });
-                        } catch (error) {
-                            console.log("Failed to gift the cards");
-                            console.log("Error:" + error);
-                        }
-                    }
-                } catch (error) {
-                    console.log(
-                        "Couldn't find item in table user-cards with this card id: " +
-                            cardIDToGift,
-                    );
-                }
-            })();
+            await giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesToGive);
         }
 
         if (command === "favcard") {
@@ -600,7 +306,6 @@ client.on("messageCreate", async (msg) => {
                     }
                 })();
             }
-            //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
 
         if (command === "bio") {
@@ -620,41 +325,7 @@ client.on("messageCreate", async (msg) => {
                     }
                 })();
             }
-            //call setUserAttribute(userId, attribute) with attribute being new card id parsed in
         }
-        
-        /*const interactionCreateListener = async (interaction) =>{ //interactino for drops
-            if (interaction.user.id !== msg.author.id) {
-                //can only interact with your own command
-                await interaction.reply({
-                    content: "This is not your command",
-                    ephemeral: true,
-                });
-                return;
-            }
-
-            if (!interaction.isButton()) return;
-
-            //await interaction.deferReply();
-            await interaction.deferReply()
-            .then((msg) => { 
-              setInterval(() => {
-                msg.delete()
-              }, 1000)
-            });
-
-            if (interaction.customId === "button1" || interaction.customId === "button2" || interaction.customId === "button3") {
-                // Handle button interactions
-                const buttonClicked = await handleDropInteraction(interaction);
-                if (parseInt(buttonClicked) === 1){
-                    msg.reply("You have received a card");
-                }
-            } //can add more if statments depending on the custom ids (more buttons)
-
-            client.removeListener("interactionCreate", interactionCreateListener);
-        };
-
-        client.on("interactionCreate", interactionCreateListener);*/
         
     }
 });

@@ -72,12 +72,12 @@ const generateRow = (page, totalPages) => {
         new ButtonBuilder()
             .setCustomId("prev")
             .setLabel("◀")
-            .setStyle("Primary")
+            .setStyle("Secondary")
             .setDisabled(page === 0),
         new ButtonBuilder()
             .setCustomId("next")
             .setLabel("▶")
-            .setStyle("Primary")
+            .setStyle("Secondary")
             .setDisabled(page === totalPages - 1),
     );
 };
@@ -87,7 +87,7 @@ const handleCollector = (embedMessage, msg, totalPages, listOfCards) => {
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
         filter,
-        time: 60000,
+        time: 30000, //how long buttons last
     });
 
     collector.on("collect", async (i) => {
