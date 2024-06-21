@@ -1,4 +1,4 @@
-const {getHowManyCopiesOwned,getCardFromTable,changeNumberOwned} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,changeNumberOwned, checkIfUserOwnsCard, writeToDynamoDB} = require("./cards");
 const {checkUserExists} = require("./users.js");
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
@@ -46,21 +46,36 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                           userId,
                           cardIDToGift,
                       );
-                  const currentOwnedByUser2 =
-                      await getHowManyCopiesOwned(
-                          secondTableName,
-                          targetUserId,
-                          cardIDToGift,
+                if(await checkIfUserOwnsCard(secondTableName, targetUserId, cardIDToGift)===0){
+                  console.log("User does not own card");
+                  //code for adding the one copy to their inv instead
+                  const item = {
+                        "user-id": targetUserId, //primary key
+                        "card-id": cardIDToGift, //secondary key
+                        "copies-owned": 1,
+                        exp: 0,
+                        level: 0,
+                        upgradable: false,
+                  }
+                  await writeToDynamoDB(secondTableName, item)
+                  .then(() => {
+                      console.log(
+                          "Successfully wrote item to DynamoDB first table",
                       );
+                  })
+                  .catch((error) => {
+                      console.error("Error:", error);
+                  });
+                }
+                const currentOwnedByUser2 =
+                  await getHowManyCopiesOwned(
+                      secondTableName,
+                      targetUserId,
+                      cardIDToGift,
+                  );
                   if (currentOwnedByUser1 === 1) {
                       msg.reply(
                           "**You must own more than 1 copy to gift duplicates**",
-                      );
-                      return;
-                  }
-                  if (currentOwnedByUser2 === 0) {
-                      msg.reply(
-                          "**The user must own at least one copy to be gifted**",
                       );
                       return;
                   }
@@ -75,8 +90,8 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                       secondTableName,
                       targetUserId,
                       cardIDToGift,
-                      parseInt(currentOwnedByUser2) +
-                          numberOfCopiesToGive,
+                      (parseInt(currentOwnedByUser2) +
+                          parseInt(numberOfCopiesToGive-1)), //to account for the first copy being added
                   );
                   //call the changeNumberOwned function here twiocer, once for msg user once for target user
                   //embed informing uve given x amount to targetUser
