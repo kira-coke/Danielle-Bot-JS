@@ -8,9 +8,10 @@ AWS.config.update({
     region: "eu-west-2",
 });
 const{work} = require("./work");
+const{getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList} = require("./users.js");
-const {isCooldownExpired,setUserCooldown,getUserCooldown} = require("./cooldowns");
+const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getRandomDynamoDBItem,getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -40,8 +41,16 @@ client.on("messageCreate", async (msg) => {
         const userId = msg.author.id;
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const userExists = await checkUserExists(userId);
-        const claimCd = 1;
-        const dropCd = 5;
+        const generalCmdCd = Date.now() + 3 * 1000;
+        const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
+
+        if (remainingCooldown !== '0m 0s') {
+            msg.reply(`You must wait ${remainingCooldown} before using a command again.`);
+            return;
+        }
+        const cooldownTimestamp = generalCmdCd;
+        await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp);
+        
         if (msg.author.bot) return;
 
         //check for if theyre blacklisted
@@ -91,26 +100,29 @@ client.on("messageCreate", async (msg) => {
             await getUserProfile(msg, userId);
         }
 
-        if (command === "claim" || command === "c") {
-            if (isCooldownExpired(userId, command, claimCd)) {
-                setUserCooldown(userId, command);
-            } else {
-                const remainingTime = getUserCooldown(userId, command, claimCd);
-                msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
+        if (command === "c") {
+            const claimCd = Date.now() + 300 * 1000;
+            const remainingCooldown = await getUserCooldown(userId, command);
+
+            if (remainingCooldown !== '0m 0s') {
+                msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
                 return;
             }
+            const cooldownTimestamp = claimCd;
+            await saveUserCooldown(userId, command, cooldownTimestamp);
             getClaim(msg,userId);
-  
         } 
 
-        if (command === "drop" || command === "d") {
-            if (isCooldownExpired(userId, command, dropCd)) {
-                setUserCooldown(userId, command);
-            } else {
-                const remainingTime = getUserCooldown(userId, command, dropCd);
-                msg.reply(`**Remaining cooldown: ${remainingTime} seconds**`);
+        if (command === "d") {
+            const dropCd = Date.now() + 600 * 1000;
+            const remainingCooldown = await getUserCooldown(userId, command);
+
+            if (remainingCooldown !== '0m 0s') {
+                msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
                 return;
             }
+            const cooldownTimestamp = dropCd;
+            await saveUserCooldown(userId, command, cooldownTimestamp);
 
             (async () => {
                 try {
@@ -183,7 +195,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "cd") {
-            //write cooldown embed
+            await getCooldowns(userId, msg);
         }
 
         if (command === "index") {
@@ -334,7 +346,16 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        if(command === "work" || command === "w"){
+        if(command === "w" ){
+            const workCd = Date.now() + 3600 * 1000;
+            const remainingCooldown = await getUserCooldown(userId, command);
+
+            if (remainingCooldown !== '0m 0s') {
+                msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
+                return;
+            }
+            const cooldownTimestamp = workCd;
+            await saveUserCooldown(userId, command, cooldownTimestamp);
             await work(msg, userId);
         }
 

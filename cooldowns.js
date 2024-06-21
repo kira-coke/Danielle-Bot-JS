@@ -1,43 +1,81 @@
 // Object to store cooldown timestamps
-const cooldowns = {};
+const AWS = require('aws-sdk');
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-//checks is a certrain users cooldown for that command is up or not
-function isCooldownExpired(userId, command, cooldownTime) {
-    // Generate a key based on userId and command
-    const cooldownKey = `${userId}-${command}`;
+async function saveUserCooldown(userId, command, cooldownTimestamp) {
+    const params = {
+        TableName: 'user-cooldowns',
+        Item: {
+            "user-id": userId,
+            command: command,
+            cooldownTimestamp: cooldownTimestamp,
+        },
+    };
 
-    // Check if the cooldownKey exists and if enough time has passed
-    if (cooldowns[cooldownKey] && (Date.now() - cooldowns[cooldownKey]) < cooldownTime * 1000) {
-        return false; // Cooldown has not expired
-    } else {
-        return true;
+    try {
+        await dynamoDB.put(params).promise();
+        //console.log(`Cooldown saved for ${userId} - ${command}`);
+    } catch (error) {
+        console.error('Error saving cooldown:', error);
+    }
+};
+
+async function getUserCooldown(userId, command) {
+    const params = {
+        TableName: 'user-cooldowns',
+        Key: {
+            "user-id": userId,
+            command: command,
+        },
+    };
+
+    try {
+        const result = await dynamoDB.get(params).promise();
+        if (result.Item) {
+            const cooldownTimestamp = result.Item.cooldownTimestamp;
+            const remainingTime = cooldownTimestamp - Date.now();
+            if (remainingTime > 0) {
+                const minutes = Math.floor(remainingTime / 60000);
+                const seconds = Math.floor((remainingTime % 60000) / 1000);
+                return `${minutes}m ${seconds}s`;
+            }
+        }
+        return '0m 0s';
+    } catch (error) {
+        console.error('Error getting cooldown:', error);
+        return '0m 0s';
+    }
+};
+
+async function checkIfShortCut(userId, command, secondCommand) {
+    const params = {
+        TableName: 'YourTableName', // Replace with your DynamoDB table name
+        KeyConditionExpression: 'userId = :uid and (command = :cmd or secondcommand = :scmd)',
+        ExpressionAttributeValues: {
+            ':uid': userId,
+            ':cmd': command,
+            ':scmd': secondCommand,
+        },
+    };
+
+    try {
+        const data = await dynamoDB.query(params).promise();
+        if (data.Items.length > 0) {
+            return { matched: true, item: data.Items[0] }; // Return the matched item
+        } else {
+            return { matched: false, item: null }; // No matching item found
+        }
+    } catch (error) {
+        console.error('Error querying DynamoDB:', error);
+        return { matched: false, item: null }; // Return false in case of any errors
     }
 }
 
-//sets a cooldown for a certain command for a user (mainly used for after the command has gone through)
-function setUserCooldown(userId, command) {
-    // Generate a key based on userId and command
-    const cooldownKey = `${userId}-${command}`;
-
-    // Update the cooldown timestamp to the current time
-    cooldowns[cooldownKey] = Date.now();
-}
-
-function getUserCooldown(userId, command, cooldownTime) {
-    // Generate a key based on userId and command
-    const cooldownKey = `${userId}-${command}`;
-
-    // Check if the cooldownKey exists and if enough time has passed
-    if (cooldowns[cooldownKey] && (Date.now() - cooldowns[cooldownKey]) < cooldownTime * 1000) {
-        // Calculate remaining time until cooldown expires
-        const remainingTime = cooldownTime * 1000 - (Date.now() - cooldowns[cooldownKey]);
-        const remainingTimeSec = Math.ceil(remainingTime / 1000);
-        return remainingTimeSec;
-    } else {
-        // Cooldown has expired or doesn't exist
-        return 0;
-    }
-}
+module.exports = { checkIfShortCut };
 
 
-module.exports = { isCooldownExpired, setUserCooldown, getUserCooldown };
+module.exports = { checkIfShortCut };
+
+
+
+module.exports = { saveUserCooldown, getUserCooldown, checkIfShortCut };
