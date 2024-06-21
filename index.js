@@ -7,6 +7,7 @@ AWS.config.update({
     secretAccessKey: process.env["Secret_access_key"],
     region: "eu-west-2",
 });
+const{work} = require("./work");
 const {giftcards} = require("./gift.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio} = require("./users.js");
 const {isCooldownExpired,setUserCooldown,getUserCooldown} = require("./cooldowns");
@@ -326,7 +327,10 @@ client.on("messageCreate", async (msg) => {
                 })();
             }
         }
-        
+
+        if(command === "work"){
+            await work(msg, userId);
+        }
     }
 });
 
