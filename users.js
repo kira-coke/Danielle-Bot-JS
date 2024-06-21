@@ -161,4 +161,26 @@ async function setUserWishList(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList};
+async function getUserCards(tableName, userId) {
+    const params = {
+        TableName: tableName,
+        FilterExpression: '#pk = :pk',
+        ExpressionAttributeNames: {
+            '#pk': 'user-id' // The actual attribute name in the table
+        },
+        ExpressionAttributeValues: {
+            ':pk': userId // The value you are filtering by
+        }
+    };
+
+    try {
+        const data = await dynamodb.scan(params).promise();
+        //console.log('Scan succeeded:', data);
+        return data.Items;
+    } catch (error) {
+        console.error('Error scanning table:', error);
+        throw error;
+    }
+}
+
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards};

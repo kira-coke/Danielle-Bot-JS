@@ -8,12 +8,13 @@ AWS.config.update({
     region: "eu-west-2",
 });
 const{work} = require("./work");
-const{getCooldowns} = require("./cooldowncommand.js");
+const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getRandomDynamoDBItem,getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
+const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
 const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
@@ -384,6 +385,20 @@ client.on("messageCreate", async (msg) => {
                 }
             }
             
+        }
+
+        if(command === "daily"){
+            //code for daily
+        }
+
+        if(command === "inv"){
+            const listOfCards = await getUserCards("user-cards", userId);
+            const cardsPerPage = 4;
+            const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
+
+            const embedMessage = await msg.channel.send({ embeds: [generateEmbedInv(0, totalPages, listOfCards, msg)], components: [generateRowInv(0, totalPages)] });
+
+            handleCollectorInv(embedMessage, msg, totalPages, listOfCards);
         }
     }
 });
