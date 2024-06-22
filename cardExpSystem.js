@@ -4,7 +4,7 @@ const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function awardExp(userId, cardId, numberOfCards){
-  const expGiven = numberOfCards * 50; //each card gives 100 exp
+  const expGiven = numberOfCards * 50; //each card gives 50 exp
   const card = await getUserCard("user-cards", userId, cardId); //geting the user card with this id
   if(card[0] === undefined){
     console.log("User does not own this card");
@@ -17,16 +17,21 @@ async function awardExp(userId, cardId, numberOfCards){
   }
   const cardData = card[0];
   if(cardData.level === 100){
-    console.log("User is already at max level");
-    return 2;
+    if(cardData.tier != 3){
+      console.log(cardData.upgradable);
+      cardData.upgradable = true;
+      await updateUserData("user-cards", cardData);
+      console.log("User is already at max level");
+      return 2;
+    }
   }
   const newExp = cardData.exp += expGiven; //the new exp for the card
   const levelUpXP = calculateLevelUpXP(cardData.level);
-  console.log("exp needed to level up is " + levelUpXP);
     if (newExp >= levelUpXP) {
         cardData.level += 1;
         cardData.exp -= levelUpXP;
     }
+  cardData.exp = newExp;
   await updateUserData("user-cards", cardData);
 }
 
@@ -38,8 +43,23 @@ function calculateLevelUpXP(level) {
 }
 
 async function upgrade(userId, cardId){
-  //function to first check if it can be upgraded
-  //then upgrade
+  const card = await getUserCard("user-cards", userId, cardId);
+  const cardData = card[0];
+  if(cardData.tier === 3){
+    //at max level
+    return 0;
+  }
+  const temp = await awardExp(userId, String(cardId), 0);
+  if(temp === 2){
+    cardData.level = 0;
+    cardData.exp = 0;
+    cardData.upgradable = false;
+    cardData.tier = cardData.tier+1;
+    await updateUserData("user-cards", cardData);
+    return true;
+  }else {
+    return false;
+  }
 }
 
 
@@ -58,4 +78,4 @@ async function updateUserData(tableName, cardData) {
   
 }
 
-module.exports = {awardExp};
+module.exports = {awardExp, upgrade};

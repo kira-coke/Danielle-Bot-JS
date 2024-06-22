@@ -10,10 +10,10 @@ AWS.config.update({
 const{work} = require("./work");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
-const {awardExp} = require("./cardExpSystem.js");
+const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -105,7 +105,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "c") {
-            const claimCd = Date.now() + 300 * 1000;
+            const claimCd = Date.now() + 1 * 1000; //change back to 300
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -118,7 +118,7 @@ client.on("messageCreate", async (msg) => {
         } 
 
         if (command === "d") {
-            const dropCd = Date.now() + 600 * 1000;
+            const dropCd = Date.now() + 1 * 1000; //change to 600
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -405,6 +405,9 @@ client.on("messageCreate", async (msg) => {
             const cardId = input[0];
             const numberOfCards = input[1];
             const temp = await awardExp(userId, String(cardId), numberOfCards);
+            const amountOwnedBefore = await getHowManyCopiesOwned("user-cards", userId, cardId);
+            const newAmountOwner = amountOwnedBefore - numberOfCards;
+            await changeNumberOwned("user-cards", userId, cardId, newAmountOwner);
             if(temp === 0){
                 msg.reply("**You do not own this card**");
             }
@@ -413,6 +416,20 @@ client.on("messageCreate", async (msg) => {
             }
             if(temp === 2){
                 msg.reply("**Your card is already at max level!**");
+            }
+        }
+
+        if(command === "upgrade"){
+            const input = args.filter(code => code.trim() !== "");
+            const code = input[0];
+            const status = await upgrade(userId, code);
+            if(status === 0){
+                msg.reply("**Your card is already at max tier!**");
+            }
+            if(status === true){
+                msg.reply("**WILL ADD UPGRADE SHIT HERE IDK**");
+            }else if(status===false){
+                msg.reply("Your card is too low level to upgrade");
             }
         }
     }

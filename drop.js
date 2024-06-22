@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard} = require("./cards");
 
 function getDrop(msg,userId){
   // get a random card from the storage and store the details to be able to be used in bellow embeded message
@@ -26,6 +26,7 @@ function getDrop(msg,userId){
                         level: 0,
                         upgradable: false,
                         "copies-owned": 1,
+                        tier: 1,
                     };
                 } else {
                     //msg.channel.send("You do own card, will write code to incremenet value");
@@ -35,13 +36,16 @@ function getDrop(msg,userId){
                         randomCard["card-id"],
                         attributeName,
                     );
+                    const userCard = await getUserCard(secondTableName, userId, randomCard["card-id"]);
+                    const userCardData = userCard[0];
                     item = {
                         "user-id": userId, //primary key
                         "card-id": randomCard["card-id"], //secondary key
-                        exp: 0,
-                        level: 0,
+                        exp: userCardData.exp,
+                        level: userCardData.level,
                         upgradable: false,
                         "copies-owned": numberOfCopies + 1,
+                        tier: userCardData.tier,
                     };
                 }
                 const cardCount = await checkTotalCardCount(
@@ -73,10 +77,9 @@ function getDrop(msg,userId){
                     )
                     .addFields(
                         {
-                            name: "Copies now Owned",
-                            value: Discord.inlineCode(
-                                String(numberOfCopies + 1),
-                            ),
+                            name: `Copies now Owned: ${Discord.inlineCode(
+                                    String(numberOfCopies + 1))}`,
+                            value: " ",
                             inline: true,
                         }, // You can set inline to true if you want the field to display inline.
                     )

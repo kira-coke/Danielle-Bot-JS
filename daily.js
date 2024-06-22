@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 
 function getDaily(msg,userId){
@@ -28,6 +28,7 @@ function getDaily(msg,userId){
                         level: 0,
                         upgradable: false,
                         "copies-owned": 1,
+                        tier: 1
                     };
                 } else {
                     //msg.channel.send("You do own card, will write code to incremenet value");
@@ -37,13 +38,17 @@ function getDaily(msg,userId){
                         randomCard["card-id"],
                         attributeName,
                     );
+                    const userCard = await getUserCard(secondTableName, userId, randomCard["card-id"]);
+                    const userCardData = userCard[0];
                     item = {
                         "user-id": userId, //primary key
                         "card-id": randomCard["card-id"], //secondary key
-                        exp: 0,
-                        level: 0,
+                        exp: userCardData.exp, 
+                        level: userCardData.level,
                         upgradable: false,
                         "copies-owned": numberOfCopies + 1,
+                         tier: userCardData.tier,
+                        
                     };
                 }
                 const cardCount = await checkTotalCardCount(
@@ -82,10 +87,9 @@ function getDaily(msg,userId){
                     )
                     .addFields(
                         {
-                            name: "Copies now Owned",
-                            value: Discord.inlineCode(
-                                String(numberOfCopies + 1),
-                            ),
+                            name:`Copies now Owned: ${Discord.inlineCode(
+                                    String(numberOfCopies + 1))}`,
+                            value: " ",
                             inline: false,
                         }, 
                         {

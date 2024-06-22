@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard} = require("./cards");
 
 function getClaim(msg,userId){
   // get a random card from the storage and store the details to be able to be used in bellow embeded message
@@ -18,6 +18,8 @@ function getClaim(msg,userId){
                     userId,
                     randomCard["card-id"],
                 );
+                const userCard = await getUserCard(secondTableName, userId, randomCard["card-id"]);
+                const userCardData = userCard[0];
                 if (cardExistsForUser === 0) {
                     item = {
                         "user-id": userId, //primary key
@@ -26,6 +28,7 @@ function getClaim(msg,userId){
                         level: 0,
                         upgradable: false,
                         "copies-owned": 1,
+                        tier: 1
                     };
                 } else {
                     numberOfCopies = await getHowManyCopiesOwned(
@@ -37,10 +40,11 @@ function getClaim(msg,userId){
                     item = {
                         "user-id": userId, //primary key
                         "card-id": randomCard["card-id"], //secondary key
-                        exp: 0,
-                        level: 0,
+                        exp: userCardData.exp,
+                        level: userCardData.level,
                         upgradable: false,
                         "copies-owned": numberOfCopies + 1,
+                         tier: userCardData.tier,
                     };
                 }
                 const cardCount = await checkTotalCardCount(
