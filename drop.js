@@ -61,20 +61,15 @@ function getDrop(msg,userId){
                     console.error("Error updating card count:", error);
                 });
                 writeToDynamoDB(secondTableName, item)
-                    .then(() => {
-                        console.log(
-                            "Successfully wrote item to DynamoDB first table",
-                        );
-                    })
                     .catch((error) => {
                         console.error("Error:", error);
                     });
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
-                    //.setTitle("\n\u200B\n**Claim Recieved!**\n")
+                    .setTitle("**You have dropped**")
                     .setDescription(
-                        `You have dropped **${randomCard["GroupName"]} ${randomCard["GroupMember"]}**`,
+                        `**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
                     )
                     .addFields(
                         {

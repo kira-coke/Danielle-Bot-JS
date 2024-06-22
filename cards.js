@@ -33,7 +33,7 @@ async function writeToDynamoDB(tableName, item) {
         };
         // Call DynamoDB putItem API
         const data = await dynamodb.put(params).promise();
-        console.log('Item successfully added to DynamoDB:', data);
+        //console.log('Item successfully added to DynamoDB:', data);
         return data; // Optionally return the response if needed
     } catch (error) {
         console.error('Error writing to DynamoDB:', error);
@@ -226,32 +226,5 @@ async function checkTotalCardCount(tableName, primaryKeyValue){
     }
 }
 
-/*async function getRandomCard(bucketName){
-    try {
-        // List objects in the bucket
-        const params = {
-            Bucket: bucketName
-        };
-        const data = await s3.listObjectsV2(params).promise();
-
-        if (!data.Contents || data.Contents.length === 0) {
-            throw new Error('No objects found in the bucket');
-        }
-
-        // Randomize URL selection
-        const randomIndex = Math.floor(Math.random() * data.Contents.length);
-        const selectedObject = data.Contents[randomIndex];
-        const url = s3.getSignedUrl('getObject', {
-            Bucket: bucketName,
-            Key: selectedObject.Key,
-            Expires: 60 // URL expiration time in seconds
-        });
-
-        return url;
-    } catch (error) {
-        console.error('Error retrieving objects from S3:', error);
-        throw error;
-    }
-}*/
 
 module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount};

@@ -10,7 +10,7 @@ AWS.config.update({
 const{work} = require("./work");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -22,6 +22,7 @@ const {getDrop} = require("./drop.js");
 const {getDaily} = require("./daily.js");
 const {GatewayIntentBits} = require("discord.js");
 const {payCommand} = require("./pay.js");
+const {setUserStreak} = require("./updateDailyStreak.js")
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -373,7 +374,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if(command === "daily"){
-            const dailyCd = Date.now() + 72000 * 1000;
+            const dailyCd = Date.now() + 1 * 1000;
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -382,6 +383,9 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = dailyCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
+            const streak = await getUser(userId);
+            const streakNumber = streak["DailyStreak"];
+            await setUserStreak("Dani-bot-playerbase",userId, (streakNumber + 1));
             getDaily(msg, userId);
         }
 

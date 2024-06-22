@@ -28,7 +28,6 @@ function getClaim(msg,userId){
                         "copies-owned": 1,
                     };
                 } else {
-                    //msg.channel.send("You do own card, will write code to incremenet value");
                     numberOfCopies = await getHowManyCopiesOwned(
                         secondTableName,
                         userId,
@@ -61,27 +60,21 @@ function getClaim(msg,userId){
                     console.error("Error updating card count:", error);
                 });
                 writeToDynamoDB(secondTableName, item)
-                    .then(() => {
-                        console.log(
-                            "Successfully wrote item to DynamoDB first table",
-                        );
-                    })
                     .catch((error) => {
                         console.error("Error:", error);
                     });
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
-                    //.setTitle("\n\u200B\n**Claim Recieved!**\n")
+                    .setTitle("**You have dropped**")
                     .setDescription(
-                        `You have dropped **${randomCard["GroupName"]} ${randomCard["GroupMember"]}**`,
+                        `**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
                     )
                     .addFields(
                         {
-                            name: "Copies now Owned",
-                            value: Discord.inlineCode(
-                                String(numberOfCopies + 1),
-                            ),
+                            name: `Copies now Owned: ${Discord.inlineCode(
+                                String(numberOfCopies + 1))}`,
+                            value: " ",
                             inline: true,
                         }, // You can set inline to true if you want the field to display inline.
                     )

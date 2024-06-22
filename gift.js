@@ -59,11 +59,6 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                   }
                   console.log(item);
                   await writeToDynamoDB(secondTableName, item)
-                  .then(() => {
-                      console.log(
-                          "Successfully wrote first instance of this item to DynamoDB first table",
-                      );
-                  })
                   .catch((error) => {
                       console.error("Error:", error);
                   });

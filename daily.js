@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
+const {getUser} = require("./users.js");
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 
@@ -62,11 +63,6 @@ function getDaily(msg,userId){
                     console.error("Error updating card count:", error);
                 });
                 writeToDynamoDB(secondTableName, item)
-                    .then(() => {
-                        console.log(
-                            "Successfully wrote item to DynamoDB first table",
-                        );
-                    })
                     .catch((error) => {
                         console.error("Error:", error);
                     });
@@ -75,13 +71,14 @@ function getDaily(msg,userId){
                 const userBalance = await getUsersBalance(userId);
                 const newBalance = parseInt(userBalance) + randomAmount;
                 const newBalanceWithCommas = numberWithCommas(newBalance);
+                const user = await getUser(userId);
                 await saveUserBalance(userId, newBalance);
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
-                    .setTitle("You are on an //TODO daily streak!")
+                    .setTitle(`You are on an ${user["DailyStreak"]} daily streak!`)
                     .setDescription(
-                        `You have recieved the following card: **${randomCard["GroupName"]} ${randomCard["GroupMember"]}**`,
+                        `You have recieved the following card: \n**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
                     )
                     .addFields(
                         {
@@ -128,5 +125,6 @@ async function getRandomAmount(){
 function numberWithCommas(x) {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
 
 module.exports = {getDaily};

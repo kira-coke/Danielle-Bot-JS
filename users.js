@@ -14,7 +14,8 @@ async function saveUserData(userId, timeStamp) {
           'FavCard' : "NJDNOMG", 
           'Description': "Default Profile",
           'cardCount' : 0,
-          'LookingFor': ["n/a"]
+          'LookingFor': ["n/a"],
+          'DailyStreak': 1,
       }
   };
 
