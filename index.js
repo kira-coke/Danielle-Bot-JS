@@ -12,15 +12,15 @@ const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getRandomDynamoDBItem,getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
 const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
+const {getDrop} = require("./drop.js");
 const {GatewayIntentBits} = require("discord.js");
 const {payCommand} = require("./pay.js");
-const { createDropEmbed, interactionCreateListener } = require('./dropButtons');
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -124,23 +124,7 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = dropCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
-
-            (async () => {
-                try {
-                    const tableName = "cards";
-                    const randomCardOne = await getRandomDynamoDBItem(tableName);
-                    const randomCardTwo = await getRandomDynamoDBItem(tableName);
-                    const randomCardThree = await getRandomDynamoDBItem(tableName);
-
-                    const { embed, row } = createDropEmbed(msg, randomCardOne, randomCardTwo, randomCardThree);
-
-                    await msg.reply({ embeds: [embed], components: [row] });
-
-                    client.on("interactionCreate", (interaction) => interactionCreateListener(interaction, msg, client));
-                } catch (error) {
-                    console.error("Error:", error);
-                }
-            })();
+            getDrop(msg,userId);
         }
 
         if (command === "bal") {

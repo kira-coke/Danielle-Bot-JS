@@ -5,10 +5,9 @@ const {getCardFromTable} = require("./cards.js");
 async function generateEmbedInv(page, totalPages, listOfCards, msg) {
     const embed = new EmbedBuilder()
         .setTitle(
-            `Displaying all the current cards in circulation (Page ${page + 1}/${totalPages})`,
+            `Displaying ${msg.author.username}'s inventory                                        (Page ${page + 1}/${totalPages})`,
         )
         .setColor("#feb69e")
-        .setDescription("hi")
         .setFooter({
             text: msg.author.tag,
             iconURL: msg.author.displayAvatarURL({
@@ -23,33 +22,12 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg) {
         listOfCards.length,
     );
 
-
-    embed.addFields(
-        {
-            name: "Group Name",
-            value: " ",
-            inline: true,
-        },
-        {
-            name: "Member Name",
-            value: " ",
-            inline: true,
-        },
-        {
-            name: "Card ID",
-            value: " ",
-            inline: true,
-        },
-    );
-
   const cardSubset = listOfCards.slice(startIndex, endIndex);
 
     for (const attribute of cardSubset) {
       const cardData = await getCardFromTable("cards", attribute["card-id"]);
       embed.addFields(
-          { name: " ", value: Discord.blockQuote(String(cardData["GroupName"] || "N/A")), inline: true },
-          { name: " ", value: String(cardData["GroupMember"] || "N/A"), inline: true },
-          { name: " ", value: Discord.inlineCode(String(cardData["card-id"] || "N/A")), inline: true }
+          {  name: "\u200B",  value: `${Discord.blockQuote(Discord.bold(String(cardData["GroupMember"])))}               (${Discord.bold(String(cardData["Theme"]))})                 ${Discord.inlineCode(String(attribute["exp"])+ "/100")} |  ${Discord.inlineCode("Lvl." + String(attribute["level"]))}  |  ${Discord.inlineCode(String(attribute["copies-owned"]))}`, inline: false },
       );
   };
 
@@ -87,7 +65,7 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards) => {
             currentPage++;
         }
         await embedMessage.edit({
-            embeds: [generateEmbedInv(currentPage, totalPages, listOfCards, msg)],
+            embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg)],
             components: [generateRowInv(currentPage, totalPages)],
         });
     });
