@@ -35,9 +35,10 @@ async function getUserCooldown(userId, command) {
             const cooldownTimestamp = result.Item.cooldownTimestamp;
             const remainingTime = cooldownTimestamp - Date.now();
             if (remainingTime > 0) {
-                const minutes = Math.floor(remainingTime / 60000);
-                const seconds = Math.floor((remainingTime % 60000) / 1000);
-                return `${minutes}m ${seconds}s`;
+                const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+                const minutes = Math.floor((remainingTime  % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remainingTime  % (1000 * 60)) / 1000);
+                return `${hours}h ${minutes}m ${seconds}s`;
             }
         }
         return '0m 0s';

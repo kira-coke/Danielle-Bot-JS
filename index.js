@@ -19,6 +19,7 @@ const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.j
 const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
 const {getDrop} = require("./drop.js");
+const {getDaily} = require("./daily.js");
 const {GatewayIntentBits} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const client = new Discord.Client({
@@ -372,7 +373,16 @@ client.on("messageCreate", async (msg) => {
         }
 
         if(command === "daily"){
-            //code for daily
+            const dailyCd = Date.now() + 72000 * 1000;
+            const remainingCooldown = await getUserCooldown(userId, command);
+
+            if (remainingCooldown !== '0m 0s') {
+                msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
+                return;
+            }
+            const cooldownTimestamp = dailyCd;
+            await saveUserCooldown(userId, command, cooldownTimestamp);
+            getDaily(msg, userId);
         }
 
         if(command === "inv"){
