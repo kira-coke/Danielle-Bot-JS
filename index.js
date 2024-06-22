@@ -10,6 +10,7 @@ AWS.config.update({
 const{work} = require("./work");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
+const {awardExp} = require("./cardExpSystem.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards} = require("./cards");
@@ -397,6 +398,22 @@ client.on("messageCreate", async (msg) => {
             const embedMessage = await msg.channel.send({ embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg)], components: [generateRowInv(0, totalPages)] });
 
             handleCollectorInv(embedMessage, msg, totalPages, listOfCards);
+        }
+
+        if(command === "feed"){
+            const input = args.filter(code => code.trim() !== "");
+            const cardId = input[0];
+            const numberOfCards = input[1];
+            const temp = await awardExp(userId, String(cardId), numberOfCards);
+            if(temp === 0){
+                msg.reply("**You do not own this card**");
+            }
+            if(temp === 1){
+                msg.reply("**You do not own enough copies**");
+            }
+            if(temp === 2){
+                msg.reply("**Your card is already at max level!**");
+            }
         }
     }
 });

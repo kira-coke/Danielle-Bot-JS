@@ -16,6 +16,7 @@ async function saveUserData(userId, timeStamp) {
           'cardCount' : 0,
           'LookingFor': ["n/a"],
           'DailyStreak': 1,
+          'TotalExp': 0
       }
   };
 

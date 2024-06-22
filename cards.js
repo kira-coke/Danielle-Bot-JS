@@ -118,6 +118,32 @@ async function checkIfUserOwnsCard(tableName, key, secondaryKeyValue){
     }
 }
 
+async function getUserCard(tableName, key, secondaryKeyValue){
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: '#pk = :pkValue AND #sk = :skValue',
+            ExpressionAttributeNames: {
+                '#pk': 'user-id',   // Replace with your partition key attribute name
+                '#sk': 'card-id',
+            },
+            ExpressionAttributeValues: {
+                ':pkValue': key,
+                ':skValue': secondaryKeyValue,
+            },
+        };
+        // Call DynamoDB query API to count items
+        const data = await dynamodb.query(params).promise();
+        if(data.Items.length === 0){
+            return 0;
+        }
+        return data.Items;
+    } catch (error) {
+        console.error('Error finding entry in DynamoDB:', error);
+        throw error;
+    }
+}
+
 async function getTotalCards(tableName){
     //get all items from table
     try {
@@ -226,5 +252,4 @@ async function checkTotalCardCount(tableName, primaryKeyValue){
     }
 }
 
-
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount};
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard};
