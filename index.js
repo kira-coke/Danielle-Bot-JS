@@ -107,7 +107,7 @@ client.on("messageCreate", async (msg) => {
             } else {
                 userId = args.join(" ").trim();
             }
-            if (!userId || userId === msg.author.id) {
+            if (!userId) {
                 userId = msg.author.id;
             }
             try{
