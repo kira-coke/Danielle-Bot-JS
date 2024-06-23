@@ -71,15 +71,15 @@ client.on("messageCreate", async (msg) => {
         if (!userExists) {
             if (command === "start") {
                 const embed = new EmbedBuilder()
-                    .setColor(0x0099ff)
+                    .setColor("#f7cad0")
                     .setTitle(
                         "**Welcome to Danielle Bot **" + authorTag + "**!**",
                     )
                     .setDescription(
-                        "**Enjoy your stay <:daniheart:1251995500308336723> You have been given 10,000 coins as a welcome gift!**",
+                        "**Enjoy your stay! You have been given 10,000 coins as a welcome gift!**",
                     ) // add an amount of currency here and add it to the users balance after they start
                     .setImage(
-                        "https://media.discordapp.net/attachments/863906210582626335/1252011345168175225/newjeans-danielle-omg-4k-wallpaper-uhdpaper.com-2350i.jpg?ex=6670a9ed&is=666f586d&hm=985b63d3eb9d63aa6a86c8479f85e6a1d8aa61d47e5329d011978f35ab3e67a1&=&format=webp&width=1177&height=662",
+                        "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/ezgif.com-gif-maker+(52).gif",
                     )
                     .setTimestamp();
                 msg.reply({ embeds: [embed] });
@@ -512,6 +512,7 @@ client.on("messageCreate", async (msg) => {
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
+            //const listOfCards = await getUserCards("user-cards", userId);
             const filteredCards = await filterByAttribute("cards", "GroupName", groupName);
 
             const cardsPerPage = 4;
@@ -558,10 +559,6 @@ client.on("messageCreate", async (msg) => {
             const input = args.filter(code => code.trim() !== "");
             const code = input[0];
             const status = await upgrade(userId, code, msg);
-            if(status === 0){
-                msg.reply("**Your card is already at max tier!**");
-                return;
-            }
             if(status === true){
                 return;
             }else if(status===false){
