@@ -4,6 +4,7 @@ const {getCardFromTable} = require("./cards");
 const Discord = require("discord.js");
 
 async function getUserProfile(msg, userId){
+  const user = await msg.client.users.fetch(userId);
   const userData = await getUser(userId);
   const userFavcard = await getCardFromTable(
       "cards",
@@ -15,7 +16,7 @@ async function getUserProfile(msg, userId){
   }
   const embed = new EmbedBuilder()
       .setColor("#fffac2") //should be able to change colour
-      .setTitle(msg.author.username + "'s Profile")
+      .setTitle(user.username + "'s Profile")
       .setDescription(userData["Description"]) //should be able to change description
       .addFields({
           name:

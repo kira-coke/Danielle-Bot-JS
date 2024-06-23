@@ -2,10 +2,11 @@ const Discord = require("discord.js");
 const { EmbedBuilder, ActionRowBuilder,ButtonBuilder, } = require("discord.js");
 const {getCardFromTable} = require("./cards.js");
 
-async function generateEmbedInv(page, totalPages, listOfCards, msg) {
+async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
+    const user = await msg.client.users.fetch(userId);
     const embed = new EmbedBuilder()
         .setTitle(
-            `Displaying ${msg.author.username}'s inventory                                        (Page ${page + 1}/${totalPages})`,
+            `Displaying ${user.username}'s inventory                                        (Page ${page + 1}/${totalPages})`,
         )
         .setColor("#feb69e")
         .setFooter({

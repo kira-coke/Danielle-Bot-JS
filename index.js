@@ -99,9 +99,22 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
         }
-
         if (command === "profile" || command === "p") {
-            await getUserProfile(msg, userId);
+            let userId;
+            if (msg.mentions.users.size > 0) {
+                userId = msg.mentions.users.first().id;
+            } else {
+                userId = args.join(" ").trim();
+            }
+            if (!userId || userId === msg.author.id) {
+                userId = msg.author.id;
+            }
+            try{
+                await getUserProfile(msg, userId);
+            }catch(error){
+                msg.reply("Please input only the user id");
+            }
+
         }
 
         if (command === "c") {
@@ -131,11 +144,40 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "bal") {
+            let targetUser;
+            const mention = msg.mentions.users.first();
+
+            if (mention) {
+                targetUser = mention;
+            } else {
+                const args = msg.content.trim().split(/\s+/);
+                const userId = args.length > 1 ? args[1] : null;
+
+                if (userId) {
+                    try {
+                        targetUser = await msg.guild.members.fetch(userId);
+                        targetUser = targetUser.user; // Extract user object from GuildMember
+                    } catch (error) {
+                        const invalidUserEmbed = new EmbedBuilder()
+                            .setColor("#ee9090")
+                            .setTitle(`Invalid User`)
+                            .setDescription(`Could not find a user with ID: ${userId}. Please provide a valid user ID or mention.`)
+                            .setTimestamp();
+                        msg.channel.send({ embeds: [invalidUserEmbed] });
+                        return;
+                    }
+                } else {
+                    targetUser = msg.author;
+                }
+            }
+
+            const userId = targetUser.id;
             const userBal = await getUsersBalance(userId);
+
             if (userBal === null) {
                 const noBalanceEmbed = new EmbedBuilder()
                     .setColor("#ee9090")
-                    .setTitle(`${msg.author.username}'s Balance`)
+                    .setTitle(`${targetUser.username}'s Balance`)
                     .setDescription(
                         `No balance found for this user. Ensure you have done the .start command. If you feel this is an error feel free to inform me @kira.c`,
                     )
@@ -143,6 +185,7 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send({ embeds: [noBalanceEmbed] });
                 return;
             }
+
             function numberWithCommas(x) {
                 return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
@@ -150,7 +193,7 @@ client.on("messageCreate", async (msg) => {
 
             const balanceEmbed = new EmbedBuilder()
                 .setColor("#ffa791")
-                .setTitle(`${msg.author.username}'s Balance`)
+                .setTitle(`${targetUser.username}'s Balance`)
                 .setDescription(
                     "**Balance: **" + Discord.inlineCode(`${balWithCommas}`),
                 )
@@ -159,14 +202,34 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "pay") {
-            const amount = parseFloat(args[1]);
+            const amount = parseFloat(args[args.length - 1]); //amount is last value
+            if(args.length > 2){
+                msg.reply("Please only input the user id and amount");
+                return;
+            }
             if ((amount < 0) | !Number.isInteger(amount)) {
                 msg.channel.send(
                     "**You are not allowed to steal monies bad oddy**",
                 );
                 return;
-              }
-          let targetUser = msg.mentions.users.first();
+            }
+            let targetUser;
+            let userId;
+            if (msg.mentions.users.size > 0) {
+                targetUser = msg.mentions.users.first();
+            } else {
+                userId = args.slice(0, -1).join("").trim();
+                if (!userId || isNaN(userId)) {
+                    msg.channel.send("Please mention a user or provide a valid user ID.");
+                    return;
+                }
+                try {
+                    targetUser = await msg.client.users.fetch(userId);
+                } catch (error) {
+                    msg.channel.send("Could not find a user with that ID.");
+                    return;
+                }
+            }
           if (targetUser === msg.author) {
             msg.channel.send("** Trying to give yourself money? **");
             return;
@@ -198,7 +261,11 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "view" || command === "v") {
             //get second parameter entered by the user and parse that as the cardid to get from table
-            const cardId = args[0];
+            const cardId = args.join(" ").trim();
+            if(args.length > 1){
+                msg.reply("Please only input 1 card id");
+                return;
+            }
             if (cardId === undefined) {
                 msg.reply("**Please input a card id**");
                 return;
@@ -391,11 +458,20 @@ client.on("messageCreate", async (msg) => {
         }
 
         if(command === "inv"){
+            let userId;
+            if (msg.mentions.users.size > 0) { //checks is someones been mentioned
+                userId = msg.mentions.users.first().id;
+            } else {
+                 userId = args.join(" ").trim(); //if not assumes first argument is the user id
+            }
+            if (!userId || userId === msg.author.id) {
+                userId = msg.author.id;
+            }
             const listOfCards = await getUserCards("user-cards", userId);
             const cardsPerPage = 4;
             const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
 
-            const embedMessage = await msg.channel.send({ embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg)], components: [generateRowInv(0, totalPages)] });
+            const embedMessage = await msg.channel.send({ embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg, userId)], components: [generateRowInv(0, totalPages)] });
 
             handleCollectorInv(embedMessage, msg, totalPages, listOfCards);
         }
@@ -424,7 +500,7 @@ client.on("messageCreate", async (msg) => {
             const code = input[0];
             const status = await upgrade(userId, code);
             if(status === 0){
-                msg.reply("**Your card is already at max tier!**");
+                return;
             }
             if(status === true){
                 msg.reply("**WILL ADD UPGRADE SHIT HERE IDK**");
