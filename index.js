@@ -11,9 +11,9 @@ const{work} = require("./work");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser,setAutoReminders} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -71,15 +71,15 @@ client.on("messageCreate", async (msg) => {
         if (!userExists) {
             if (command === "start") {
                 const embed = new EmbedBuilder()
-                    .setColor(0x0099ff)
+                    .setColor("#f7cad0")
                     .setTitle(
                         "**Welcome to Danielle Bot **" + authorTag + "**!**",
                     )
                     .setDescription(
-                        "**Enjoy your stay <:daniheart:1251995500308336723> You have been given 10,000 coins as a welcome gift!**",
+                        "**Enjoy your stay! You have been given 10,000 coins as a welcome gift!**",
                     ) // add an amount of currency here and add it to the users balance after they start
                     .setImage(
-                        "https://media.discordapp.net/attachments/863906210582626335/1252011345168175225/newjeans-danielle-omg-4k-wallpaper-uhdpaper.com-2350i.jpg?ex=6670a9ed&is=666f586d&hm=985b63d3eb9d63aa6a86c8479f85e6a1d8aa61d47e5329d011978f35ab3e67a1&=&format=webp&width=1177&height=662",
+                        "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/ezgif.com-gif-maker+(52).gif",
                     )
                     .setTimestamp();
                 msg.reply({ embeds: [embed] });
@@ -119,7 +119,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "c") {
-            const claimCd = Date.now() + 1 * 1000; //change back to 300
+            const claimCd = Date.now() + 300 * 1000; //change back to 300
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -128,6 +128,12 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = claimCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
+            const user = await getUser(userId);
+            if(user.Reminders === true){
+                setTimeout(() => {
+                    msg.channel.send(`**Reminder:** <@${msg.author.id}> your claim is ready!`);
+                }, 300 * 1000); // Convert minutes to milliseconds
+            }
             getClaim(msg,userId);
         } 
 
@@ -141,6 +147,12 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = dropCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
+            const user = await getUser(userId);
+            if(user.Reminders === true){
+                setTimeout(() => {
+                    msg.channel.send(`**Reminder:** <@${msg.author.id}> your drop is ready!`);
+                }, 600 * 1000); // Convert minutes to milliseconds
+            }
             getDrop(msg,userId);
         }
 
@@ -474,32 +486,48 @@ client.on("messageCreate", async (msg) => {
             const streak = await getUser(userId);
             const streakNumber = streak["DailyStreak"];
             await setUserStreak("Dani-bot-playerbase",userId, (streakNumber + 1));
+            const user = await getUser(userId);
+            if(user.Reminders === true){
+                setTimeout(() => {
+                    msg.channel.send(`**Reminder:** <@${msg.author.id}> your daily is ready!`);
+                }, 72000 * 1000); // Convert minutes to milliseconds
+            }
             getDaily(msg, userId);
         }
 
         if(command === "inv"){
             let userId;
-            if (msg.mentions.users.size > 0) { //checks is someones been mentioned
+            let groupName = args.shift(); // Extract the groupName from the first argument
+
+            if (!groupName) {
+                return msg.channel.send("You need to specify a group name.");
+            }
+
+            if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
                 userId = msg.mentions.users.first().id;
             } else {
-                 userId = args.join(" ").trim(); //if not assumes first argument is the user id
+                userId = args.join(" ").trim(); // If not, assumes the rest of the arguments are the user ID
             }
+
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
-            const listOfCards = await getUserCards("user-cards", userId);
+            //const listOfCards = await getUserCards("user-cards", userId);
+            const filteredCards = await filterByAttribute("cards", "GroupName", groupName);
+
             const cardsPerPage = 4;
-            const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
+            const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+
             if (!userId) {
                 console.error("Invalid user ID:", userId); // Log error if userId is invalid
             } else {
-                try{
+                try {
                     const embedMessage = await msg.channel.send({
-                        embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg, userId)],
+                        embeds: [await generateEmbedInv(0, totalPages, filteredCards, msg, userId)],
                         components: [generateRowInv(0, totalPages)]
                     });
-                    handleCollectorInv(embedMessage, msg, totalPages, listOfCards, userId);
-                }catch(error){
+                    handleCollectorInv(embedMessage, msg, totalPages, filteredCards, userId);
+                } catch(error) {
                     console.log("Error:", error);
                 }
             }
@@ -531,10 +559,6 @@ client.on("messageCreate", async (msg) => {
             const input = args.filter(code => code.trim() !== "");
             const code = input[0];
             const status = await upgrade(userId, code, msg);
-            if(status === 0){
-                msg.reply("**Your card is already at max tier!**");
-                return;
-            }
             if(status === true){
                 return;
             }else if(status===false){
@@ -543,7 +567,7 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        if(command === 'help'){
+        if(command === "help"){
             const embed = helpCommand(0);
             const pages = 4;
             const components = pages > 1 ? [generateRowHelp(0, pages)] : [];
@@ -551,6 +575,32 @@ client.on("messageCreate", async (msg) => {
             msg.reply({ embeds: [embed], components: components }).then(sentMsg => {
                 handleCollectorHelp(sentMsg, msg);
             }).catch(console.error); // Catch errors for debugging
+        }
+
+        if(command === "remindersoff"){
+            const userId = msg.author.id;
+            await setAutoReminders("Dani-bot-playerbase", userId, false);
+
+            const embed = new EmbedBuilder()
+                .setColor('#d81159')
+                .setTitle('Auto Reminders Turned Off')
+                .setDescription(`You will no longer receive reminders for claims, drops, and daily.`)
+                .setTimestamp();
+
+            msg.channel.send({ embeds: [embed] });
+        }
+        
+        if(command === "reminderson"){
+            const userId = msg.author.id;
+            await setAutoReminders("Dani-bot-playerbase", userId, true);
+
+            const embed = new EmbedBuilder()
+                .setColor('#04a777')
+                .setTitle('Auto Reminders Turned On')
+                .setDescription(`You will now receive reminders for claims, drops, and daily.`)
+                .setTimestamp();
+
+            msg.channel.send({ embeds: [embed] });
         }
     }
 });

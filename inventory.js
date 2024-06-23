@@ -1,10 +1,9 @@
 const Discord = require("discord.js");
-const { EmbedBuilder, ActionRowBuilder,ButtonBuilder, } = require("discord.js");
-const {getCardFromTable} = require("./cards.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
+const { getCardFromTable, checkIfUserOwnsCard, getUserCard} = require("./cards.js");
 
 async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
-    //console.log("Generating embed for User ID:", userId); // Debug log
-
+  
     let user;
     try {
         user = await msg.client.users.fetch(userId);
@@ -24,21 +23,45 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
             }),
         });
 
-    const cardsPerPage = 4; //eunsure this matches the value on the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 4; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,
         listOfCards.length,
     );
 
-  const cardSubset = listOfCards.slice(startIndex, endIndex);
-
+    const cardSubset = listOfCards.slice(startIndex, endIndex);
+    
     for (const attribute of cardSubset) {
-      const cardData = await getCardFromTable("cards", attribute["card-id"]);
-      embed.addFields(
-          {  name: "\u200B",  value: `${Discord.blockQuote(Discord.bold(String(cardData["GroupMember"])))}               (${Discord.bold(String(cardData["Theme"]))})                 ${Discord.inlineCode(String(attribute["exp"])+ "/100")} |  ${Discord.inlineCode("Lvl." + String(attribute["level"]))}  |  ${Discord.inlineCode(String(attribute["copies-owned"]))}`, inline: false },
-      );
-  };
+        try {
+            const card = await getCardFromTable("cards", attribute["card-id"]);
+
+            const ownsCard = await checkIfUserOwnsCard("user-cards", userId, attribute["card-id"]);
+
+            if (ownsCard !== 0) {
+                const cardDataArray = await getUserCard("user-cards", userId, attribute["card-id"]);
+                const cardData = cardDataArray[0];
+                embed.addFields(
+                    { 
+                        name: " ", 
+                        value: `${Discord.blockQuote(Discord.bold(String(card["GroupMember"])))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        inline: false 
+                    }
+                );
+            } else {
+                embed.addFields(
+                    { 
+                        name: " ", 
+                        value: `**User does not own:** ${Discord.inlineCode(attribute["card-id"])}`, 
+                        inline: false 
+                    }
+                );
+            }
+        } catch (error) {
+            console.error("Error processing card:", error);
+            // Optionally handle error or continue with next card
+        }
+    }
 
     return embed;
 };
@@ -63,7 +86,7 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) 
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
         filter,
-        time: 30000, //how long buttons last
+        time: 30000, // How long buttons last
     });
 
     collector.on("collect", async (i) => {
@@ -84,4 +107,4 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) 
     });
 };
 
-module.exports = {generateEmbedInv, generateRowInv, handleCollectorInv};
+module.exports = { generateEmbedInv, generateRowInv, handleCollectorInv };

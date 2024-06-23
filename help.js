@@ -16,9 +16,10 @@ const commands = [
     { name: ".w", description: "Work to earn a random amount of coins (2500-5000) every 1 hour." },
     { name: ".wishlist or .wl [card-ids...]", description: "Set your wishlist of cards ids." },
     { name: ".daily", description: "Claim your daily streak bonus. (Every 7 days a bonus of x2 is applied)" },
-    { name: ".inv [@user]", description: "View your or someone else's inventory." },
+    { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory. (note: for now the group name is case sensitive)" },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
-    { name: ".upgrade card-id", description: "Upgrade a card to increase its tier. (note: max tier is 3)" }
+    { name: ".upgrade card-id", description: "Upgrade a card to increase its tier. (note: max tier is 3)" }, 
+    { name: ".remindersOn / remindersOff", description: "Enables or disables auto reminders."}
 ];
 
 const itemsPerPage = 5;
