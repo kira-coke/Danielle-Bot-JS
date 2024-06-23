@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
-const { EmbedBuilder, bold } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function awardExp(userId, cardId, numberOfCards, msg){
@@ -16,16 +16,14 @@ async function awardExp(userId, cardId, numberOfCards, msg){
     return 1;
   }
   const cardData = card[0];
-  if(cardData.level > 20){
-    msg.reply("Your card is ready to upgrade!");
-    return;
-  }
-  if(cardData.level === 20){
-    console.log(cardData.upgradable);
-    cardData.upgradable = true;
-    await updateUserData("user-cards", cardData);
-    console.log("User is already at max level");
-    return 2;
+  if(cardData.level === 100){
+    if(cardData.tier != 3){
+      console.log(cardData.upgradable);
+      cardData.upgradable = true;
+      await updateUserData("user-cards", cardData);
+      console.log("User is already at the max tier");
+      return 2;
+    }
   }
   const newExp = cardData.exp += expGiven; //the new exp for the card
   const levelUpXP = calculateLevelUpXP(cardData.level);
@@ -41,6 +39,10 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       cardData.exp -= levelUpXP;
       cardData.level += 1;
     }
+  }
+
+  if(cardData.level != 100){
+    return;
   }
   
   await updateUserData("user-cards", cardData);
@@ -58,12 +60,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       .setTimestamp();
 
   if (newExp >= levelUpXP) {
-    if(cardData.level > 20){
-      embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**! \n ${bold("WARNING: This has overfed your card, do .upgrade to upgrade!")}` });
-      
-    }else{
       embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**!` });
-    }
   }
 
   msg.channel.send({ embeds: [embed] });
@@ -72,7 +69,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
 
 function calculateLevelUpXP(level) {
    if(level === 0){
-     return 0; // no more exp is needed to level up
+     return 0; // no ore exp is needed to level up
    }
    return Math.round(100 * Math.pow(1.1, level - 1));
 }
@@ -80,9 +77,9 @@ function calculateLevelUpXP(level) {
 async function upgrade(userId, cardId, msg){
   const card = await getUserCard("user-cards", userId, cardId);
   const cardData = card[0];
-  if(cardData.level != 20){
-    msg.reply("You must be at max level to upgrade");
-    return;
+  if(cardData.tier === 3){
+    //at max level
+    return 0;
   }
   const temp = await awardExp(userId, String(cardId), 0, msg);
   if(temp === 2){
@@ -92,7 +89,7 @@ async function upgrade(userId, cardId, msg){
     cardData.tier = cardData.tier+1;
     await updateUserData("user-cards", cardData);
     const embed = new EmbedBuilder()
-      .setColor("#00FF00")
+      .setColor("#b3dee2")
       .setTitle("Card Upgrade!")
       .setDescription(`Your **${cardId}** has been upgraded to **Tier ${cardData.tier}**!`)
       .addFields(
