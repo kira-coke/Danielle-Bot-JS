@@ -522,7 +522,7 @@ client.on("messageCreate", async (msg) => {
             const code = input[0];
             const status = await upgrade(userId, code, msg);
             if(status === 0){
-                msg.reply("**Your card is already at max level!**");
+                msg.reply("**Your card is already at max tier!**");
                 return;
             }
             if(status === true){

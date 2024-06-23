@@ -21,7 +21,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       console.log(cardData.upgradable);
       cardData.upgradable = true;
       await updateUserData("user-cards", cardData);
-      console.log("User is already at max level");
+      console.log("User is already at the max tier");
       return 2;
     }
   }
@@ -89,7 +89,7 @@ async function upgrade(userId, cardId, msg){
     cardData.tier = cardData.tier+1;
     await updateUserData("user-cards", cardData);
     const embed = new EmbedBuilder()
-      .setColor("#00FF00")
+      .setColor("#b3dee2")
       .setTitle("Card Upgrade!")
       .setDescription(`Your **${cardId}** has been upgraded to **Tier ${cardData.tier}**!`)
       .addFields(

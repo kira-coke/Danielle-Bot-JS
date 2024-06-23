@@ -71,17 +71,27 @@ function getDaily(msg,userId){
                     .catch((error) => {
                         console.error("Error:", error);
                     });
-                const randomAmount = await getRandomAmount();
+                let currencyMultiplier = 1;
+
+                // Check and update daily streak
+                const user = await getUser(userId);
+                let streakMessage = `You are on a ${user["DailyStreak"]} daily streak!`;
+
+                // Apply streak bonus every 7 days
+                if (user["DailyStreak"] % 7 === 0) {
+                  currencyMultiplier = 2;
+                  streakMessage += "\n**Daily streak bonus: Currency doubled!**";
+                }
+                const randomAmount = Math.floor(getRandomAmount() * currencyMultiplier);
                 const randomAmountWithCommas = numberWithCommas(randomAmount);
                 const userBalance = await getUsersBalance(userId);
                 const newBalance = parseInt(userBalance) + randomAmount;
                 const newBalanceWithCommas = numberWithCommas(newBalance);
-                const user = await getUser(userId);
                 await saveUserBalance(userId, newBalance);
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
-                    .setTitle(`You are on an ${user["DailyStreak"]} daily streak!`)
+                    .setTitle(streakMessage)
                     .setDescription(
                         `You have recieved the following card: \n**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
                     )
@@ -121,7 +131,7 @@ function getDaily(msg,userId){
     })();
 }
 
-async function getRandomAmount(){
+function getRandomAmount(){
      const randomNumber = Math.floor(Math.random() * (5000 - 2500 + 1)) + 2500;
      return randomNumber;
 }
