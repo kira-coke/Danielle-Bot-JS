@@ -13,7 +13,7 @@ const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -119,7 +119,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if (command === "c") {
-            const claimCd = Date.now() + 1 * 1000; //change back to 300
+            const claimCd = Date.now() + 300 * 1000; //change back to 300
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -128,6 +128,9 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = claimCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
+            setTimeout(() => {
+                msg.reply(`**Reminder:** ${msg.author.displayName} your claim is ready!`);
+            }, 300 * 1000); // Convert minutes to milliseconds
             getClaim(msg,userId);
         } 
 
@@ -141,6 +144,9 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = dropCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
+            setTimeout(() => {
+                msg.reply(`**Reminder:** ${msg.author.displayName} your drop is ready!`);
+            }, 600 * 1000); // Convert minutes to milliseconds
             getDrop(msg,userId);
         }
 
@@ -474,32 +480,47 @@ client.on("messageCreate", async (msg) => {
             const streak = await getUser(userId);
             const streakNumber = streak["DailyStreak"];
             await setUserStreak("Dani-bot-playerbase",userId, (streakNumber + 1));
+            setTimeout(() => {
+                msg.reply(`**Reminder:** ${msg.author.displayName} your daily is ready!`);
+            }, 72000 * 1000); // Convert minutes to milliseconds
             getDaily(msg, userId);
         }
 
         if(command === "inv"){
             let userId;
-            if (msg.mentions.users.size > 0) { //checks is someones been mentioned
+            let groupName = args.shift(); // Extract the groupName from the first argument
+
+            if (!groupName) {
+                return msg.channel.send("You need to specify a group name.");
+            }
+
+            if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
                 userId = msg.mentions.users.first().id;
             } else {
-                 userId = args.join(" ").trim(); //if not assumes first argument is the user id
+                userId = args.join(" ").trim(); // If not, assumes the rest of the arguments are the user ID
             }
+
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
-            const listOfCards = await getUserCards("user-cards", userId);
+            console.log(groupName);
+
+            //const listOfCards = await getUserCards("user-cards", userId);
+            const filteredCards = await filterByAttribute("cards", "GroupName", groupName);
+
             const cardsPerPage = 4;
-            const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
+            const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+
             if (!userId) {
                 console.error("Invalid user ID:", userId); // Log error if userId is invalid
             } else {
-                try{
+                try {
                     const embedMessage = await msg.channel.send({
-                        embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg, userId)],
+                        embeds: [await generateEmbedInv(0, totalPages, filteredCards, msg, userId)],
                         components: [generateRowInv(0, totalPages)]
                     });
-                    handleCollectorInv(embedMessage, msg, totalPages, listOfCards, userId);
-                }catch(error){
+                    handleCollectorInv(embedMessage, msg, totalPages, filteredCards, userId);
+                } catch(error) {
                     console.log("Error:", error);
                 }
             }

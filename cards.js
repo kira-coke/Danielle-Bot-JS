@@ -252,4 +252,25 @@ async function checkTotalCardCount(tableName, primaryKeyValue){
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard};
+async function filterByAttribute(tableName, attribute, value) {
+    const params = {
+        TableName: tableName,
+        FilterExpression: `#attr = :val`,
+        ExpressionAttributeNames: {
+            '#attr': attribute
+        },
+        ExpressionAttributeValues: {
+            ':val': value
+        }
+    };
+
+    try {
+        const data = await dynamodb.scan(params).promise();
+        return data.Items;
+    } catch (error) {
+        console.error('Error filtering items:', error);
+        throw error;
+    }
+}
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute};
