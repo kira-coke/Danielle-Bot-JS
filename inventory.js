@@ -3,7 +3,15 @@ const { EmbedBuilder, ActionRowBuilder,ButtonBuilder, } = require("discord.js");
 const {getCardFromTable} = require("./cards.js");
 
 async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
-    const user = await msg.client.users.fetch(userId);
+    //console.log("Generating embed for User ID:", userId); // Debug log
+
+    let user;
+    try {
+        user = await msg.client.users.fetch(userId);
+    } catch (error) {
+        console.error("Failed to fetch user:", error); // Log error if fetching fails
+        throw error;
+    }
     const embed = new EmbedBuilder()
         .setTitle(
             `Displaying ${user.username}'s inventory                                        (Page ${page + 1}/${totalPages})`,
@@ -50,7 +58,7 @@ const generateRowInv = (page, totalPages) => {
     );
 };
 
-const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards) => {
+const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) => {
     let currentPage = 0;
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
@@ -66,7 +74,7 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards) => {
             currentPage++;
         }
         await embedMessage.edit({
-            embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg)],
+            embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg, userId)],
             components: [generateRowInv(currentPage, totalPages)],
         });
     });

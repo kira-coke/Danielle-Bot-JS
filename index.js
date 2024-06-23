@@ -24,6 +24,7 @@ const {getDaily} = require("./daily.js");
 const {GatewayIntentBits} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
+const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -131,7 +132,7 @@ client.on("messageCreate", async (msg) => {
         } 
 
         if (command === "d") {
-            const dropCd = Date.now() + 1 * 1000; //change to 600
+            const dropCd = Date.now() + 600 * 1000; //change to 600
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -321,16 +322,16 @@ client.on("messageCreate", async (msg) => {
             let userId = msg.author.id;;
             let targetUser;
 
-            if (msg.mentions.users.size > 0) {
+            if (msg.mentions.users.size > 0) { //uses the mention
                 targetUser = msg.mentions.users.first();
             } else {
                 // If no mention, assume the user ID is provided as the first argument
-                userId = args[0];
-                if (userId) {
-                    userId = userId.replace(/\D/g, ''); // Remove all non-digit characters
+                targetUser = args[0];
+                if (targetUser) {
+                    targetUser = targetUser.replace(/\D/g, ''); // Remove all non-digit characters
                 }
                 try {
-                    targetUser = await msg.client.users.fetch(userId);
+                    targetUser = await msg.client.users.fetch(targetUser);
                 } catch (error) {
                     console.error("Error fetching user:", error);
                     msg.channel.send("Could not find a user with that ID.");
@@ -461,7 +462,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if(command === "daily"){
-            const dailyCd = Date.now() + 1 * 1000;
+            const dailyCd = Date.now() + 72000 * 1000;
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -489,10 +490,19 @@ client.on("messageCreate", async (msg) => {
             const listOfCards = await getUserCards("user-cards", userId);
             const cardsPerPage = 4;
             const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
-
-            const embedMessage = await msg.channel.send({ embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg, userId)], components: [generateRowInv(0, totalPages)] });
-
-            handleCollectorInv(embedMessage, msg, totalPages, listOfCards);
+            if (!userId) {
+                console.error("Invalid user ID:", userId); // Log error if userId is invalid
+            } else {
+                try{
+                    const embedMessage = await msg.channel.send({
+                        embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg, userId)],
+                        components: [generateRowInv(0, totalPages)]
+                    });
+                    handleCollectorInv(embedMessage, msg, totalPages, listOfCards, userId);
+                }catch(error){
+                    console.log("Error:", error);
+                }
+            }
         }
 
         if(command === "feed"){
@@ -531,6 +541,16 @@ client.on("messageCreate", async (msg) => {
                 msg.reply("Your card is too low level to upgrade");
                 return;
             }
+        }
+
+        if(command === 'help'){
+            const embed = helpCommand(0);
+            const pages = 4;
+            const components = pages > 1 ? [generateRowHelp(0, pages)] : [];
+
+            msg.reply({ embeds: [embed], components: components }).then(sentMsg => {
+                handleCollectorHelp(sentMsg, msg);
+            }).catch(console.error); // Catch errors for debugging
         }
     }
 });
