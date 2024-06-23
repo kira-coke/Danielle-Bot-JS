@@ -16,7 +16,8 @@ async function saveUserData(userId, timeStamp) {
           'cardCount' : 0,
           'LookingFor': ["n/a"],
           'DailyStreak': 1,
-          'TotalExp': 0
+          'TotalExp': 0, 
+          'Reminders': true
       }
   };
 
@@ -185,4 +186,32 @@ async function getUserCards(tableName, userId) {
     }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards};
+async function setAutoReminders(tableName, userId, attribute){
+    const updateCount = 'SET #Reminders = :newValue';
+    const expressionAttributeValues = {
+        ':newValue': attribute 
+    };
+    const expressionAttributeNames = {
+        '#Reminders': 'Reminders' 
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId, 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
+
+        const data = await dynamodb.update(params).promise();
+        return data.Attributes; // Return the updated attributes
+      } catch (err) {
+          console.error('Unable to check if user exists:', err);
+          return false;
+      }
+}
+
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders};

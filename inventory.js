@@ -49,7 +49,13 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
                     }
                 );
             } else {
-                console.log("User does not own: " + attribute["card-id"]);
+                embed.addFields(
+                    { 
+                        name: "\u200B", 
+                        value: `**User does not own:** ${Discord.inlineCode(attribute["card-id"])}`, 
+                        inline: false 
+                    }
+                );
             }
         } catch (error) {
             console.error("Error processing card:", error);

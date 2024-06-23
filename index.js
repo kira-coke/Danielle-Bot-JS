@@ -11,7 +11,7 @@ const{work} = require("./work");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList, getUserCards, getUser,setAutoReminders} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -128,9 +128,12 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = claimCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
-            setTimeout(() => {
-                msg.reply(`**Reminder:** ${msg.author.displayName} your claim is ready!`);
-            }, 300 * 1000); // Convert minutes to milliseconds
+            const user = await getUser(userId);
+            if(user.Reminders === true){
+                setTimeout(() => {
+                    msg.channel.send(`**Reminder:** <@${msg.author.id}> your claim is ready!`);
+                }, 300 * 1000); // Convert minutes to milliseconds
+            }
             getClaim(msg,userId);
         } 
 
@@ -144,9 +147,12 @@ client.on("messageCreate", async (msg) => {
             }
             const cooldownTimestamp = dropCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
-            setTimeout(() => {
-                msg.reply(`**Reminder:** ${msg.author.displayName} your drop is ready!`);
-            }, 600 * 1000); // Convert minutes to milliseconds
+            const user = await getUser(userId);
+            if(user.Reminders === true){
+                setTimeout(() => {
+                    msg.channel.send(`**Reminder:** <@${msg.author.id}> your drop is ready!`);
+                }, 600 * 1000); // Convert minutes to milliseconds
+            }
             getDrop(msg,userId);
         }
 
@@ -480,9 +486,12 @@ client.on("messageCreate", async (msg) => {
             const streak = await getUser(userId);
             const streakNumber = streak["DailyStreak"];
             await setUserStreak("Dani-bot-playerbase",userId, (streakNumber + 1));
-            setTimeout(() => {
-                msg.reply(`**Reminder:** ${msg.author.displayName} your daily is ready!`);
-            }, 72000 * 1000); // Convert minutes to milliseconds
+            const user = await getUser(userId);
+            if(user.Reminders === true){
+                setTimeout(() => {
+                    msg.channel.send(`**Reminder:** <@${msg.author.id}> your daily is ready!`);
+                }, 72000 * 1000); // Convert minutes to milliseconds
+            }
             getDaily(msg, userId);
         }
 
@@ -503,9 +512,6 @@ client.on("messageCreate", async (msg) => {
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
-            console.log(groupName);
-
-            //const listOfCards = await getUserCards("user-cards", userId);
             const filteredCards = await filterByAttribute("cards", "GroupName", groupName);
 
             const cardsPerPage = 4;
@@ -564,7 +570,7 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        if(command === 'help'){
+        if(command === "help"){
             const embed = helpCommand(0);
             const pages = 4;
             const components = pages > 1 ? [generateRowHelp(0, pages)] : [];
@@ -572,6 +578,32 @@ client.on("messageCreate", async (msg) => {
             msg.reply({ embeds: [embed], components: components }).then(sentMsg => {
                 handleCollectorHelp(sentMsg, msg);
             }).catch(console.error); // Catch errors for debugging
+        }
+
+        if(command === "remindersoff"){
+            const userId = msg.author.id;
+            await setAutoReminders("Dani-bot-playerbase", userId, false);
+
+            const embed = new EmbedBuilder()
+                .setColor('#d81159')
+                .setTitle('Auto Reminders Turned Off')
+                .setDescription(`You will no longer receive reminders for claims, drops, and daily.`)
+                .setTimestamp();
+
+            msg.channel.send({ embeds: [embed] });
+        }
+        
+        if(command === "reminderson"){
+            const userId = msg.author.id;
+            await setAutoReminders("Dani-bot-playerbase", userId, true);
+
+            const embed = new EmbedBuilder()
+                .setColor('#04a777')
+                .setTitle('Auto Reminders Turned On')
+                .setDescription(`You will now receive reminders for claims, drops, and daily.`)
+                .setTimestamp();
+
+            msg.channel.send({ embeds: [embed] });
         }
     }
 });
