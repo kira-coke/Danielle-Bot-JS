@@ -318,11 +318,30 @@ client.on("messageCreate", async (msg) => {
         if (command === "gift") {
             const cardIDToGift = args[1];
             const numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
-            if (msg.mentions.users.first() == undefined) {
-                msg.channel.send("Please mention a user.");
+            let userId = msg.author.id;;
+            let targetUser;
+
+            if (msg.mentions.users.size > 0) {
+                targetUser = msg.mentions.users.first();
+            } else {
+                // If no mention, assume the user ID is provided as the first argument
+                userId = args[0];
+                if (userId) {
+                    userId = userId.replace(/\D/g, ''); // Remove all non-digit characters
+                }
+                try {
+                    targetUser = await msg.client.users.fetch(userId);
+                } catch (error) {
+                    console.error("Error fetching user:", error);
+                    msg.channel.send("Could not find a user with that ID.");
+                    return;
+                }
+            }
+
+            if (!targetUser) {
+                msg.channel.send("Please mention a user or provide a valid user ID.");
                 return;
             }
-            let targetUser = msg.mentions.users.first();
             if (targetUser.id === "1251915536065892413") {
                 msg.channel.send("** Trying to gift the georgeos danielle? **");
                 return;
@@ -480,32 +499,37 @@ client.on("messageCreate", async (msg) => {
             const input = args.filter(code => code.trim() !== "");
             const cardId = input[0];
             const numberOfCards = input[1];
-            const temp = await awardExp(userId, String(cardId), numberOfCards);
+            const temp = await awardExp(userId, String(cardId), numberOfCards, msg);
             const amountOwnedBefore = await getHowManyCopiesOwned("user-cards", userId, cardId);
             const newAmountOwner = amountOwnedBefore - numberOfCards;
-            await changeNumberOwned("user-cards", userId, cardId, newAmountOwner);
             if(temp === 0){
                 msg.reply("**You do not own this card**");
+                return;
             }
             if(temp === 1){
                 msg.reply("**You do not own enough copies**");
+                return;
             }
             if(temp === 2){
                 msg.reply("**Your card is already at max level!**");
+                return;
             }
+            await changeNumberOwned("user-cards", userId, cardId, newAmountOwner);
         }
 
         if(command === "upgrade"){
             const input = args.filter(code => code.trim() !== "");
             const code = input[0];
-            const status = await upgrade(userId, code);
+            const status = await upgrade(userId, code, msg);
             if(status === 0){
+                msg.reply("**Your card is already at max level!**");
                 return;
             }
             if(status === true){
-                msg.reply("**WILL ADD UPGRADE SHIT HERE IDK**");
+                return;
             }else if(status===false){
                 msg.reply("Your card is too low level to upgrade");
+                return;
             }
         }
     }

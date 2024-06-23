@@ -30,6 +30,7 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
               userId,
               cardIDToGift,
           );
+          console.log(numberOfCopies);
           if (
               numberOfCopies == 0 ||
               numberOfCopies < numberOfCopiesToGive
