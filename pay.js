@@ -5,7 +5,7 @@ const { EmbedBuilder } = require("discord.js");
 async function payCommand(msg, userId, targetUser, amount ){
   const userExists = await checkUserExists(targetUser.id);
   if (!userExists) {
-    msg.channel.send(
+    msg.reply(
         `**This user is not registered yet, please tell them to do .start**`,
     );
     return;
@@ -17,12 +17,12 @@ async function payCommand(msg, userId, targetUser, amount ){
     const targetUserBalance = await getUsersBalance(targetUserId);
 
     if (userBalance === null) {
-        msg.channel.send("No balance found for you.");
+        msg.replysend("No balance found for you.");
         return;
     }
 
     if (userBalance < amount) {
-        msg.channel.send("Insufficient funds.");
+        msg.reply.send("Insufficient funds.");
         return;
     }
 

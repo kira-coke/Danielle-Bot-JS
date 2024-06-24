@@ -30,7 +30,6 @@ function getDrop(msg,userId){
                         totalExp: 0,
                     };
                 } else {
-                    //msg.channel.send("You do own card, will write code to incremenet value");
                     numberOfCopies = await getHowManyCopiesOwned(
                         secondTableName,
                         userId,
