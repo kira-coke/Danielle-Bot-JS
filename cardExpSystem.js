@@ -17,15 +17,20 @@ async function awardExp(userId, cardId, numberOfCards, msg){
   }
   const cardData = card[0];
   if(cardData.level > 20){
-    msg.reply("Your card is ready to upgrade!");
-    return;
+    if(cardData.tier === 1 || cardData.tier === 2){
+      msg.reply("Your card is ready to upgrade!");
+      return;
+    }
   }
   if(cardData.level === 20){
-    console.log(cardData.upgradable);
-    cardData.upgradable = true;
-    await updateUserData("user-cards", cardData);
-    console.log("User is already at max level");
-    return 2;
+    if(cardData.tier === 1 || cardData.tier === 2){ 
+      console.log(cardData.upgradable);
+      cardData.upgradable = true;
+      await updateUserData("user-cards", cardData);
+      console.log("User is already at max level");
+      return 2;
+      
+    }
   }
   const newExp = cardData.exp += expGiven; //the new exp for the card
   const levelUpXP = calculateLevelUpXP(cardData.level);
@@ -34,6 +39,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
         cardData.exp -= levelUpXP;
     }
   cardData.exp = newExp;
+  cardData.totalExp += expGiven;
   
   while (cardData.exp >= calculateLevelUpXP(cardData.level) && cardData.level < 100) {
     const levelUpXP = calculateLevelUpXP(cardData.level);

@@ -13,7 +13,7 @@ const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -25,12 +25,13 @@ const {GatewayIntentBits} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
+const{enterDg, dgWinRates} = require("./dungeons.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
 const { EmbedBuilder } = require("discord.js");
@@ -298,6 +299,7 @@ client.on("messageCreate", async (msg) => {
                         userId,
                         attributeName,
                     );
+                    const userVerOfCard = await getUserCard(secondTableName, userId, cardToView["card-id"]);
                     //get current exp and level
                     const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                         .setColor("#feb69e")
@@ -309,6 +311,11 @@ client.on("messageCreate", async (msg) => {
                             name: "You Own: ",
                             value: Discord.inlineCode(String(numberOfCopies)),
                             inline: true,
+                        })
+                        .addFields({
+                            name: 'Your total Exp for this card:',
+                            value: `${Discord.inlineCode(String(userVerOfCard[0].totalExp))}`,
+                            inline: false
                         })
                         .setFooter({
                             text: msg.author.tag,
@@ -601,6 +608,33 @@ client.on("messageCreate", async (msg) => {
                 .setTimestamp();
 
             msg.channel.send({ embeds: [embed] });
+        }
+
+        if(command === "dg"){
+            const input = args.filter(code => code.trim() !== "");
+            const code = input[0];
+            const dgToEnter = input[1];
+            if(!code){
+                msg.reply("Please input a card to bring to the dungeon");
+                return;
+            }
+            if(!dgToEnter){
+                try{
+                    msg.channel.send("You are viewing the win rates for: " + Discord.inlineCode(code) + ". To enter a dg please input a code and either a value of 1,2,3");
+                    const card = await getCardFromTable("cards", code);
+                    const cardId = card["card-id"];
+                    const embed = await dgWinRates(msg, userId, cardId);
+                    msg.channel.send({ embeds: [embed] });
+                }catch(error){
+                    console.log(error);
+                    msg.reply("Please input a valid card id");
+                    return;
+                }
+            }else{
+                //code to do dg
+                await enterDg(msg, userId, code, dgToEnter);
+                //msg.channel.send({ embeds: [dgEmbed] });
+            }
         }
     }
 });
