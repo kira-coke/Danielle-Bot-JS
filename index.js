@@ -299,25 +299,27 @@ client.on("messageCreate", async (msg) => {
                         userId,
                         attributeName,
                     );
-                    const userVerOfCard = await getUserCard(secondTableName, userId, cardToView["card-id"]);
-                    //get current exp and level
                     const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                         .setColor("#feb69e")
                         .setDescription(
                             `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}**`,
                         )
                         .setImage(cardToView["cardUrl"]) // changed depending on the card recieved
-                        .addFields({
-                            name: "You Own: ",
-                            value: Discord.inlineCode(String(numberOfCopies)),
-                            inline: true,
-                        })
-                        .addFields({
+                    embed.addFields({
+                        name: "You Own: ",
+                        value: Discord.inlineCode(String(numberOfCopies)),
+                        inline: true,
+                    })
+                    if(numberOfCopies!=0){
+                        const userVerOfCard = await getUserCard(secondTableName, userId, cardToView["card-id"]);
+                        //get current exp and level
+                        embed.addFields({
                             name: 'Your total Exp for this card:',
                             value: `${Discord.inlineCode(String(userVerOfCard[0].totalExp))}`,
                             inline: false
                         })
-                        .setFooter({
+                    }
+                        embed.setFooter({
                             text: msg.author.tag,
                             iconURL: msg.author.displayAvatarURL({
                                 dynamic: true,
