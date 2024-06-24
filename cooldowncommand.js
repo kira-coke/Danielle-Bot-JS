@@ -8,6 +8,7 @@ async function getCooldowns(userId, msg){
   let claimCd = await getUserCooldown(userId, "c");
   let workCd = await getUserCooldown(userId, "w");
   let dailyCd = await getUserCooldown(userId, "daily");
+  let dgCd = await getUserCooldown(userId, "dg");
   if(dropCd === '0m 0s'){
       dropCd = 'Available';
   }
@@ -20,6 +21,9 @@ async function getCooldowns(userId, msg){
   if(dailyCd === '0m 0s'){
       dailyCd = 'Available';
   }
+  if(dgCd === '0m 0s'){
+      dgCd = 'Available';
+  }
 
   // Construct the embed
   const cooldownEmbed = new EmbedBuilder()
@@ -29,6 +33,7 @@ async function getCooldowns(userId, msg){
           { name: `Claim: ` + Discord.inlineCode(claimCd), value: " "},
           { name: `Drop: ` + Discord.inlineCode(dropCd), value: " "},
           { name: `Work: ` + Discord.inlineCode(workCd), value: " "},
+          { name: `Dungeon: ` + Discord.inlineCode(dgCd), value: " "}, 
           { name: `Daily: ` + Discord.inlineCode(dailyCd), value: " "}
       )
       .setTimestamp();
