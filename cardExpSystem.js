@@ -1,9 +1,11 @@
 const AWS = require('aws-sdk');
 const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
+const {getUser, updateTotalExp} = require("./users.js");
 const { EmbedBuilder, bold } = require("discord.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function awardExp(userId, cardId, numberOfCards, msg){
+  const user = await getUser(userId);
   const expGiven = numberOfCards * 50; //each card gives 50 exp
   const card = await getUserCard("user-cards", userId, cardId); //geting the user card with this id
   if(card[0] === undefined){
@@ -33,6 +35,8 @@ async function awardExp(userId, cardId, numberOfCards, msg){
         cardData.level += 1;
         cardData.exp -= levelUpXP;
     }
+  user.TotalExp += expGiven;
+  await updateTotalExp("Dani-bot-playerbase", userId, user.TotalExp);
   cardData.exp = newExp;
   cardData.totalExp += expGiven;
   

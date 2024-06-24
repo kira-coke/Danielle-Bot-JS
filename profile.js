@@ -51,6 +51,13 @@ async function getUserProfile(msg, userId){
                   value: " ",
                   inline: false,
               })
+              .addFields({
+                    name:
+                        "**Total EXP: **" +
+                        Discord.inlineCode(String(userData.TotalExp)),
+                    value: " ",
+                    inline: false,
+                })
               .setFooter({
                   text: msg.author.tag,
                   iconURL: msg.author.displayAvatarURL({ dynamic: true }),

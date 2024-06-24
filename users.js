@@ -214,4 +214,33 @@ async function setAutoReminders(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders};
+async function updateTotalExp(tableName, userId, attribute){
+    const updateCount = 'SET #TotalExp= :newTotalExp';
+    const expressionAttributeValues = {
+        ':newTotalExp': attribute // New value for 'copies-owned'
+    };
+    const expressionAttributeNames = {
+        '#TotalExp': 'TotalExp' // Attribute name alias for 'copies-owned'
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId, 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
+
+        // Call DynamoDB update API
+        const data = await dynamodb.update(params).promise();
+        return data.Attributes; // Return the updated attributes
+      } catch (err) {
+          console.error('Unable to check if user exists:', err);
+          return false;
+      }
+}
+
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp};
