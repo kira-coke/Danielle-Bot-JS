@@ -31,7 +31,7 @@ const client = new Discord.Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        //GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
+        GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
 const { EmbedBuilder } = require("discord.js");
@@ -97,7 +97,7 @@ client.on("messageCreate", async (msg) => {
             }
         } else {
             if (command === "start") {
-                msg.channel.send(`**You are already registered!**`);
+                msg.reply(`**You are already registered!**`);
                 return;
             }
         }
@@ -222,7 +222,7 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
             if ((amount < 0) | !Number.isInteger(amount)) {
-                msg.channel.send(
+                msg.reply(
                     "**You are not allowed to steal monies bad oddy**",
                 );
                 return;
@@ -234,26 +234,26 @@ client.on("messageCreate", async (msg) => {
             } else {
                 userId = args.slice(0, -1).join("").trim();
                 if (!userId || isNaN(userId)) {
-                    msg.channel.send("Please mention a user or provide a valid user ID.");
+                    msg.reply("Please mention a user or provide a valid user ID.");
                     return;
                 }
                 try {
                     targetUser = await msg.client.users.fetch(userId);
                 } catch (error) {
-                    msg.channel.send("Could not find a user with that ID.");
+                    msg.reply("Could not find a user with that ID.");
                     return;
                 }
             }
           if (targetUser === msg.author) {
-            msg.channel.send("** Trying to give yourself money? **");
+            msg.reply("** Trying to give yourself money? **");
             return;
           }
           if (targetUser === undefined) {
-            msg.channel.send("Please mention a user.");
+            msg.reply("Please mention a user.");
             return;
           }
           if (isNaN(amount)) {
-            msg.channel.send("Please provide a valid amount!");
+            msg.reply("Please provide a valid amount!");
             return;
           }
          await payCommand(msg, userId, targetUser, amount);
@@ -355,32 +355,32 @@ client.on("messageCreate", async (msg) => {
                     targetUser = await msg.client.users.fetch(targetUser);
                 } catch (error) {
                     console.error("Error fetching user:", error);
-                    msg.channel.send("Could not find a user with that ID.");
+                    msg.reply("Could not find a user with that ID.");
                     return;
                 }
             }
 
             if (!targetUser) {
-                msg.channel.send("Please mention a user or provide a valid user ID.");
+                msg.reply("Please mention a user or provide a valid user ID.");
                 return;
             }
             if (targetUser.id === "1251915536065892413") {
-                msg.channel.send("** Trying to gift the georgeos danielle? **");
+                msg.reply("** Trying to gift the georgeos danielle? **");
                 return;
             }
 
             if (targetUser === msg.author) {
-                msg.channel.send("** Trying to gift yourself? **");
+                msg.reply("** Trying to gift yourself? **");
                 return;
             }
             if (isNaN(numberOfCopiesToGive)) {
-                msg.channel.send(
+                msg.reply(
                     "Please ensure you have given a card id and amount to gift",
                 ); //theyve tried to give an invalid amount
                 return;
             }
             if (numberOfCopiesToGive == 0) {
-                msg.channel.send("Please give a non zero amount to gift"); //theyve tried to give an invalid amount
+                msg.reply("Please give a non zero amount to gift"); //theyve tried to give an invalid amount
                 return;
             }
             await giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesToGive);
@@ -661,7 +661,7 @@ client.on("messageCreate", async (msg) => {
             if(!dgToEnter){
                 try{
                     const card = await getCardFromTable("cards", code);
-                    msg.channel.send("You are viewing the win rates for: " + Discord.inlineCode(code) + ". To enter a dg please input a code and either a value of 1,2,3");
+                    msg.reply("You are viewing the win rates for: " + Discord.inlineCode(code) + ". To enter a dg please input a code and either a value of 1,2,3");
                     const cardId = card["card-id"];
                     const embed = await dgWinRates(msg, userId, cardId);
                     msg.channel.send({ embeds: [embed] });

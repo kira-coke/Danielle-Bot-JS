@@ -14,11 +14,11 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
           console.log(
               "Couldnt find item with this card:" + cardIDToGift,
           );
-          msg.channel.send("**Please enter a valid card id**");
+          msg.reply("**Please enter a valid card id**");
           return;
       }
       if (!userExists) {
-          msg.channel.send(
+          msg.reply(
               `**This user is not registered yet, please tell them to do .start**`,
           );
           return;
@@ -35,7 +35,7 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
               numberOfCopies == 0 ||
               numberOfCopies < numberOfCopiesToGive
           ) {
-              msg.channel.send(
+              msg.reply(
                   "**You do not own enough copies of this card to gift**",
               );
               return;
