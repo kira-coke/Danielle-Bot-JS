@@ -47,7 +47,7 @@ client.on("messageCreate", async (msg) => {
         const userId = msg.author.id;
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const userExists = await checkUserExists(userId);
-        const generalCmdCd = Date.now() + 3 * 1000;
+        const generalCmdCd = Date.now() + 1 * 1000;
         const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
 
         if (remainingCooldown !== '0m 0s') {
