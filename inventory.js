@@ -1,6 +1,9 @@
 const Discord = require("discord.js");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
 const { getCardFromTable, checkIfUserOwnsCard, getUserCard} = require("./cards.js");
+const AWS = require('aws-sdk');
+
+const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
   
@@ -107,4 +110,38 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) 
     });
 };
 
-module.exports = { generateEmbedInv, generateRowInv, handleCollectorInv };
+async function getUniqueGroupNames(tableName) {
+    let params = {
+        TableName: tableName,
+        ProjectionExpression: 'GroupName'
+    };
+
+    let uniqueGroupNames = new Set();
+
+    // Function to scan the DynamoDB table and collect unique groupNames
+    async function scanDynamoDB(lastEvaluatedKey = null) {
+        if (lastEvaluatedKey) {
+            params.ExclusiveStartKey = lastEvaluatedKey;
+        }
+
+        try {
+            const data = await dynamodb.scan(params).promise();
+            data.Items.forEach(item => {
+                if (item["GroupName"]) {
+                    uniqueGroupNames.add(item["GroupName"]);
+                }
+            });
+
+            if (data.LastEvaluatedKey) {
+                await scanDynamoDB(data.LastEvaluatedKey);
+            }
+        } catch (err) {
+            console.error('Unable to scan the table. Error JSON:', JSON.stringify(err, null, 2));
+        }
+    }
+
+    // Initiate the scan
+    await scanDynamoDB();
+    return Array.from(uniqueGroupNames);
+}
+module.exports = { generateEmbedInv, generateRowInv, handleCollectorInv, getUniqueGroupNames };

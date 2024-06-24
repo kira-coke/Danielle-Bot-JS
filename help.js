@@ -19,7 +19,7 @@ const commands = [
     { name: ".bio [new-bio]", description: "Set your profile bio." },
     { name: ".wishlist or .wl [card-ids...]", description: "Set your wishlist of cards ids." },
     { name: ".daily", description: "Claim your daily streak bonus. (Every 7 days a bonus of x2 is applied)" },
-    { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory. (note: for now the group name is case sensitive)" },
+    { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory." },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
     { name: ".upgrade card-id", description: "Upgrade a card to increase its tier."},
     { name: ".remindersOn / remindersOff", description: "Enables or disables auto reminders."}

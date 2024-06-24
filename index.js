@@ -15,7 +15,7 @@ const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,set
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
-const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
+const {generateEmbedInv, generateRowInv, handleCollectorInv, getUniqueGroupNames } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
 const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
@@ -31,7 +31,7 @@ const client = new Discord.Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
+        //GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
 const { EmbedBuilder } = require("discord.js");
@@ -506,11 +506,12 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "inv"){
             let userId;
-            let groupName = args.shift(); // Extract the groupName from the first argument
+            let groupName = args.shift().toLowerCase(); // Extract the groupName from the first argument
 
             if (!groupName) {
                 return msg.channel.send("You need to specify a group name.");
             }
+            
 
             if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
                 userId = msg.mentions.users.first().id;
@@ -521,8 +522,22 @@ client.on("messageCreate", async (msg) => {
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
-            //const listOfCards = await getUserCards("user-cards", userId);
-            const filteredCards = await filterByAttribute("cards", "GroupName", groupName);
+            let uniqueGroupNames = [];
+            try{
+               uniqueGroupNames = await getUniqueGroupNames("cards");
+            }catch(error){
+                console.error('Error fetching unique group names:', error);
+            }
+            const namesToLowerCase = uniqueGroupNames.map(name => name.toLowerCase());
+
+            const nameIndex = namesToLowerCase.indexOf(groupName);
+            if (nameIndex === -1) {
+                msg.reply("The specified group name does not exist. Ensure spelling is correct.");
+                return;
+            }
+            const originalGroupName = uniqueGroupNames[nameIndex];
+            
+            const filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
 
             const cardsPerPage = 4;
             const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
