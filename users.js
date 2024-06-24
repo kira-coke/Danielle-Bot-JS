@@ -11,7 +11,7 @@ async function saveUserData(userId, timeStamp) {
           'Balance': 10000,
           'Enabled': true,
           'JoinDate': timeStamp, 
-          'FavCard' : "IVWYHYA",  //remember to update if you get rid of the card in database
+          'FavCard' : "NJDNSPN",  //remember to update if you get rid of the card in database
           'Description': "Default Profile",
           'cardCount' : 0,
           'LookingFor': ["n/a"],
