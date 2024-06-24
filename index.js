@@ -626,7 +626,7 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
             if(code === "2"){
-                msg.reply("Challange the boss SM to recieve 1-2 cards of your chosen card and between 7500 - 1000 currency on win!")
+                msg.reply("Challange the boss SM to recieve 1-2 cards of your chosen card and between 7500 - 10000 currency on win!")
                 return;
             }
             if(code === "3"){
