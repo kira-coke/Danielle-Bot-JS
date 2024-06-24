@@ -13,7 +13,7 @@ const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -25,12 +25,13 @@ const {GatewayIntentBits} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
+const{enterDg, dgWinRates} = require("./dungeons.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
 const { EmbedBuilder } = require("discord.js");
@@ -298,6 +299,7 @@ client.on("messageCreate", async (msg) => {
                         userId,
                         attributeName,
                     );
+                    const userVerOfCard = await getUserCard(secondTableName, userId, cardToView["card-id"]);
                     //get current exp and level
                     const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                         .setColor("#feb69e")
@@ -309,6 +311,11 @@ client.on("messageCreate", async (msg) => {
                             name: "You Own: ",
                             value: Discord.inlineCode(String(numberOfCopies)),
                             inline: true,
+                        })
+                        .addFields({
+                            name: 'Your total Exp for this card:',
+                            value: `${Discord.inlineCode(String(userVerOfCard[0].totalExp))}`,
+                            inline: false
                         })
                         .setFooter({
                             text: msg.author.tag,
@@ -601,6 +608,62 @@ client.on("messageCreate", async (msg) => {
                 .setTimestamp();
 
             msg.channel.send({ embeds: [embed] });
+        }
+
+        if(command === "dg"){
+            const dgCd = Date.now() + 14400 * 1000; //
+            const remainingCooldown = await getUserCooldown(userId, command);
+
+            if (remainingCooldown !== '0m 0s') {
+                msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
+                return;
+            }
+            const input = args.filter(code => code.trim() !== "");
+            const code = input[0];
+            const dgToEnter = input[1];
+            if(code === "1"){
+                msg.reply("Challange the boss JYP to recieve 0-1 cards of your chosen card and between 5000- 7000 currency on win!")
+                return;
+            }
+            if(code === "2"){
+                msg.reply("Challange the boss SM to recieve 1-2 cards of your chosen card and between 7500 - 1000 currency on win!")
+                return;
+            }
+            if(code === "3"){
+                msg.reply("Challange the boss SM to recieve 2-3 cards of your chosen card and between 10000 - 15000 currency on win!")
+                return;
+            }
+            try{
+                await getCardFromTable("cards", code);
+            }catch(error){
+                msg.reply("Please input a valid card id");
+                console.log("Error:", error);
+                return;
+            }
+
+            if(!dgToEnter){
+                try{
+                    const card = await getCardFromTable("cards", code);
+                    msg.channel.send("You are viewing the win rates for: " + Discord.inlineCode(code) + ". To enter a dg please input a code and either a value of 1,2,3");
+                    const cardId = card["card-id"];
+                    const embed = await dgWinRates(msg, userId, cardId);
+                    msg.channel.send({ embeds: [embed] });
+                }catch(error){
+                    console.log(error);
+                    msg.reply("Please input a valid card id");
+                    return;
+                }
+            }else{
+                const cooldownTimestamp = dgCd;
+                await saveUserCooldown(userId, command, cooldownTimestamp);
+                const user = await getUser(userId);
+                if(user.Reminders === true){
+                    setTimeout(() => {
+                        msg.channel.send(`**Reminder:** <@${msg.author.id}> your dg is ready!`);
+                    }, 14400 * 1000); // Convert minutes to milliseconds
+                }
+                await enterDg(msg, userId, code, dgToEnter);
+            }
         }
     }
 });
