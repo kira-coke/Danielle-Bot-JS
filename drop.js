@@ -27,6 +27,7 @@ function getDrop(msg,userId){
                         upgradable: false,
                         "copies-owned": 1,
                         tier: 1,
+                        totalExp: 0,
                     };
                 } else {
                     //msg.channel.send("You do own card, will write code to incremenet value");
@@ -46,6 +47,7 @@ function getDrop(msg,userId){
                         upgradable: false,
                         "copies-owned": numberOfCopies + 1,
                         tier: userCardData.tier,
+                        totalExp: userCardData.totalExp,
                     };
                 }
                 const cardCount = await checkTotalCardCount(

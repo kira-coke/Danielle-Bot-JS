@@ -28,7 +28,8 @@ function getClaim(msg,userId){
                         level: 0,
                         upgradable: false,
                         "copies-owned": 1,
-                        tier: 1
+                        tier: 1,
+                        totalExp: 0
                     };
                 } else {
                     numberOfCopies = await getHowManyCopiesOwned(
@@ -45,6 +46,7 @@ function getClaim(msg,userId){
                         upgradable: false,
                         "copies-owned": numberOfCopies + 1,
                          tier: userCardData.tier,
+                         totalExp: userCardData.totalExp,
                     };
                 }
                 const cardCount = await checkTotalCardCount(

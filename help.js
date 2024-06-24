@@ -5,6 +5,10 @@ const commands = [
     { name: ".profile or .p [@user]", description: "View your or someone else's profile." },
     { name: ".c", description: "Claim a free card every 5 minutes." },
     { name: ".d", description: "Claim a free card every 10 minutes." },
+    { name: ".w", description: "Work to earn a random amount of coins (2500-5000) every 1 hour." },
+    { name: ".dg [card-id]", description: "Show you your current % of winning dgs with this card." },
+    { name: ".dg [dg number]", description: "To view infomation about the dungeon rewards." },
+    { name: ".dg [card-id] [dg number]", description: "Enter the dg for a chance at winning currency and cards." },
     { name: ".bal [@user]", description: "Check your or someone else's balance." },
     { name: ".pay @user amount", description: "Pay another user" },
     { name: ".cd", description: "Check your command cooldowns." },
@@ -13,12 +17,11 @@ const commands = [
     { name: ".gift @user card-id amount", description: "Gift another user x amount of cards (note: you must keep at least one copy of the card in your inventory)" },
     { name: ".favcard [card-id]", description: "Set your favorite card." },
     { name: ".bio [new-bio]", description: "Set your profile bio." },
-    { name: ".w", description: "Work to earn a random amount of coins (2500-5000) every 1 hour." },
     { name: ".wishlist or .wl [card-ids...]", description: "Set your wishlist of cards ids." },
     { name: ".daily", description: "Claim your daily streak bonus. (Every 7 days a bonus of x2 is applied)" },
     { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory. (note: for now the group name is case sensitive)" },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
-    { name: ".upgrade card-id", description: "Upgrade a card to increase its tier. (note: max tier is 3)" }, 
+    { name: ".upgrade card-id", description: "Upgrade a card to increase its tier."},
     { name: ".remindersOn / remindersOff", description: "Enables or disables auto reminders."}
 ];
 

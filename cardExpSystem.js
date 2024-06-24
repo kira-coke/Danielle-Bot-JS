@@ -16,16 +16,16 @@ async function awardExp(userId, cardId, numberOfCards, msg){
     return 1;
   }
   const cardData = card[0];
-  if(cardData.level > 20){
-    msg.reply("Your card is ready to upgrade!");
-    return;
-  }
   if(cardData.level === 20){
     console.log(cardData.upgradable);
     cardData.upgradable = true;
     await updateUserData("user-cards", cardData);
     console.log("User is already at max level");
     return 2;
+  }
+  if(cardData.level > 20){
+      console.log("Your card is ready to upgrade!");
+      return 2;
   }
   const newExp = cardData.exp += expGiven; //the new exp for the card
   const levelUpXP = calculateLevelUpXP(cardData.level);
@@ -34,6 +34,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
         cardData.exp -= levelUpXP;
     }
   cardData.exp = newExp;
+  cardData.totalExp += expGiven;
   
   while (cardData.exp >= calculateLevelUpXP(cardData.level) && cardData.level < 100) {
     const levelUpXP = calculateLevelUpXP(cardData.level);
@@ -59,7 +60,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
 
   if (newExp >= levelUpXP) {
     if(cardData.level > 20){
-      embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**! \n ${bold("WARNING: This has overfed your card, do .upgrade to upgrade!")}` });
+      embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**! \n\n ${bold("WARNING: This has overfed your card, do .upgrade to upgrade!")}` });
       
     }else{
       embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**!` });
@@ -81,10 +82,13 @@ async function upgrade(userId, cardId, msg){
   const card = await getUserCard("user-cards", userId, cardId);
   const cardData = card[0];
   if(cardData.level != 20){
-    msg.reply("You must be at max level to upgrade");
-    return;
+    if(cardData.level < 20){
+      msg.reply("You must be at max level to upgrade");
+      return;
+    }
   }
   const temp = await awardExp(userId, String(cardId), 0, msg);
+  console.log(temp);
   if(temp === 2){
     cardData.level = 0;
     cardData.exp = 0;
