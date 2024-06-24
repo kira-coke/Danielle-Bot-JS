@@ -80,7 +80,7 @@ client.on("messageCreate", async (msg) => {
                         "**Enjoy your stay! You have been given 10,000 coins as a welcome gift!**",
                     ) // add an amount of currency here and add it to the users balance after they start
                     .setImage(
-                        "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/ezgif.com-gif-maker+(52).gif",
+                        "https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/ezgif.com-gif-maker+(52).gif",
                     )
                     .setTimestamp();
                 msg.reply({ embeds: [embed] });
