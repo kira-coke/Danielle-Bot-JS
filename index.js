@@ -119,7 +119,8 @@ client.on("messageCreate", async (msg) => {
 
         }
 
-        if (command === "c") {
+        if (command === "c" || command === "claim") {
+            const command = "c";
             const claimCd = Date.now() + 300 * 1000; //change back to 300
             const remainingCooldown = await getUserCooldown(userId, command);
 
@@ -138,7 +139,8 @@ client.on("messageCreate", async (msg) => {
             getClaim(msg,userId);
         } 
 
-        if (command === "d") {
+        if (command === "d" || command === "drop") {
+            const command = "d";
             const dropCd = Date.now() + 600 * 1000; //change to 600
             const remainingCooldown = await getUserCooldown(userId, command);
 
@@ -442,7 +444,8 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        if(command === "w" ){
+        if(command === "w" || command === "work"){
+            const command = "w";
             const workCd = Date.now() + 3600 * 1000;
             const remainingCooldown = await getUserCooldown(userId, command);
 
