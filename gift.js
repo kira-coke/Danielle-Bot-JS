@@ -57,6 +57,8 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                         exp: 0,
                         level: 0,
                         upgradable: false,
+                        tier: 1,
+                        totalExp: 0
                   }
                   console.log(item);
                   await writeToDynamoDB(secondTableName, item)
