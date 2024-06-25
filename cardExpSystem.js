@@ -49,7 +49,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
   }
   
   await updateUserData("user-cards", cardData);
-  const nextLevelExp = calculateLevelUpXP(cardData.level) - cardData.exp;
+  const nextLevelExp = calculateLevelUpXP(cardData.level);
 
   const embed = new EmbedBuilder()
       .setColor("#779be7")
@@ -75,10 +75,10 @@ async function awardExp(userId, cardId, numberOfCards, msg){
 }
 
 function calculateLevelUpXP(level) {
-   if(level === 0){
+   if(level === 20){
      return 0; // no more exp is needed to level up
    }
-   return Math.round(100 * Math.pow(1.1, level - 1));
+   return Math.round(100 * Math.pow(1.1, level));
 }
 
 async function upgrade(userId, cardId, msg){
