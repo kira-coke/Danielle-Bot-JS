@@ -15,7 +15,7 @@ async function saveUserData(userId, timeStamp) {
           'Description': "Default Profile",
           'cardCount' : 0,
           'LookingFor': ["n/a"],
-          'DailyStreak': 1,
+          'DailyStreak': 0,
           'TotalExp': 0, 
           'Reminders': true
       }
