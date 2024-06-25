@@ -685,6 +685,17 @@ client.on("messageCreate", async (msg) => {
                 await enterDg(msg, userId, code, dgToEnter);
             }
         }
+
+        if(command === "forcedrop" || command === "fd"){
+            // Check if the user has the required role
+            const REQUIRED_ROLE_NAME = 'Admin';
+            const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
+            if (role && msg.member.roles.cache.has(role.id)) {
+                getClaim(msg,userId); //maybe change in future idk works for now
+            } else {
+                return;
+            }
+        }
     }
 });
 
