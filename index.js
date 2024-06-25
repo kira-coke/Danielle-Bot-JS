@@ -509,7 +509,12 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "inv"){
             let userId;
-            let groupName = args.shift().toLowerCase(); // Extract the groupName from the first argument
+            let groupName = " ";
+            try{
+                groupName = args.shift().toLowerCase(); // Extract the groupName from the first argument
+            }catch(error){
+                console.log("No group name provided");
+            }
 
             if (!groupName) {
                 return msg.channel.send("You need to specify a group name.");
