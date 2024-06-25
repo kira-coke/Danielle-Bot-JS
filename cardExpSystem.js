@@ -72,7 +72,6 @@ async function awardExp(userId, cardId, numberOfCards, msg){
   }
 
   msg.channel.send({ embeds: [embed] });
-
 }
 
 function calculateLevelUpXP(level) {
@@ -133,4 +132,4 @@ async function updateUserData(tableName, cardData) {
   
 }
 
-module.exports = {awardExp, upgrade};
+module.exports = {awardExp, upgrade, calculateLevelUpXP};

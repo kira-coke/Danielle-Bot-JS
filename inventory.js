@@ -1,4 +1,5 @@
 const Discord = require("discord.js");
+const {calculateLevelUpXP} = require("./cardExpSystem.js");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
 const { getCardFromTable, checkIfUserOwnsCard, getUserCard} = require("./cards.js");
 const AWS = require('aws-sdk');
@@ -44,10 +45,11 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
             if (ownsCard !== 0) {
                 const cardDataArray = await getUserCard("user-cards", userId, attribute["card-id"]);
                 const cardData = cardDataArray[0];
+                const levelUpExp = calculateLevelUpXP(cardData.level);
                 embed.addFields(
                     { 
                         name: " ", 
-                        value: `${Discord.blockQuote(Discord.bold(String(card["GroupMember"])))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        value: `${Discord.blockQuote(Discord.bold(String(card["GroupMember"])))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp))}/${Discord.inlineCode(levelUpExp)} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
                 );
