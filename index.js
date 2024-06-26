@@ -2,6 +2,7 @@ require("dotenv").config();
 const prefix = ".";
 const Discord = require("discord.js");
 const AWS = require("aws-sdk");
+const schedule = require('node-schedule');
 AWS.config.update({
     accessKeyId: process.env["Access_key"],
     secretAccessKey: process.env["Secret_access_key"],
@@ -35,10 +36,16 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
+
+const raffleEntries = new Set();
+const prizes = ['Prize 1', 'Prize 2', 'Prize 3', 'Prize 4'];
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    schedule.scheduleJob('*/15 * * * *', () => {
+        sendRaffleEmbed();
+    });
 });
 
 client.on("messageCreate", async (msg) => {
@@ -770,7 +777,48 @@ client.on("messageCreate", async (msg) => {
         }
     }
 });
-``
 
+async function sendRaffleEmbed() {
+    const channel = client.channels.cache.get('1255577403854426133');
+    if (!channel) return;
+
+    const embed = new EmbedBuilder()
+        .setTitle('Raffle Time!')
+        .setDescription('Click the button below to enter the raffle! You can only enter once.')
+        .setColor('Random');
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('raffle_entry')
+            .setLabel('Enter Raffle')
+            .setStyle('Primary')
+    );
+
+    const message = await channel.send({ embeds: [embed], components: [row] });
+
+    const filter = i => i.customId === 'raffle_entry';
+    const collector = message.createMessageComponentCollector({ filter, time: 0.5 * 60 * 1000 });
+
+    collector.on('collect', async interaction => {
+        if (raffleEntries.has(interaction.user.id)) {
+            await interaction.reply({ content: 'You have already entered the raffle.', ephemeral: true });
+        } else {
+            raffleEntries.add(interaction.user.id);
+            await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+        }
+    });
+
+    collector.on('end', () => {
+        if (raffleEntries.size > 0) {
+            const winnerId = Array.from(raffleEntries)[Math.floor(Math.random() * raffleEntries.size)];
+            const winner = client.users.cache.get(winnerId);
+            const prize = prizes[Math.floor(Math.random() * prizes.length)];
+            channel.send(`Congratulations ${winner}, you have won ${prize}!`);
+            raffleEntries.clear();
+        } else {
+            channel.send('No entries for this raffle.');
+        }
+    });
+}
 
 client.login(process.env.Token);
