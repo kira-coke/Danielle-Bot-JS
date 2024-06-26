@@ -13,7 +13,7 @@ const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInv, generateRowInv, handleCollectorInv, getUniqueGroupNames } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
@@ -669,6 +669,11 @@ client.on("messageCreate", async (msg) => {
             if(!dgToEnter){
                 try{
                     const card = await getCardFromTable("cards", code);
+                    const userOwns = await checkIfUserOwnsCard("user-cards", userId, code);
+                    if(userOwns===0){
+                        msg.reply("You do not own this card");
+                        return;
+                    }
                     msg.reply("You are viewing the win rates for: " + Discord.inlineCode(code) + ". To enter a dg please input a code and either a value of 1,2,3");
                     const cardId = card["card-id"];
                     const embed = await dgWinRates(msg, userId, cardId);
@@ -679,6 +684,11 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
             }else{
+                const userOwns = await checkIfUserOwnsCard("user-cards", userId, code);
+                if(userOwns===0){
+                    msg.reply("You do not own this card");
+                    return;
+                }
                 const cooldownTimestamp = dgCd;
                 await saveUserCooldown(userId, command, cooldownTimestamp);
                 const user = await getUser(userId);
@@ -697,6 +707,22 @@ client.on("messageCreate", async (msg) => {
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
                 getClaim(msg,userId); //maybe change in future idk works for now
+            } else {
+                return;
+            }
+        }
+
+        if(command === "modify"){
+            let user = " ";
+            const REQUIRED_ROLE_NAME = 'Admin';
+            const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
+            if (role && msg.member.roles.cache.has(role.id)) {
+                if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
+                    user = msg.mentions.users.first().id;
+                } else {
+                    user = args.join(" ").trim(); // If not, assumes the rest of the arguments are the user ID
+                }
+                msg.reply(user);
             } else {
                 return;
             }
