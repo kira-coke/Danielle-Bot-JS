@@ -27,7 +27,7 @@ async function getCooldowns(userId, msg){
 
   // Construct the embed
   const cooldownEmbed = new EmbedBuilder()
-      .setColor('#0099ff')
+      .setColor('#ffcad4')
       .setDescription(`**${authorTag}` + `'s Cooldowns**`)
       .addFields(
           { name: `Claim: ` + Discord.inlineCode(claimCd), value: " "},
