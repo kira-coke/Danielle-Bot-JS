@@ -11,6 +11,7 @@ const{work} = require("./work");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
+const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
@@ -703,7 +704,7 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "forcedrop" || command === "fd"){
             // Check if the user has the required role
-            const REQUIRED_ROLE_NAME = 'Admin';
+            const REQUIRED_ROLE_NAME = 'admin';
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
                 getClaim(msg,userId); //maybe change in future idk works for now
@@ -714,22 +715,62 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "modify"){
             let user = " ";
-            const REQUIRED_ROLE_NAME = 'Admin';
+            const REQUIRED_ROLE_NAME = 'admin';
+            let amount = 0;
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
                 if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
                     user = msg.mentions.users.first().id;
                 } else {
-                    user = args.join(" ").trim(); // If not, assumes the rest of the arguments are the user ID
+                    if (args[0] != undefined) {
+                        user = String(args[0]).trim();
+                        const userExists = await checkUserExists(user);
+                        if(!userExists){
+                            msg.reply("User does not exist in database");
+                            return;
+                        }
+                    } else {
+                        msg.reply("Please provide a valid user ID.");
+                        return;
+                    }
                 }
-                msg.reply(user);
+                if (args.length >= 1) {
+                    if(args[1] =! undefined){
+                        const amountStr = String(args[1]).trim();
+                        if (!amountStr || isNaN(amountStr)) {
+                            msg.reply("Please provide a valid amount.");
+                            return;
+                        } else {
+                            amount = parseFloat(amountStr);
+                        }
+                    }else{
+                        msg.reply("Please provide a valid amount.");
+                    }
+                } 
+                try{
+                    saveUserBalance(user, amount);
+
+                    const embed = new Discord.EmbedBuilder()
+                        .setTitle('Balance Modified')
+                        .setColor('#04a777')
+                        .addFields(
+                            { name: 'User ID', value: user, inline: true },
+                            { name: 'Amount', value: amount.toString(), inline: true }
+                        )
+                        .setTimestamp()
+
+                    msg.channel.send({ embeds: [embed] });                    
+                }catch(error){
+                    console.log(error);
+                    msg.reply("An error occurred while modifying the balance.");
+                }
             } else {
                 return;
             }
         }
     }
 });
-
+``
 
 
 client.login(process.env.Token);

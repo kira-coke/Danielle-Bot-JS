@@ -1,7 +1,7 @@
 const AWS = require('aws-sdk');
 const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
 const {getUser, updateTotalExp} = require("./users.js");
-const { ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold } = require("discord.js");
+const { ActionRowBuilder, ButtonBuilder, EmbedBuilder } = require("discord.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function awardExp(userId, cardId, numberOfCards, msg){
@@ -14,7 +14,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
   }
   const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
   if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
-    console.log("User does not own enough cards to feed");
+    console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
     return 1;
   }
   const cardData = card[0];
