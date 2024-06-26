@@ -1,7 +1,7 @@
 const AWS = require('aws-sdk');
 const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
 const {getUser, updateTotalExp} = require("./users.js");
-const { EmbedBuilder, bold } = require("discord.js");
+const { ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold } = require("discord.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function awardExp(userId, cardId, numberOfCards, msg){
@@ -29,56 +29,119 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       console.log("Your card is ready to upgrade!");
       return 2;
   }
-  const newExp = cardData.exp += expGiven; //the new exp for the card
-  const levelUpXP = calculateLevelUpXP(cardData.level);
-    if (newExp >= levelUpXP) {
-        cardData.level += 1;
-        cardData.exp -= levelUpXP;
+    const potentialNewExp = cardData.exp + expGiven;
+    const potentialNewLevel = calculatePotentialNewLevel(cardData.level, potentialNewExp);
+    const expNeeded = calculateLevelUpXP(cardData.level);
+
+    if (potentialNewLevel > 20 && cardData.level < 20) {
+      const embed = new EmbedBuilder()
+        .setColor("#ED4245")
+        .setTitle("EXP Warning")
+        .setDescription(`Giving **${expGiven} EXP** to your **${cardId}** will over level the card!`)
+        .addFields(
+          { name: "Exp needed to level up", value: `${expNeeded - cardData.exp}`, inline: true},
+          { name: "EXP Given", value: `${expGiven}`, inline: true }
+        )
+        .setTimestamp();
+
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('confirm')
+            .setLabel('Confirm')
+            .setStyle("Danger"),
+          new ButtonBuilder()
+            .setCustomId('cancel')
+            .setLabel('Cancel')
+            .setStyle("Secondary")
+        );
+
+      const message = await msg.channel.send({ embeds: [embed], components: [row] });
+
+      const filter = (interaction) => ['confirm', 'cancel'].includes(interaction.customId) && interaction.user.id === userId;
+      const collector = message.createMessageComponentCollector({ filter, time: 60000 }); // 1 min
+
+      collector.on('collect', async interaction => {
+        if (interaction.customId === 'confirm') {
+          await handleExpAward(userId, cardId, numberOfCards, msg, user, cardData, expGiven, potentialNewExp, interaction);
+        } else {
+          await interaction.update({ content: 'Cancelled feeding', embeds: [], components: [] });
+        }
+      });
+
+    } else {
+      await handleExpAward(userId, cardId, numberOfCards, msg, user, cardData, expGiven, potentialNewExp);
     }
+  }
+  
+async function handleExpAward(userId, cardId, numberOfCards, msg, user, cardData, expGiven, newExp, interaction) {
+  let leveledUp = false; 
+  let maxLevel = false;
+
+  while (newExp >= calculateLevelUpXP(cardData.level) && cardData.level < 20) {
+    const levelUpXP = calculateLevelUpXP(cardData.level);
+    if (newExp >= levelUpXP) {
+      newExp -= levelUpXP;
+      cardData.level += 1;
+      leveledUp = true;
+    }
+  }
+  
   user.TotalExp += expGiven;
   await updateTotalExp("Dani-bot-playerbase", userId, user.TotalExp);
   cardData.exp = newExp;
   cardData.totalExp += expGiven;
   
-  while (cardData.exp >= calculateLevelUpXP(cardData.level) && cardData.level < 100) {
-    const levelUpXP = calculateLevelUpXP(cardData.level);
-    if (cardData.exp >= levelUpXP) {
-      cardData.exp -= levelUpXP;
-      cardData.level += 1;
-    }
-  }
-  
   await updateUserData("user-cards", cardData);
   const nextLevelExp = calculateLevelUpXP(cardData.level);
 
   const embed = new EmbedBuilder()
-      .setColor("#779be7")
+      .setColor("#d66ba0")
       .setTitle("Card Experience Gained")
       .setDescription(`Your **${cardId}** has gained **${expGiven} EXP**!`)
-      .addFields(
-          { name: "Current EXP", value: `${cardData.exp}`, inline: true },
-          { name: "Current Level", value: `${cardData.level}`, inline: true },
-         { name: "EXP Needed for Next Level", value: `${nextLevelExp}`, inline: true }
-      )
-      .setTimestamp();
+      if(cardData.level === 20){
+        maxLevel = true;
+        embed.addFields(
+          { name: "Level Up!", value: `Your **${cardId}** is now at max level!`, inline: false},
+          { name: "Exp needed to level up", value: `0`, inline: false },
+        )
+        .setTimestamp();
+      }else{
+        embed.addFields(
+          { name: "Current EXP", value: `${cardData.exp}`, inline: false },
+          { name: "Current Level", value: `${cardData.level}`, inline: false },
+          { name: "EXP Needed for Next Level", value: `${nextLevelExp-cardData.exp}`, inline: false }
+        )
+        .setTimestamp();   
+      }
 
-  if (newExp >= levelUpXP) {
-    if(cardData.level > 20){
-      embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**! \n\n ${bold("WARNING: This has overfed your card, do .upgrade to upgrade!")}` });
-      
-    }else{
+  if ((leveledUp === true) && (maxLevel != true)) {
       embed.addFields({ name: "Level Up!", value: `Your card has leveled up to **Level ${cardData.level}**!` });
+  }
+   if (interaction) {
+     try{
+       await interaction.update({ embeds: [embed], components: [] });
+     }catch(error){
+       console.log(error);
+     }
+    } else {
+      msg.channel.send({ embeds: [embed] });
     }
   }
-
-  msg.channel.send({ embeds: [embed] });
-}
 
 function calculateLevelUpXP(level) {
    if(level === 20){
      return 0; // no more exp is needed to level up
    }
    return Math.round(100 * Math.pow(1.1, level));
+}
+
+function calculatePotentialNewLevel(level, exp) {
+  while (exp >= calculateLevelUpXP(level) && level < 100) {
+    exp -= calculateLevelUpXP(level);
+    level += 1;
+  }
+  return level;
 }
 
 async function upgrade(userId, cardId, msg){
@@ -99,13 +162,13 @@ async function upgrade(userId, cardId, msg){
     cardData.tier = cardData.tier+1;
     await updateUserData("user-cards", cardData);
     const embed = new EmbedBuilder()
-      .setColor("#00FF00")
+      .setColor("#04a777")
       .setTitle("Card Upgrade!")
       .setDescription(`Your **${cardId}** has been upgraded to **Tier ${cardData.tier}**!`)
       .addFields(
-        { name: "New Tier", value: `${cardData.tier}`, inline: true },
-        { name: "Current Level", value: `${cardData.level}`, inline: true },
-        { name: "Current EXP", value: `${cardData.exp}`, inline: true }
+        { name: "New Tier", value: `${cardData.tier}`, inline: false },
+        { name: "Current Level", value: `${cardData.level}`, inline: false },
+        { name: "Current EXP", value: `${cardData.exp}`, inline: false }
       )
       .setTimestamp();
 
