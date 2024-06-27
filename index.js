@@ -876,7 +876,7 @@ client.on("messageCreate", async (msg) => {
 });
 
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1254626249167601746');
+    const channel = client.channels.cache.get('1255811550451859536');
     if (!channel) return;
     await forceRaffle(channel, client);
 }
