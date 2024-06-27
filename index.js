@@ -41,7 +41,7 @@ const { EmbedBuilder} = require("discord.js");
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    schedule.scheduleJob('*/15 * * * *', () => { //change to 15
+    schedule.scheduleJob('*/20 * * * *', () => { //change to
         sendRaffleEmbed();
     });
 });
