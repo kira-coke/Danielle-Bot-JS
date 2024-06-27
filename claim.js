@@ -14,7 +14,7 @@ async function getClaim(msg,userId){
             [userFavCard]: 2, 
         };
     }
-    if(cardData.tier === 3){
+    if(cardData.tier >= 3){
         cardWeights = {
             [userFavCard]: 3, 
         };
