@@ -14,12 +14,12 @@ const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
-const {generateEmbedInv, generateRowInv, handleCollectorInv, getUniqueGroupNames } = require("./inventory.js");
-const {generateEmbed, generateRow, handleCollector } = require("./indexButtons.js");
+const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
+const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
 const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
 const {getDrop} = require("./drop.js");
@@ -273,12 +273,56 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "index") {
             const listOfCards = await getTotalCards("cards");
-            const cardsPerPage = 4;
-            const totalPages = Math.ceil(listOfCards.Items.length / cardsPerPage);
+            let groupName = " ";
+            if(args[0] != undefined){
+                try{
+                    groupName = args.join(" ").toLowerCase().split(/<@!?\d+>/)[0].trim(); // Extract the groupName from the first argument
+                    console.log(groupName);{
+                        let uniqueGroupNames = [];
+                        try{
+                           uniqueGroupNames = await getUniqueGroupNames("cards");
+                        }catch(error){
+                            console.error('Error fetching unique group names:', error);
+                        }
+                        const namesToLowerCase = uniqueGroupNames.map(name => name.toLowerCase());
+                        console.log(namesToLowerCase);
 
-            const embedMessage = await msg.channel.send({ embeds: [generateEmbed(0, totalPages, listOfCards, msg)], components: [generateRow(0, totalPages)] });
+                        const nameIndex = namesToLowerCase.indexOf(groupName);
+                        if (nameIndex === -1) {
+                            msg.reply("The specified group name does not exist. Ensure spelling is correct.");
+                            return;
+                        }
+                        const originalGroupName = uniqueGroupNames[nameIndex];
 
-            handleCollector(embedMessage, msg, totalPages, listOfCards);
+                        const filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
+
+                        const cardsPerPage = 4;
+                        const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+                        try {
+                            const embedMessage = await msg.channel.send({
+                                embeds: [generateEmbed(0, totalPages, filteredCards, msg)],
+                                components: [generateRow(0, totalPages)]
+                            });
+                            handleCollector(embedMessage, msg, totalPages, filteredCards);
+                            return;
+                        } catch (error) {
+                            console.error("Error creating index embed for: " + groupName);
+                            console.error(error); // Log the actual error for further investigation
+                        }
+
+                    }
+                }catch(error){
+                    console.log("No valid group name provided");
+                }
+                
+            }else{
+                const cardsPerPage = 4;
+                const totalPages = Math.ceil(listOfCards.Items.length / cardsPerPage);
+
+                const embedMessage = await msg.channel.send({ embeds: [generateEmbed(0, totalPages, listOfCards, msg)], components: [generateRow(0, totalPages)] });
+
+                handleCollector(embedMessage, msg, totalPages, listOfCards);
+            }        
         }
 
         if (command === "view" || command === "v") {
@@ -513,59 +557,104 @@ client.on("messageCreate", async (msg) => {
             getDaily(msg, userId);
         }
 
-        if(command === "inv"){
+        if (command === "inv") {
             let userId;
-            let groupName = " ";
-            try{
-                groupName = args.join(" ").toLowerCase().split(/<@!?\d+>/)[0].trim(); // Extract the groupName from the first argument
-            }catch(error){
-                console.log("No group name provided");
-            }
+            let groupName = "";
 
-            if (!groupName) {
-                return msg.channel.send("You need to specify a group name.");
-            }
-            
+            if (args[0] !== undefined) {
+                const input = args.join(" ");
+                const mentionedIndex = input.indexOf("<@");
 
-            if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
-                userId = msg.mentions.users.first().id;
-            } else {
-                userId = args.join(" ").toLowerCase().replace(groupName, "").trim(); // If not, assumes the rest of the arguments are the user 
-            }
+                // Extract group name based on mention presence
+                if (mentionedIndex !== -1) {
+                    groupName = input.substring(0, mentionedIndex).trim().toLowerCase();
+                } else {
+                    groupName = args[0].toLowerCase().trim(); // Group name is the first argument
+                }
 
+                if (msg.mentions.users.size > 0) {
+                    userId = msg.mentions.users.first().id;
+                } else {
+                    // If no mention, assume the last argument is the userId
+                    const potentialUserId = args[args.length - 1];
+                    if (potentialUserId.match(/^\d{17,19}$/)) {
+                        userId = potentialUserId;
+                        args.pop(); // Remove the userId from args
+                    } else {
+                        // If not a valid user ID, assume the rest of the arguments are the user ID
+                        userId = args.slice(1).join(" ").trim();
+                    }
+                }
+            } else {// no group given
+                if (msg.mentions.users.size > 0) {
+                    userId = msg.mentions.users.first().id;
+                } else {
+                    userId = args.join(" ").trim();
+                }
+            }
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
-            let uniqueGroupNames = [];
-            try{
-               uniqueGroupNames = await getUniqueGroupNames("cards");
-            }catch(error){
-                console.error('Error fetching unique group names:', error);
-            }
-            const namesToLowerCase = uniqueGroupNames.map(name => name.toLowerCase());
 
-            const nameIndex = namesToLowerCase.indexOf(groupName);
-            if (nameIndex === -1) {
-                msg.reply("The specified group name does not exist. Ensure spelling is correct.");
+            let uniqueGroupNames = [];
+            try {
+                uniqueGroupNames = await getUniqueGroupNames("cards");
+            } catch (error) {
+                console.error('Error fetching unique group names:', error);
                 return;
             }
-            const originalGroupName = uniqueGroupNames[nameIndex];
-            
-            const filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
 
-            const cardsPerPage = 4;
-            const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+            if (args[0] !== undefined) {
+                const namesToLowerCase = uniqueGroupNames.map(name => name.toLowerCase());
+                const nameIndex = namesToLowerCase.indexOf(groupName);
 
-            if (!userId) {
-                console.error("Invalid user ID:", userId); // Log error if userId is invalid
-            } else {
+                if (nameIndex === -1) {
+                    msg.reply("The specified group name does not exist. Ensure spelling is correct.");
+                    return;
+                }
+
+                const originalGroupName = uniqueGroupNames[nameIndex];
+                let filteredCards = [];
+
+                try {
+                    filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
+                } catch (error) {
+                    console.error("Error filtering cards by group name:", error);
+                    return;
+                }
+
+                const cardsPerPage = 4;
+                const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+
                 try {
                     const embedMessage = await msg.channel.send({
-                        embeds: [await generateEmbedInv(0, totalPages, filteredCards, msg, userId)],
+                        embeds: [await generateEmbedInvForGroup(0, totalPages, filteredCards, msg, userId)],
                         components: [generateRowInv(0, totalPages)]
                     });
-                    handleCollectorInv(embedMessage, msg, totalPages, filteredCards, userId);
-                } catch(error) {
+                    handleCollectorInvForGroup(embedMessage, msg, totalPages, filteredCards, userId);
+                } catch (error) {
+                    console.log("Error:", error);
+                }
+            } else {
+                let listOfCards = [];
+
+                try {
+                    listOfCards = await getUserCards("user-cards", userId);
+                } catch (error) {
+                    console.log("Error getting user cards:", error);
+                    return;
+                }
+
+                const cardsPerPage = 4;
+                const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
+
+                try {
+                    const embedMessage = await msg.channel.send({
+                        embeds: [await generateEmbedInv(0, totalPages, listOfCards, msg, userId)],
+                        components: [generateRowInv(0, totalPages)]
+                    });
+                    handleCollectorInv(embedMessage, msg, totalPages, listOfCards, userId);
+                } catch (error) {
                     console.log("Error:", error);
                 }
             }

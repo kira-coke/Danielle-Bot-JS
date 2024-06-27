@@ -5,7 +5,8 @@ const {
     inlineCode, blockQuote
 } = require("discord.js");
 
-const generateEmbed = (page, totalPages, listOfCards, msg) => {
+const generateEmbed = (page, totalPages, filteredCards, msg) => {
+    //console.log(filteredCards);
     const embed = new EmbedBuilder()
         .setTitle(
             `Displaying all the current cards in circulation (Page ${page + 1}/${totalPages})`,
@@ -22,9 +23,9 @@ const generateEmbed = (page, totalPages, listOfCards, msg) => {
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,
-        listOfCards.Items.length,
+        filteredCards.length,
     );
-    const cardSubset = listOfCards.Items.slice(startIndex, endIndex);
+    const cardSubset = filteredCards.slice(startIndex, endIndex);
 
     embed.addFields(
         {
