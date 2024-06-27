@@ -1,9 +1,7 @@
-//const prizes = ['1', '2', '3', '4'];
-const emoteId = 1255801826108772362;
-const emote = `<:DB_currency:${emoteId}>`;
-const prizes = ['2'];
+const prizes = ['1', '2'];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
 const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned} = require("./cards");
+const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
 const raffleEntries = new Set();
 
 async function forceRaffle(channel, client){
@@ -17,6 +15,8 @@ async function raffle(channel, client){
   const amountOfCards = Math.floor(Math.random() * 4) + 1;
   const amountOfCoins = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
   const coinsWithCommas = numberWithCommas(amountOfCoins);
+  //const randomIndex = Math.floor(Math.random() * exp.length);
+  //const randomExp = exp[randomIndex];
   const embed = new EmbedBuilder()
   .setTitle('Raffle Time!')
   .setDescription('Click the button below to enter the raffle! You can only enter once.')
@@ -29,13 +29,10 @@ async function raffle(channel, client){
   }
   if(prize === '2'){
     console.log(amountOfCoins);
-      embed.addFields({name: "Enter for a chance to win: ", value: inlineCode(String(coinsWithCommas))+ `${emote}`, inline: true})
+      embed.addFields({name: "Enter for a chance to win:\n ", value: inlineCode(String(coinsWithCommas)) + " coins", inline: true})
   }
   if(prize === '3'){
-
-  }
-  if(prize === '4'){
-
+     //todo in future (random exp)
   }
   const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -65,7 +62,7 @@ async function raffle(channel, client){
             cardWin(winnerId, amountOfCards, card);
         }
         if(prize === '2'){
-            return;
+            awardMoney(winnerId, amountOfCoins);
         }
       channel.send(`Congratulations ${winner}!`);
       raffleEntries.clear();
@@ -101,6 +98,11 @@ async function cardWin(winnerId, amount, card){
     }else{
         await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + amount);
     }
+}
+
+async function awardMoney(winnerId, amount){
+    const balance = await getUsersBalance(winnerId);
+    await saveUserBalance(winnerId, (parseInt(balance) + amount));
 }
 
 function numberWithCommas(x) {
