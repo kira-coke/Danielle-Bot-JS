@@ -4,7 +4,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("di
 const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
 const {getUser, updateTotalExp} = require("./users");
-const {updateUserData} = require("./cardExpSystem");
+const {updateUserData, calculateLevelUpXP} = require("./cardExpSystem");
 const raffleEntries = new Set();
 
 async function forceRaffle(channel, client){
@@ -46,7 +46,7 @@ async function raffle(channel, client){
   const message = await channel.send({ embeds: [embed], components: [row] });
 
   const filter = i => i.customId === 'raffle_entry';
-  const collector = message.createMessageComponentCollector({ filter, time: 5 * 60 * 1000 }); //change back to 5
+  const collector = message.createMessageComponentCollector({ filter, time: 0.1 * 60 * 1000 }); //change back to 5
 
   collector.on('collect', async interaction => {
       if (raffleEntries.has(interaction.user.id)) {
@@ -135,11 +135,30 @@ async function awardMoney(winnerId, amount){
 
 async function awardExp(winnerId, exp){
     try{
+        let expGiven = exp;
         const user = await getUser(winnerId);
         const userFavCard = user["FavCard"];
         const userCardData = await getUserCard("user-cards", winnerId, userFavCard);
-        userCardData[0].exp = parseInt(userCardData[0].exp) + exp;
-        userCardData[0].totalExp = parseInt(userCardData[0].totalExp) + exp;
+        let currentLevel = userCardData[0].level;
+        let currentExp = parseInt(userCardData[0].exp);
+        while (expGiven > 0 && currentLevel < 20) {
+            const levelUpXP = calculateLevelUpXP(currentLevel);
+            const expNeededToLevelUp = levelUpXP - currentExp;
+
+            if (expGiven >= expNeededToLevelUp) {
+                expGiven -= expNeededToLevelUp;
+                currentLevel += 1;
+                currentExp = 0; // Reset current exp after leveling up
+                console.log(`Leveled up to ${currentLevel}, remaining EXP to distribute: ${expGiven}`);
+            } else {
+                currentExp += expGiven;
+                expGiven = 0; // All expGiven is now added
+            }
+        }
+
+        userCardData[0].level = currentLevel;
+        userCardData[0].exp = currentExp;
+        userCardData[0].totalExp = parseInt(userCardData[0].totalExp) + (exp-expGiven);
         await updateUserData("user-cards", userCardData[0]);
         user.TotalExp = parseInt(user.TotalExp) + exp;
         await updateTotalExp("Dani-bot-playerbase", winnerId, user.TotalExp);
@@ -147,7 +166,6 @@ async function awardExp(winnerId, exp){
         console.log("Error awarding exp from raffle");
         console.log("Error:", error);
     }
-
 }
 
 function numberWithCommas(x) {

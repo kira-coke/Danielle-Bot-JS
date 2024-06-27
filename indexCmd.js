@@ -6,7 +6,6 @@ const {
 } = require("discord.js");
 
 const generateEmbed = (page, totalPages, filteredCards, msg) => {
-    //console.log(filteredCards);
     const embed = new EmbedBuilder()
         .setTitle(
             `Displaying all the current cards in circulation (Page ${page + 1}/${totalPages})`,
@@ -88,7 +87,7 @@ const handleCollector = (embedMessage, msg, totalPages, listOfCards) => {
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
         filter,
-        time: 30000, //how long buttons last
+        time: 60000, //how long buttons last
     });
 
     collector.on("collect", async (i) => {

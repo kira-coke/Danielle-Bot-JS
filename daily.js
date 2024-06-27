@@ -2,6 +2,7 @@ const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard} = require("./cards");
+const {getClaim} = require("./claim.js");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 
 function getDaily(msg,userId){
@@ -9,7 +10,7 @@ function getDaily(msg,userId){
     (async () => {
         try {
             const tableName = "cards";
-            const randomCard = await getRandomDynamoDBItem(tableName);
+            const randomCard = await getClaim(msg, userId);
             try {
                 const secondTableName = "user-cards";
                 const attributeName = randomCard["copies-owned"];
