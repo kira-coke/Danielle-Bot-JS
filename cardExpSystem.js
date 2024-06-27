@@ -195,4 +195,4 @@ async function updateUserData(tableName, cardData) {
   
 }
 
-module.exports = {awardExp, upgrade, calculateLevelUpXP};
+module.exports = {awardExp, upgrade, calculateLevelUpXP, updateUserData};
