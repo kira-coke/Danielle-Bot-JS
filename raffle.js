@@ -44,7 +44,7 @@ async function raffle(channel, client){
   const message = await channel.send({ embeds: [embed], components: [row] });
 
   const filter = i => i.customId === 'raffle_entry';
-  const collector = message.createMessageComponentCollector({ filter, time: 0.1 * 60 * 1000 }); //change back to 0.5
+  const collector = message.createMessageComponentCollector({ filter, time: 5 * 60 * 1000 }); //change back to 0.5
 
   collector.on('collect', async interaction => {
       if (raffleEntries.has(interaction.user.id)) {

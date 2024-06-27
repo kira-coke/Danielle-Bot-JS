@@ -41,7 +41,7 @@ const { EmbedBuilder} = require("discord.js");
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    schedule.scheduleJob('*/15 * * * *', () => { //change to 15
+    schedule.scheduleJob('*/20 * * * *', () => { //change to 15
         sendRaffleEmbed();
     });
 });
@@ -517,7 +517,7 @@ client.on("messageCreate", async (msg) => {
             let userId;
             let groupName = " ";
             try{
-                groupName = args.shift().toLowerCase(); // Extract the groupName from the first argument
+                groupName = args.join(" ").toLowerCase().split(/<@!?\d+>/)[0].trim(); // Extract the groupName from the first argument
             }catch(error){
                 console.log("No group name provided");
             }
@@ -530,7 +530,7 @@ client.on("messageCreate", async (msg) => {
             if (msg.mentions.users.size > 0) { // Checks if someone has been mentioned
                 userId = msg.mentions.users.first().id;
             } else {
-                userId = args.join(" ").trim(); // If not, assumes the rest of the arguments are the user ID
+                userId = args.join(" ").toLowerCase().replace(groupName, "").trim(); // If not, assumes the rest of the arguments are the user 
             }
 
             if (!userId || userId === msg.author.id) {
