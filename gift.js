@@ -47,6 +47,12 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                           userId,
                           cardIDToGift,
                       );
+                  if (currentOwnedByUser1 === 1) {
+                      msg.reply(
+                          "**You must own more than 1 copy to gift duplicates**",
+                      );
+                      return;
+                  }
                 if(await checkIfUserOwnsCard(secondTableName, targetUserId, cardIDToGift)===0){
                   console.log("User does not own card");
                   //code for adding the one copy to their inv instead
@@ -65,30 +71,22 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                   .catch((error) => {
                       console.error("Error:", error);
                   });
-                }else{
+                }
                   const currentOwnedByUser2 =
                     await getHowManyCopiesOwned(
                         secondTableName,
                         targetUserId,
                         cardIDToGift,
                     );
-                   if(currentOwnedByUser2 >= 1){
+                   if(currentOwnedByUser2 >= 1){ //just a check they do own
                      await changeNumberOwned(
                          secondTableName,
                          targetUserId,
                          cardIDToGift,
                          (parseInt(currentOwnedByUser2) +
-                             parseInt(numberOfCopiesToGive)), //to account for the first copy being added
+                             parseInt(numberOfCopiesToGive - 1)), //to account for the first copy being added
                      );
                    }
-                  
-                }
-                  if (currentOwnedByUser1 === 1) {
-                      msg.reply(
-                          "**You must own more than 1 copy to gift duplicates**",
-                      );
-                      return;
-                  }
                   await changeNumberOwned(
                       secondTableName,
                       userId,

@@ -187,7 +187,6 @@ async function changeNumberOwned(tableName, primaryKeyValue, secondaryKeyValue, 
 
         // Call DynamoDB update API
         const data = await dynamodb.update(params).promise();
-
         return data.Attributes; // Return the updated attributes
     } catch (error) {
         console.error('Error updating item in DynamoDB:', error);
