@@ -1,7 +1,10 @@
-const prizes = ['1', '2'];
+const prizes = ['1', '2', '3'];
+const exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
-const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned} = require("./cards");
+const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
+const {getUser, updateTotalExp} = require("./users");
+const {updateUserData} = require("./cardExpSystem");
 const raffleEntries = new Set();
 
 async function forceRaffle(channel, client){
@@ -15,24 +18,23 @@ async function raffle(channel, client){
   const amountOfCards = Math.floor(Math.random() * 4) + 1;
   const amountOfCoins = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
   const coinsWithCommas = numberWithCommas(amountOfCoins);
-  //const randomIndex = Math.floor(Math.random() * exp.length);
-  //const randomExp = exp[randomIndex];
+  const randomIndex = Math.floor(Math.random() * exp.length);
+  const randomExp = exp[randomIndex];
   const embed = new EmbedBuilder()
   .setTitle('Raffle Time!')
   .setDescription('Click the button below to enter the raffle! You can only enter once.')
   .setColor('Random');
   if(prize ==='1'){//random amount of cards to win
-    console.log(card["card-id"]);
     embed.addFields({name: "Enter for a chance to win: ", value: inlineCode(String(amountOfCards)+ " copies of " + card["card-id"]), inline: true})
       .setImage(card["cardUrl"]);
       
   }
   if(prize === '2'){
-    console.log(amountOfCoins);
       embed.addFields({name: "Enter for a chance to win:\n ", value: inlineCode(String(coinsWithCommas)) + " coins", inline: true})
   }
   if(prize === '3'){
-     //todo in future (random exp)
+     embed.addFields({name: "Enter for a chance to win:\n ", value: inlineCode(String(randomExp)) + " exp", inline: true})
+     embed.addFields({name: "WARNING:\n ", value: "This exp will be applied to your curent fav card. You can change this using .favCard", inline: false})
   }
   const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -44,7 +46,7 @@ async function raffle(channel, client){
   const message = await channel.send({ embeds: [embed], components: [row] });
 
   const filter = i => i.customId === 'raffle_entry';
-  const collector = message.createMessageComponentCollector({ filter, time: 5 * 60 * 1000 }); //change back to 0.5
+  const collector = message.createMessageComponentCollector({ filter, time: 5 * 60 * 1000 }); //change back to 5
 
   collector.on('collect', async interaction => {
       if (raffleEntries.has(interaction.user.id)) {
@@ -64,45 +66,88 @@ async function raffle(channel, client){
         if(prize === '2'){
             awardMoney(winnerId, amountOfCoins);
         }
+        if(prize === '3'){
+            awardExp(winnerId, randomExp);
+        }
       channel.send(`Congratulations ${winner}!`);
-      raffleEntries.clear();
       } else {
           channel.send('No entries for this raffle.');
       }
+      const disabledRow = new ActionRowBuilder()
+          .addComponents(
+              new ButtonBuilder()
+                  .setCustomId('enterRaffle')
+                  .setLabel('Enter Raffle')
+                  .setStyle('Primary')
+                  .setDisabled(true)
+          );
+
+      message.edit({
+          content: 'The raffle has ended!',
+          components: [disabledRow]
+      });
+      raffleEntries.clear();
   });
 }
 
 async function cardWin(winnerId, amount, card){
-    const owned = await checkIfUserOwnsCard('user-cards', winnerId, card["card-id"]);
-    let userOwns = await getHowManyCopiesOwned('user-cards', winnerId, card["card-id"]);
-    if(owned === 0){
-        const item = {
-            "user-id": winnerId, //primary key
-            "card-id": card["card-id"], //secondary key
-            "copies-owned": amount,
-            exp: 0,
-            level: 0,
-            upgradable: false,
-            tier: 1,
-            totalExp: 0
-        }
-        await writeToDynamoDB('user-cards', item)
-        .catch((error) => {
-            console.error("Error:", error);
-        });
-        userOwns = 1;
-        if(amount > 1){
-            await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + (amount-1));
-        }
-        await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userOwns)+ amount)
-    }else{
-        await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + amount);
+    try{
+        const owned = await checkIfUserOwnsCard('user-cards', winnerId, card["card-id"]);
+        let userOwns = await getHowManyCopiesOwned('user-cards', winnerId, card["card-id"]);
+        if(owned === 0){
+            const item = {
+                "user-id": winnerId, //primary key
+                "card-id": card["card-id"], //secondary key
+                "copies-owned": amount,
+                exp: 0,
+                level: 0,
+                upgradable: false,
+                tier: 1,
+                totalExp: 0
+            }
+            await writeToDynamoDB('user-cards', item)
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+            userOwns = 1;
+            if(amount > 1){
+                await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + (amount-1));
+            }
+            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userOwns)+ amount)
+        }else{
+            await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + amount);
+        }   
+    }catch(error){
+        console.log("Error awarding cards from raffle");
+        console.log("Error:", error);
     }
 }
 
 async function awardMoney(winnerId, amount){
-    const balance = await getUsersBalance(winnerId);
-    await saveUserBalance(winnerId, (parseInt(balance) + amount));
+    try{
+        const balance = await getUsersBalance(winnerId);
+        await saveUserBalance(winnerId, (parseInt(balance) + amount));
+    }catch(error){
+        console.log("Error awarding money from raffle");
+        console.log("Error:", error);
+    }
+}
+
+async function awardExp(winnerId, exp){
+    try{
+        const user = await getUser(winnerId);
+        const userFavCard = user["FavCard"];
+        const userCardData = await getUserCard("user-cards", winnerId, userFavCard);
+        userCardData[0].exp = parseInt(userCardData[0].exp) + exp;
+        userCardData[0].totalExp = parseInt(userCardData[0].totalExp) + exp;
+        await updateUserData("user-cards", userCardData[0]);
+        user.TotalExp = parseInt(user.TotalExp) + exp;
+        await updateTotalExp("Dani-bot-playerbase", winnerId, user.TotalExp);
+    }catch(error){
+        console.log("Error awarding exp from raffle");
+        console.log("Error:", error);
+    }
+
 }
 
 function numberWithCommas(x) {

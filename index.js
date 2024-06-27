@@ -41,7 +41,7 @@ const { EmbedBuilder} = require("discord.js");
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    schedule.scheduleJob('*/20 * * * *', () => { //change to 15
+    schedule.scheduleJob('*/15 * * * *', () => { //change to 15
         sendRaffleEmbed();
     });
 });
@@ -876,7 +876,7 @@ client.on("messageCreate", async (msg) => {
 });
 
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1255811550451859536');
+    const channel = client.channels.cache.get('1254626249167601746');
     if (!channel) return;
     await forceRaffle(channel, client);
 }
