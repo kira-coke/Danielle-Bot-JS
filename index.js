@@ -43,7 +43,7 @@ const prizes = ['Prize 1', 'Prize 2', 'Prize 3', 'Prize 4'];
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    schedule.scheduleJob('*/15 * * * *', () => {
+    schedule.scheduleJob('*/46 * * * *', () => {
         sendRaffleEmbed();
     });
 });
