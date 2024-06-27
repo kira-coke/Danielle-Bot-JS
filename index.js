@@ -127,7 +127,7 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "c" || command === "claim") {
             const command = "c";
-            const claimCd = Date.now() + 300 * 1000; //change back to 300
+            const claimCd = Date.now() + 1 * 1000; //change back to 300
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
@@ -277,7 +277,6 @@ client.on("messageCreate", async (msg) => {
             if(args[0] != undefined){
                 try{
                     groupName = args.join(" ").toLowerCase().split(/<@!?\d+>/)[0].trim(); // Extract the groupName from the first argument
-                    console.log(groupName);{
                         let uniqueGroupNames = [];
                         try{
                            uniqueGroupNames = await getUniqueGroupNames("cards");
@@ -285,7 +284,6 @@ client.on("messageCreate", async (msg) => {
                             console.error('Error fetching unique group names:', error);
                         }
                         const namesToLowerCase = uniqueGroupNames.map(name => name.toLowerCase());
-                        console.log(namesToLowerCase);
 
                         const nameIndex = namesToLowerCase.indexOf(groupName);
                         if (nameIndex === -1) {
@@ -309,8 +307,6 @@ client.on("messageCreate", async (msg) => {
                             console.error("Error creating index embed for: " + groupName);
                             console.error(error); // Log the actual error for further investigation
                         }
-
-                    }
                 }catch(error){
                     console.log("No valid group name provided");
                 }
@@ -319,7 +315,7 @@ client.on("messageCreate", async (msg) => {
                 const cardsPerPage = 4;
                 const totalPages = Math.ceil(listOfCards.Items.length / cardsPerPage);
 
-                const embedMessage = await msg.channel.send({ embeds: [generateEmbed(0, totalPages, listOfCards, msg)], components: [generateRow(0, totalPages)] });
+                const embedMessage = await msg.channel.send({ embeds: [generateEmbed(0, totalPages, listOfCards.Items, msg)], components: [generateRow(0, totalPages)] });
 
                 handleCollector(embedMessage, msg, totalPages, listOfCards);
             }        
@@ -560,38 +556,45 @@ client.on("messageCreate", async (msg) => {
         if (command === "inv") {
             let userId;
             let groupName = "";
+            let argsCopy = [...args];  // Create a copy of args to modify
 
-            if (args[0] !== undefined) {
-                const input = args.join(" ");
-                const mentionedIndex = input.indexOf("<@");
+            if (argsCopy[0] !== undefined) {
+                const input = argsCopy.join(" ");
+                const quoteMatch = input.match(/"([^"]+)"/); // Match text within double quotes
 
-                // Extract group name based on mention presence
-                if (mentionedIndex !== -1) {
-                    groupName = input.substring(0, mentionedIndex).trim().toLowerCase();
+                if (quoteMatch) {
+                    groupName = quoteMatch[1].toLowerCase().trim();
+                    argsCopy = input.replace(quoteMatch[0], '').trim().split(/\s+/); // Remove the quoted group name from args
                 } else {
-                    groupName = args[0].toLowerCase().trim(); // Group name is the first argument
+                    const mentionedIndex = input.indexOf("<@");
+
+                    if (mentionedIndex !== -1) {
+                        groupName = input.substring(0, mentionedIndex).trim().toLowerCase();
+                    } else {
+                        groupName = argsCopy[0].toLowerCase().trim(); // Group name is the first argument
+                    }
                 }
 
                 if (msg.mentions.users.size > 0) {
                     userId = msg.mentions.users.first().id;
                 } else {
                     // If no mention, assume the last argument is the userId
-                    const potentialUserId = args[args.length - 1];
+                    const potentialUserId = argsCopy[argsCopy.length - 1];
                     if (potentialUserId.match(/^\d{17,19}$/)) {
                         userId = potentialUserId;
-                        args.pop(); // Remove the userId from args
+                        argsCopy.pop(); // Remove the userId from args
                     } else {
-                        // If not a valid user ID, assume the rest of the arguments are the user ID
-                        userId = args.slice(1).join(" ").trim();
+                        userId = argsCopy.slice(1).join(" ").trim();
                     }
                 }
-            } else {// no group given
+            } else { // no group given
                 if (msg.mentions.users.size > 0) {
                     userId = msg.mentions.users.first().id;
                 } else {
-                    userId = args.join(" ").trim();
+                    userId = argsCopy.join(" ").trim();
                 }
             }
+
             if (!userId || userId === msg.author.id) {
                 userId = msg.author.id;
             }
@@ -604,7 +607,7 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
 
-            if (args[0] !== undefined) {
+            if (groupName) {
                 const namesToLowerCase = uniqueGroupNames.map(name => name.toLowerCase());
                 const nameIndex = namesToLowerCase.indexOf(groupName);
 

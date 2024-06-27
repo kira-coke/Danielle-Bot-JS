@@ -137,7 +137,7 @@ function calculateLevelUpXP(level) {
 }
 
 function calculatePotentialNewLevel(level, exp) {
-  while (exp >= calculateLevelUpXP(level) && level < 100) {
+  while (exp >= calculateLevelUpXP(level) && level < 20) {
     exp -= calculateLevelUpXP(level);
     level += 1;
   }
