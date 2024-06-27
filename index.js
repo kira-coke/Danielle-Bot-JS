@@ -41,9 +41,9 @@ const { EmbedBuilder} = require("discord.js");
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    //schedule.scheduleJob('*/15 * * * *', () => { //change to 15
-      //  sendRaffleEmbed();
-    //});
+    schedule.scheduleJob('*/15 * * * *', () => { //change to 15
+        sendRaffleEmbed();
+    });
 });
 
 client.on("messageCreate", async (msg) => {
@@ -774,20 +774,20 @@ client.on("messageCreate", async (msg) => {
             }
         }
 
-        /*if(command === "createraffle"){
-            const REQUIRED_ROLE_NAME = 'admin'; //change back to admin
+        if(command === "createraffle"){
+            const REQUIRED_ROLE_NAME = 'Admin'; //change back to admin
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
             sendRaffleEmbed();
             }else{
                 return;
             }
-        }*/
+        }
     }
 });
 
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1255577403854426133');
+    const channel = client.channels.cache.get('1255811550451859536');
     if (!channel) return;
     await forceRaffle(channel, client);
 }
