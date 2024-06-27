@@ -127,7 +127,7 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "c" || command === "claim") {
             const command = "c";
-            const claimCd = Date.now() + 1 * 1000; //change back to 300
+            const claimCd = Date.now() + 300 * 1000; //change back to 300
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
