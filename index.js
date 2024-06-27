@@ -9,6 +9,7 @@ AWS.config.update({
     region: "eu-west-2",
 });
 const{work} = require("./work");
+const {forceRaffle} = require("./raffle");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
@@ -36,16 +37,13 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
-
-const raffleEntries = new Set();
-const prizes = ['Prize 1', 'Prize 2', 'Prize 3', 'Prize 4'];
+const { EmbedBuilder} = require("discord.js");
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    schedule.scheduleJob('*/46 * * * *', () => {
-        sendRaffleEmbed();
-    });
+    //schedule.scheduleJob('*/15 * * * *', () => { //change to 15
+      //  sendRaffleEmbed();
+    //});
 });
 
 client.on("messageCreate", async (msg) => {
@@ -775,50 +773,23 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
         }
+
+        /*if(command === "createraffle"){
+            const REQUIRED_ROLE_NAME = 'admin'; //change back to admin
+            const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
+            if (role && msg.member.roles.cache.has(role.id)) {
+            sendRaffleEmbed();
+            }else{
+                return;
+            }
+        }*/
     }
 });
 
 async function sendRaffleEmbed() {
     const channel = client.channels.cache.get('1255577403854426133');
     if (!channel) return;
-
-    const embed = new EmbedBuilder()
-        .setTitle('Raffle Time!')
-        .setDescription('Click the button below to enter the raffle! You can only enter once.')
-        .setColor('Random');
-
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('raffle_entry')
-            .setLabel('Enter Raffle')
-            .setStyle('Primary')
-    );
-
-    const message = await channel.send({ embeds: [embed], components: [row] });
-
-    const filter = i => i.customId === 'raffle_entry';
-    const collector = message.createMessageComponentCollector({ filter, time: 0.5 * 60 * 1000 });
-
-    collector.on('collect', async interaction => {
-        if (raffleEntries.has(interaction.user.id)) {
-            await interaction.reply({ content: 'You have already entered the raffle.', ephemeral: true });
-        } else {
-            raffleEntries.add(interaction.user.id);
-            await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
-        }
-    });
-
-    collector.on('end', () => {
-        if (raffleEntries.size > 0) {
-            const winnerId = Array.from(raffleEntries)[Math.floor(Math.random() * raffleEntries.size)];
-            const winner = client.users.cache.get(winnerId);
-            const prize = prizes[Math.floor(Math.random() * prizes.length)];
-            channel.send(`Congratulations ${winner}, you have won ${prize}!`);
-            raffleEntries.clear();
-        } else {
-            channel.send('No entries for this raffle.');
-        }
-    });
+    await forceRaffle(channel, client);
 }
 
 client.login(process.env.Token);
