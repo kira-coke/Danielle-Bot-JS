@@ -808,7 +808,7 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "forcedrop" || command === "fd"){
             // Check if the user has the required role
-            const REQUIRED_ROLE_NAME = 'admin';
+            const REQUIRED_ROLE_NAME = 'mod';
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
                 getClaim(msg,userId); //maybe change in future idk works for now
@@ -819,7 +819,7 @@ client.on("messageCreate", async (msg) => {
 
         if(command === "modify"){
             let user = " ";
-            const REQUIRED_ROLE_NAME = 'admin';
+            const REQUIRED_ROLE_NAME = 'mod';
             let amount = 0;
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
@@ -874,7 +874,7 @@ client.on("messageCreate", async (msg) => {
         }
 
         if(command === "createraffle"){
-            const REQUIRED_ROLE_NAME = 'Admin'; //change back to admin
+            const REQUIRED_ROLE_NAME = 'mod'; //change back to admin
             const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
             if (role && msg.member.roles.cache.has(role.id)) {
             sendRaffleEmbed();
