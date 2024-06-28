@@ -7,9 +7,9 @@ function getDrop(msg,userId){
   // get a random card from the storage and store the details to be able to be used in bellow embeded message
     (async () => {
         try {
-            const tableName = "cards";
+            //const tableName = "cards";
             const randomCard = await getClaim(msg, userId);
-            try {
+            /*try {
                 const secondTableName = "user-cards";
                 const attributeName = randomCard["copies-owned"];
                 let item = {};
@@ -96,7 +96,7 @@ function getDrop(msg,userId){
                 msg.reply({ embeds: [embed] });
             } catch (error) {
                 console.error("Error:", error);
-            }
+            }*/
         } catch (error) {
             console.error("Error:", error);
         }
