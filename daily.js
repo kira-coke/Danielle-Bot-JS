@@ -1,16 +1,58 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard} = require("./cards");
-const {getClaim} = require("./claim.js");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 
-function getDaily(msg,userId){
-  // get a random card from the storage and store the details to be able to be used in bellow embeded message
+async function getDaily(msg,userId){
+    const user= await getUser(userId);
+    const userFavCard = user["FavCard"];
+    const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
+    const cardData = userFavCardData[0];
+    let cardWeights = {};
+    if(cardData.tier === 2){
+        cardWeights = {
+            [userFavCard]: 2, 
+        };
+    }
+    if(cardData.tier >= 3){
+        cardWeights = {
+            [userFavCard]: 3, 
+        };
+    }
+    async function getWeightedRandomCard(tableName) {
+        const allCards = await getTotalCards(tableName); // Function to get all cards from the table
+        if (!Array.isArray(allCards.Items)) {
+            console.error("Expected an array but received:", allCards);
+            throw new TypeError("Expected an array of cards");
+        }
+        const weightedList = [];
+
+        allCards.Items.forEach(card => {
+            const weight = cardWeights[[card["card-id"]]] || 1; ; // Default weight is 1 if not specified
+            for (let i = 0; i < weight; i++) {
+                weightedList.push(card);
+            }
+        });
+        const randomIndex = Math.floor(Math.random() * weightedList.length);
+        return weightedList[randomIndex];
+    }
+
     (async () => {
         try {
             const tableName = "cards";
-            const randomCard = await getClaim(msg, userId);
+            let randomCard = "";
+                if(cardData.tier >=2){
+                    try{
+                        randomCard = await getWeightedRandomCard(tableName);
+                        console.log("Gotten Weight one");
+                    }catch(error){
+                        console.log("Issue getting weighted random card");
+                        console.log(error);
+                    }
+                }else{
+                    randomCard = await getRandomDynamoDBItem(tableName);
+                }
             try {
                 const secondTableName = "user-cards";
                 const attributeName = randomCard["copies-owned"];
