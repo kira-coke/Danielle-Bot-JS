@@ -8,7 +8,7 @@ function getDrop(msg,userId){
     (async () => {
         try {
             //const tableName = "cards";
-            const randomCard = await getClaim(msg, userId);
+            await getClaim(msg, userId);
             /*try {
                 const secondTableName = "user-cards";
                 const attributeName = randomCard["copies-owned"];
