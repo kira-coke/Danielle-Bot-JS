@@ -9,15 +9,18 @@ async function getClaim(msg,userId){
     const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
     const cardData = userFavCardData[0];
     let cardWeights = {};
-    if(cardData.tier === 2){
-        cardWeights = {
-            [userFavCard]: 2, 
-        };
-    }
-    if(cardData.tier >= 3){
-        cardWeights = {
-            [userFavCard]: 3, 
-        };
+    if(cardData === undefined){
+    }else{
+        if(cardData.tier === 2){
+            cardWeights = {
+                [userFavCard]: 2, 
+            };
+        }
+        if(cardData.tier >= 3){
+            cardWeights = {
+                [userFavCard]: 3, 
+            };
+        }
     }
     async function getWeightedRandomCard(tableName) {
         const allCards = await getTotalCards(tableName); // Function to get all cards from the table
@@ -42,15 +45,19 @@ async function getClaim(msg,userId){
         try {
             const tableName = "cards";
             let randomCard = "";
-            if(cardData.tier >=2){
-                try{
-                    randomCard = await getWeightedRandomCard(tableName);
-                }catch(error){
-                    console.log("Issue getting weighted random card");
-                    console.log(error);
-                }
-            }else{
+            if(cardData === undefined){
                 randomCard = await getRandomDynamoDBItem(tableName);
+            }else{
+                if(cardData.tier >=2){
+                    try{
+                        randomCard = await getWeightedRandomCard(tableName);
+                    }catch(error){
+                        console.log("Issue getting weighted random card");
+                        console.log(error);
+                    }
+                }else{
+                    randomCard = await getRandomDynamoDBItem(tableName);
+                }
             }
             try {
                 const secondTableName = "user-cards";
