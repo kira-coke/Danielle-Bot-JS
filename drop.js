@@ -1,13 +1,13 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard} = require("./cards");
+const {writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard} = require("./cards");
 const {getClaim} = require("./claim.js");
 
 function getDrop(msg,userId){
   // get a random card from the storage and store the details to be able to be used in bellow embeded message
     (async () => {
         try {
-            const tableName = "cards";
+            //const tableName = "cards";
             const randomCard = await getClaim(msg, userId);
             try {
                 const secondTableName = "user-cards";

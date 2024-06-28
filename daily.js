@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
+const NodeCache = require('node-cache');
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 
@@ -21,7 +22,15 @@ async function getDaily(msg,userId){
         };
     }
     async function getWeightedRandomCard(tableName) {
-        const allCards = await getTotalCards(tableName); // Function to get all cards from the table
+        const cachedCards = cache.get("allCards");
+        let allCards;
+
+        if (cachedCards) {
+            allCards = cachedCards;
+        } else {
+            allCards = await getTotalCards(tableName); // Function to get all cards from the table
+            cache.set("allCards", allCards);
+        }
         if (!Array.isArray(allCards.Items)) {
             console.error("Expected an array but received:", allCards);
             throw new TypeError("Expected an array of cards");
@@ -50,8 +59,15 @@ async function getDaily(msg,userId){
                         console.log("Issue getting weighted random card");
                         console.log(error);
                     }
-                }else{
-                    randomCard = await getRandomDynamoDBItem(tableName);
+                }else {
+                    const cachedRandomCard = cache.get("randomCard");
+
+                    if (cachedRandomCard) {
+                        randomCard = cachedRandomCard;
+                    } else {
+                        randomCard = await getRandomDynamoDBItem(tableName);
+                        cache.set("randomCard", randomCard);
+                    }
                 }
             try {
                 const secondTableName = "user-cards";
@@ -116,6 +132,16 @@ async function getDaily(msg,userId){
                         console.error("Error:", error);
                     });
                 let currencyMultiplier = 1;
+                
+                const cachedImage = cache.get(`image_${randomCard["card-id"]}`);
+                let imageUrl;
+
+                if (cachedImage) {
+                    imageUrl = cachedImage;
+                } else {
+                    imageUrl = randomCard["cardUrl"];
+                    cache.set(`image_${randomCard["card-id"]}`, imageUrl);
+                }
 
                 // Check and update daily streak
                 const user = await getUser(userId);
@@ -157,7 +183,7 @@ async function getDaily(msg,userId){
                             inline: false,
                         }
                     )
-                    .setImage(randomCard["cardUrl"]) // changed depending on the card recieved
+                    .setImage(imageUrl) // changed depending on the card recieved
                     .setFooter({
                         text: msg.author.tag,
                         iconURL: msg.author.displayAvatarURL({
