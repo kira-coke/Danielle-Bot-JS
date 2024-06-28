@@ -61,6 +61,7 @@ client.on("messageCreate", async (msg) => {
         const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
         const userExists = await checkUserExists(userId);
         const generalCmdCd = Date.now() + 1 * 1000;
+        const member = msg.member;
         const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
 
         if (remainingCooldown !== '0m 0s') {
@@ -134,40 +135,53 @@ client.on("messageCreate", async (msg) => {
 
         if (command === "c" || command === "claim") {
             const command = "c";
-            const claimCd = Date.now() + 300 * 1000; //change back to 300
+            const defaultCooldown = 300 * 1000; // 300 seconds
+            let claimCd = defaultCooldown;
+            //const claimCd = Date.now() + 300 * 1000; //change back to 300
+            if (hasRole(member, 'Server Booster')) {
+                claimCd *= 0.8; 
+            } else if (hasRole(member, 'supporter')) {
+                claimCd *= 0.6; 
+            }
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
                 msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
                 return;
             }
-            const cooldownTimestamp = claimCd;
+            const cooldownTimestamp = Date.now() + claimCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
             const user = await getUser(userId);
             if(user.Reminders === true){
                 setTimeout(() => {
                     msg.channel.send(`**Reminder:** <@${msg.author.id}> your claim is ready!`);
-                }, 300 * 1000); // Convert minutes to milliseconds
+                }, claimCd);
             }
             getClaim(msg,userId);
         } 
 
         if (command === "d" || command === "drop") {
             const command = "d";
-            const dropCd = Date.now() + 600 * 1000; //change to 600
+            const defaultCooldown = 600 * 1000; // 300 seconds
+            let dropCd = defaultCooldown;
+            if (hasRole(member, 'Server Booster')) {
+                dropCd *= 0.8; 
+            } else if (hasRole(member, 'supporter')) {
+                dropCd*= 0.6; 
+            }
             const remainingCooldown = await getUserCooldown(userId, command);
 
             if (remainingCooldown !== '0m 0s') {
                 msg.reply(`You must wait ${remainingCooldown} before using this command again.`);
                 return;
             }
-            const cooldownTimestamp = dropCd;
+            const cooldownTimestamp = Date.now() + dropCd;
             await saveUserCooldown(userId, command, cooldownTimestamp);
             const user = await getUser(userId);
             if(user.Reminders === true){
                 setTimeout(() => {
                     msg.channel.send(`**Reminder:** <@${msg.author.id}> your drop is ready!`);
-                }, 600 * 1000); // Convert minutes to milliseconds
+                }, dropCd); // Convert minutes to milliseconds
             }
             getDrop(msg,userId);
         }
@@ -885,8 +899,12 @@ client.on("messageCreate", async (msg) => {
     }
 });
 
+function hasRole(member, roleName) {
+    return member.roles.cache.some(role => role.name === roleName);
+}
+
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1255811550451859536');
+    const channel = client.channels.cache.get('1256331822812500068');
     if (!channel) return;
     await forceRaffle(channel, client);
 }
