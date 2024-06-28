@@ -5,6 +5,8 @@ const NodeCache = require('node-cache');
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 
+const cache = new NodeCache({ stdTTL: 300, checkperiod: 320 });
+
 async function getDaily(msg,userId){
     const user= await getUser(userId);
     const userFavCard = user["FavCard"];
