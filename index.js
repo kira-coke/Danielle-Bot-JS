@@ -338,7 +338,7 @@ client.on("messageCreate", async (msg) => {
 
                 const embedMessage = await msg.channel.send({ embeds: [generateEmbed(0, totalPages, listOfCards.Items, msg)], components: [generateRow(0, totalPages)] });
 
-                handleCollector(embedMessage, msg, totalPages, listOfCards);
+                handleCollector(embedMessage, msg, totalPages, listOfCards.Items);
             }        
         }
 
