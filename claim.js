@@ -1,7 +1,10 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
+const NodeCache = require('node-cache');
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getTotalCards} = require("./cards");
+
+const cache = new NodeCache({ stdTTL: 300, checkperiod: 320 });
 
 async function getClaim(msg,userId){
     const user= await getUser(userId);
@@ -20,7 +23,15 @@ async function getClaim(msg,userId){
         };
     }
     async function getWeightedRandomCard(tableName) {
-        const allCards = await getTotalCards(tableName); // Function to get all cards from the table
+        const cachedCards = cache.get("allCards");
+            let allCards;
+
+            if (cachedCards) {
+                allCards = cachedCards;
+            } else {
+                allCards = await getTotalCards(tableName); // Function to get all cards from the table
+                cache.set("allCards", allCards);
+            }
         if (!Array.isArray(allCards.Items)) {
             console.error("Expected an array but received:", allCards);
             throw new TypeError("Expected an array of cards");
@@ -49,8 +60,15 @@ async function getClaim(msg,userId){
                     console.log("Issue getting weighted random card");
                     console.log(error);
                 }
-            }else{
-                randomCard = await getRandomDynamoDBItem(tableName);
+            }else {
+                const cachedRandomCard = cache.get("randomCard");
+
+                if (cachedRandomCard) {
+                    randomCard = cachedRandomCard;
+                } else {
+                    randomCard = await getRandomDynamoDBItem(tableName);
+                    cache.set("randomCard", randomCard);
+                }
             }
             try {
                 const secondTableName = "user-cards";
@@ -113,6 +131,15 @@ async function getClaim(msg,userId){
                     .catch((error) => {
                         console.error("Error:", error);
                     });
+                const cachedImage = cache.get(`image_${randomCard["card-id"]}`);
+                let imageUrl;
+
+                if (cachedImage) {
+                    imageUrl = cachedImage;
+                } else {
+                    imageUrl = randomCard["cardUrl"];
+                    cache.set(`image_${randomCard["card-id"]}`, imageUrl);
+                }
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
@@ -128,7 +155,7 @@ async function getClaim(msg,userId){
                             inline: true,
                         }, // You can set inline to true if you want the field to display inline.
                     )
-                    .setImage(randomCard["cardUrl"]) // changed depending on the card recieved
+                    .setImage(imageUrl) // changed depending on the card recieved
                     .setFooter({
                         text: msg.author.tag,
                         iconURL: msg.author.displayAvatarURL({
