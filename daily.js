@@ -10,16 +10,19 @@ async function getDaily(msg,userId){
     const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
     const cardData = userFavCardData[0];
     let cardWeights = {};
-    if(cardData.tier === 2){
-        cardWeights = {
-            [userFavCard]: 2, 
-        };
-    }
-    if(cardData.tier >= 3){
-        cardWeights = {
-            [userFavCard]: 3, 
-        };
-    }
+    if(cardData === undefined){
+        }else{
+            if(cardData.tier === 2){
+                cardWeights = {
+                    [userFavCard]: 2, 
+                };
+            }
+            if(cardData.tier >= 3){
+                cardWeights = {
+                    [userFavCard]: 3, 
+                };
+            }
+        }
     async function getWeightedRandomCard(tableName) {
         const allCards = await getTotalCards(tableName); // Function to get all cards from the table
         if (!Array.isArray(allCards.Items)) {
@@ -42,10 +45,12 @@ async function getDaily(msg,userId){
         try {
             const tableName = "cards";
             let randomCard = "";
+            if(cardData === undefined){
+                randomCard = await getRandomDynamoDBItem(tableName);
+            }else{
                 if(cardData.tier >=2){
                     try{
                         randomCard = await getWeightedRandomCard(tableName);
-                        console.log("Gotten Weight one");
                     }catch(error){
                         console.log("Issue getting weighted random card");
                         console.log(error);
@@ -53,6 +58,7 @@ async function getDaily(msg,userId){
                 }else{
                     randomCard = await getRandomDynamoDBItem(tableName);
                 }
+            }
             try {
                 const secondTableName = "user-cards";
                 const attributeName = randomCard["copies-owned"];
