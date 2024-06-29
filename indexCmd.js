@@ -18,7 +18,7 @@ const generateEmbed = (page, totalPages, filteredCards, msg) => {
             }),
         });
 
-    const cardsPerPage = 4; //eunsure this matches the value on the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 7; //eunsure this matches the value on the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,

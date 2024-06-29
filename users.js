@@ -164,6 +164,35 @@ async function setUserWishList(tableName, userId, attribute){
       }
 }
 
+
+async function getUserWishList(tableName, userId) {
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId, 
+            },
+            ProjectionExpression: '#LookingFor', // Only retrieve the 'LookingFor' attribute
+            ExpressionAttributeNames: {
+                '#LookingFor': 'LookingFor' 
+            }
+        };
+
+        const data = await dynamodb.get(params).promise();
+
+        if (data.Item && data.Item.LookingFor) {
+            const wishlistArray = data.Item.LookingFor.split(',').map(item => item.trim());
+            return wishlistArray; // Return the wishlist array
+        } else {
+            return []; // Return null if wishlist is not found
+        }
+    } catch (err) {
+        console.error('Unable to retrieve user wishlist:', err);
+        return false;
+    }
+}
+
+
 async function getUserCards(tableName, userId) {
     const params = {
         TableName: tableName,
@@ -243,4 +272,4 @@ async function updateTotalExp(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp};
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList};

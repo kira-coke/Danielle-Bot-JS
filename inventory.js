@@ -27,7 +27,7 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
             }),
         });
 
-    const cardsPerPage = 4; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 10; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,
@@ -47,7 +47,7 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
                 const cardData = cardDataArray[0];
                 embed.addFields(
                     { 
-                        name: "\u200B", 
+                        name: " ", 
                         value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
@@ -85,7 +85,7 @@ async function generateEmbedInvForGroup(page, totalPages, listOfCards, msg, user
             }),
         });
 
-    const cardsPerPage = 4; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 10; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,

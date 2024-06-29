@@ -14,7 +14,7 @@ const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -119,13 +119,13 @@ client.on("messageCreate", async (msg) => {
             const userId = msg.author.id;
             const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
             const userExists = await checkUserExists(userId);
-            const generalCmdCd = Date.now() + 1 * 1000;
+            const generalCmdCd = Date.now() + 3 * 1000;
             const member = msg.member;
             const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
 
             if (remainingCooldown !== "0m 0s") {
                 msg.reply(
-                    `You must wait ${remainingCooldown} before using a command again.`,
+                    `Please wait ${remainingCooldown} before doing another command`,
                 );
                 return;
             }
@@ -654,14 +654,25 @@ client.on("messageCreate", async (msg) => {
             if (command === "wishlist" || command === "wl") {
                 const codes = args.filter((code) => code.trim() !== "");
                 if (codes[0] === undefined) {
-                    msg.reply("**Please input at least one code**");
+                    msg.reply("**Please input at least .wl clear, .wl add or .wl set");
                     return;
-                } else {
-                    if (codes.length > 10) {
-                        msg.reply("**The limit is 10 codes**");
-                        return;
-                    } else {
-                        for (let i = 0; i < codes.length; i++) {
+                }
+                if(codes[0] === "clear"){
+                    await setUserWishList(
+                        "Dani-bot-playerbase",
+                        userId,
+                        "n/a",
+                    );
+                    msg.reply("Your wishlist has been cleared");
+                    return;
+                }
+                if(codes[0] === "add"){
+                    const currentWl = await getUserWishList("Dani-bot-playerbase",userId);
+                    let newWl = "";
+                    if((currentWl.length+codes.length) > 10){
+                        msg.reply("Your wl will be over 10 codes. You currently have "+ currentWl.length + " codes in your wishlist");
+                    }else{
+                        for (let i = 1; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -672,14 +683,44 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const codesString = codes.join(", ");
+                        const newCodes = codes.slice(1); 
+                        const updatedWishlist = currentWl.concat(newCodes);
+                        newWl = updatedWishlist.join(", "); 
+                        console.log(newWl);
+                        await setUserWishList(
+                            "Dani-bot-playerbase",
+                            userId,
+                            newWl,
+                        );
+                        msg.reply(
+                            `You have added the following cards to your wishlist: ${Discord.inlineCode(newCodes)}`,
+                        );
+                    }
+                }
+                if(codes[0] === "set"){
+                    if (codes.length > 11) {
+                        msg.reply("**The limit is 10 codes**");
+                        return;
+                    } else {
+                        for (let i = 1; i < codes.length; i++) {
+                            try {
+                                await getCardFromTable("cards", codes[i]);
+                            } catch (error) {
+                                msg.reply(
+                                    "One of your codes is invalid: " +
+                                        Discord.inlineCode(codes[i]),
+                                );
+                                return;
+                            }
+                        }
+                        const codesString = codes.slice(1).join(", ");
                         await setUserWishList(
                             "Dani-bot-playerbase",
                             userId,
                             codesString,
                         );
                         msg.reply(
-                            `You have added the following cards to your wishlist: ${codesString}`,
+                            `You have set you wishlist to the following codes: ${Discord.inlineCode(codesString)}`,
                         );
                     }
                 }
