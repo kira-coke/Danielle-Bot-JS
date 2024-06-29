@@ -48,7 +48,7 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
                 embed.addFields(
                     { 
                         name: "\u200B", 
-                        value: `${Discord.blockQuote(Discord.bold(String(card["GroupMember"])))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
                 );

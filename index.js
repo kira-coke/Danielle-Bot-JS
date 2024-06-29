@@ -198,7 +198,7 @@ client.on("messageCreate", async (msg) => {
                 const defaultCooldown = 300 * 1000; // 300 seconds
                 let claimCd = defaultCooldown;
                 //const claimCd = Date.now() + 300 * 1000; //change back to 300
-                if (hasRole(member, "Server Booster")) {
+                if (hasRole(member, "booster")) {
                     claimCd *= 0.8;
                 } else if (hasRole(member, "supporter")) {
                     claimCd *= 0.6;
@@ -228,7 +228,7 @@ client.on("messageCreate", async (msg) => {
                 const command = "d";
                 const defaultCooldown = 600 * 1000; // 300 seconds
                 let dropCd = defaultCooldown;
-                if (hasRole(member, "Server Booster")) {
+                if (hasRole(member, "booster")) {
                     dropCd *= 0.8;
                 } else if (hasRole(member, "supporter")) {
                     dropCd *= 0.6;
@@ -579,7 +579,7 @@ client.on("messageCreate", async (msg) => {
                 );
             }
 
-            if (command === "favcard") {
+            if (command === "favcard" || command === "fc") {
                 const newFavCard = args.filter((code) => code.trim() !== "");
                 console.log(newFavCard[0]);
                 if (newFavCard[0] === undefined) {
@@ -715,7 +715,7 @@ client.on("messageCreate", async (msg) => {
                 getDaily(msg, userId);
             }
 
-            if (command === "inv") {
+            if (command === "inv" || command === "inventory") {
                 let userId;
                 let groupName = "";
                 let argsCopy = [...args]; // Create a copy of args to modify
@@ -913,7 +913,7 @@ client.on("messageCreate", async (msg) => {
                 );
             }
 
-            if (command === "upgrade") {
+            if (command === "upgrade" || command === "u") {
                 const input = args.filter((code) => code.trim() !== "");
                 const code = input[0];
                 const status = await upgrade(userId, code, msg);
@@ -967,7 +967,8 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send({ embeds: [embed] });
             }
 
-            if (command === "dg") {
+            if (command === "dg" || command === "dungeon") {
+                const command = "dg";
                 const dgCd = Date.now() + 14400 * 1000; //
                 const remainingCooldown = await getUserCooldown(userId, command);
 
@@ -1155,7 +1156,7 @@ function hasRole(member, roleName) {
 }
 const ROLE_ID = '1256328712086098040';
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1255577403854426133');
+    const channel = client.channels.cache.get('1256331822812500068');
     const role = channel.guild.roles.cache.get(ROLE_ID);
     channel.send(`<@&${ROLE_ID}>`);
     
