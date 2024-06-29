@@ -80,7 +80,7 @@ async function enterDg(msg, userId, cardId, dg){
        embed.setColor("dd2d4a");
         embed.addFields({
             name: ' ',
-            value: `\nYou have failed to deafeat JYP. \n\n**Better luck next time!**`,
+            value: `\nYou have failed to defeat JYP. \n\n**Better luck next time!**`,
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
@@ -139,7 +139,7 @@ async function enterDg(msg, userId, cardId, dg){
        embed.setColor("dd2d4a");
         embed.addFields({
             name: ' ',
-            value: `\nYou have failed to deafeat SM. \n\n**Better luck next time!**`,
+            value: `\nYou have failed to defeat SM. \n\n**Better luck next time!**`,
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
@@ -198,7 +198,7 @@ async function enterDg(msg, userId, cardId, dg){
        embed.setColor("dd2d4a");
         embed.addFields({
             name: ' ',
-            value: `\nYou have failed to deafeat HYBE. \n\n**Better luck next time!**`,
+            value: `\nYou have failed to defeat HYBE. \n\n**Better luck next time!**`,
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
