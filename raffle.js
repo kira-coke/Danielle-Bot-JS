@@ -1,7 +1,7 @@
 const prizes = ['1', '2', '3'];
 const exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
-const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard} = require("./cards");
+const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard, checkTotalCardCount} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
 const {getUser, updateTotalExp} = require("./users");
 const {updateUserData, calculateLevelUpXP} = require("./cardExpSystem");
@@ -94,6 +94,7 @@ async function cardWin(winnerId, amount, card){
     try{
         const owned = await checkIfUserOwnsCard('user-cards', winnerId, card["card-id"]);
         let userOwns = await getHowManyCopiesOwned('user-cards', winnerId, card["card-id"]);
+        let userTotalCount = await checkTotalCardCount('Dani-bot-playerbase', winnerId);
         if(owned === 0){
             const item = {
                 "user-id": winnerId, //primary key
@@ -113,9 +114,10 @@ async function cardWin(winnerId, amount, card){
             if(amount > 1){
                 await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + (amount-1));
             }
-            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userOwns)+ amount)
+            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userTotalCount)+ amount);
         }else{
             await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + amount);
+            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userTotalCount)+ amount)
         }   
     }catch(error){
         console.log("Error awarding cards from raffle");

@@ -38,6 +38,12 @@ const client = new Discord.Client({
     ],
 });
 const {EmbedBuilder} = require("discord.js");
+const originalLog = console.log;
+
+console.log = function(...args) {
+    const timestamp = new Date().toISOString();
+    originalLog.apply(console, [`[${timestamp}]`, ...args]);
+};
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -1149,7 +1155,7 @@ function hasRole(member, roleName) {
 }
 const ROLE_ID = '1256328712086098040';
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1256331822812500068');
+    const channel = client.channels.cache.get('1255577403854426133');
     const role = channel.guild.roles.cache.get(ROLE_ID);
     channel.send(`<@&${ROLE_ID}>`);
     
