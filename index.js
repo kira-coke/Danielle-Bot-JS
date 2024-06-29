@@ -808,6 +808,7 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("You do not own this card");
                     return;
                 }
+                await enterDg(msg, userId, code, dgToEnter);
                 const cooldownTimestamp = dgCd;
                 await saveUserCooldown(userId, command, cooldownTimestamp);
                 const user = await getUser(userId);
@@ -816,7 +817,6 @@ client.on("messageCreate", async (msg) => {
                         msg.channel.send(`**Reminder:** <@${msg.author.id}> your dg is ready!`);
                     }, 14400 * 1000); // Convert minutes to milliseconds
                 }
-                await enterDg(msg, userId, code, dgToEnter);
             }
         }
 
