@@ -78,6 +78,21 @@ async function getUser(userId){
       }
 }
 
+async function getTotalUsers(tableName) {
+    const params = {
+        TableName: tableName
+    };
+
+    try {
+        const data = await dynamodb.scan(params).promise();
+        const users = data.Items.map(item => item['user-id']); // Assuming 'user-id' is your attribute name for user ID
+        return users;
+    } catch (error) {
+        console.error('Error scanning DynamoDB table:', error);
+        throw error; // Throw the error so it can be handled elsewhere
+    }
+}
+
 async function setUserCard(tableName, userId, attribute){
     const updateCount = 'SET #FavCard = :newFavCard';
     const expressionAttributeValues = {
@@ -243,4 +258,4 @@ async function updateTotalExp(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp};
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getTotalUsers};

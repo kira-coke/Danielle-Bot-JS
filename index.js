@@ -14,7 +14,7 @@ const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getTotalUsers} = require("./users.js");
 const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -124,7 +124,7 @@ client.on("messageCreate", async (msg) => {
                 return;
             }
             const cooldownTimestamp = generalCmdCd;
-            await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp);
+            await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp, msg.channelId);
 
             if (msg.author.bot) return;
 
@@ -206,7 +206,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = Date.now() + claimCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                await saveUserCooldown(userId, command, cooldownTimestamp, msg.channelId);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
                     setTimeout(() => {
@@ -236,7 +236,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = Date.now() + dropCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                await saveUserCooldown(userId, command, cooldownTimestamp, msg.channelId);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
                     setTimeout(() => {
@@ -641,7 +641,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = workCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                await saveUserCooldown(userId, command, cooldownTimestamp, msg.channelId);
                 await work(msg, userId);
             }
 
@@ -690,7 +690,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = dailyCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                await saveUserCooldown(userId, command, cooldownTimestamp, msg.channelId);
                 const streak = await getUser(userId);
                 const streakNumber = streak["DailyStreak"];
                 await setUserStreak(
@@ -1037,7 +1037,7 @@ client.on("messageCreate", async (msg) => {
                     }
                     await enterDg(msg, userId, code, dgToEnter);
                     const cooldownTimestamp = dgCd;
-                    await saveUserCooldown(userId, command, cooldownTimestamp);
+                    await saveUserCooldown(userId, command, cooldownTimestamp, msg.channelId);
                     const user = await getUser(userId);
                     if (user.Reminders === true) {
                         setTimeout(() => {
@@ -1136,7 +1136,11 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
             }
-            
+
+            if(command === "test"){
+                console.log(await checkUsersCooldown(msg));
+            }
+
         }catch(error){
              console.error("An unexpected error occurred:", error);
         }
@@ -1144,9 +1148,33 @@ client.on("messageCreate", async (msg) => {
     }
 });
 
+const notifiedUsers = {};
+async function checkUsersCooldown(msg){
+    const totalUsers = await getTotalUsers("Dani-bot-playerbase"); //string of all users
+    const commands = ['w', 'c', 'd', 'daily', 'dg'];
+    for (const command of commands) {
+            for (const user of totalUsers) {
+                const cooldown = await getUserCooldown(user, command);
+                if (cooldown === '0m 0s') {
+                    // Check if user has already been notified in any channel for this command
+                    if (!notifiedUsers[user]) {
+                        notifiedUsers[user] = {}; // Initialize channels object for the user
+                    }
+                    // Check if the channel where the command was used has already notified the user
+                    const channelId = msg.channel.id;
+                    if (!notifiedUsers[user][channelId]) {
+                        msg.channel.send(`**Reminder:** <@${user}> your ${command} is ready!`);
+                        notifiedUsers[user][channelId] = true; // Mark channel as notified for this user
+                    }
+                }
+            }
+        }
+}
+
 function hasRole(member, roleName) {
     return member.roles.cache.some(role => role.name === roleName);
 }
+
 const ROLE_ID = '1256328712086098040';
 async function sendRaffleEmbed() {
     const channel = client.channels.cache.get('1256331822812500068');
