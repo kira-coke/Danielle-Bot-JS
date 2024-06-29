@@ -30,7 +30,6 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
               userId,
               cardIDToGift,
           );
-          console.log(numberOfCopies);
           if (
               numberOfCopies == 0 ||
               numberOfCopies < numberOfCopiesToGive
@@ -53,7 +52,9 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                       );
                       return;
                   }
+                let userOwnes = true;
                 if(await checkIfUserOwnsCard(secondTableName, targetUserId, cardIDToGift)===0){
+                  userOwnes = false;
                   console.log("User does not own card");
                   //code for adding the one copy to their inv instead
                   const item = {
@@ -66,7 +67,6 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                         tier: 1,
                         totalExp: 0
                   }
-                  console.log(item);
                   await writeToDynamoDB(secondTableName, item)
                   .catch((error) => {
                       console.error("Error:", error);
@@ -78,15 +78,45 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
                         targetUserId,
                         cardIDToGift,
                     );
-                   if(currentOwnedByUser2 >= 1){ //just a check they do own
-                     await changeNumberOwned(
-                         secondTableName,
-                         targetUserId,
-                         cardIDToGift,
-                         (parseInt(currentOwnedByUser2) +
-                             parseInt(numberOfCopiesToGive - 1)), //to account for the first copy being added
-                     );
-                   }
+                  if((currentOwnedByUser2 === 1) && (numberOfCopiesToGive === 1)){
+                      if(userOwnes === false){
+                          console.log("Correctly added only 1 copy to user");
+                      }else{
+                            await changeNumberOwned(
+                                 secondTableName,
+                                 targetUserId,
+                                 cardIDToGift,
+                                 (parseInt(currentOwnedByUser2) +
+                                     parseInt(numberOfCopiesToGive)), 
+                             );
+                      }
+                  }else if((currentOwnedByUser2 === 1) && (numberOfCopiesToGive > 1) ){
+                      if(userOwnes === false){
+                             await changeNumberOwned(
+                                 secondTableName,
+                                 targetUserId,
+                                 cardIDToGift,
+                                 (parseInt(currentOwnedByUser2) +
+                                     parseInt(numberOfCopiesToGive - 1)), //to account for the first copy being added
+                             );
+                      }else{
+                          await changeNumberOwned(
+                              secondTableName,
+                              targetUserId,
+                              cardIDToGift,
+                              (parseInt(currentOwnedByUser2) +
+                                  parseInt(numberOfCopiesToGive)), //add to total count as they havnt had one copy added yet
+                          );
+                      }
+                  }else{
+                       await changeNumberOwned(
+                           secondTableName,
+                           targetUserId,
+                           cardIDToGift,
+                           (parseInt(currentOwnedByUser2) +
+                               parseInt(numberOfCopiesToGive)), //to account for the first copy being added
+                       );
+                  }
                   await changeNumberOwned(
                       secondTableName,
                       userId,

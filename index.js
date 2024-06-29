@@ -1049,7 +1049,7 @@ client.on("messageCreate", async (msg) => {
                 }
             }
 
-            if (command === "forcedrop" || command === "fd") {
+            if (command === "forcedrop") {
                 // Check if the user has the required role
                 const REQUIRED_ROLE_NAME = "mod";
                 const role = msg.guild.roles.cache.find(
