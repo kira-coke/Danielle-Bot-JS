@@ -1136,37 +1136,25 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
             }
-
-            function hasRole(member, roleName) {
-                return member.roles.cache.some(role => role.name === roleName);
-            }
-            async function sendRaffleEmbed() {
-                const ROLE_ID = '1256328712086098040';
-                const channel = client.channels.cache.get('1256331822812500068');
-                const role = channel.guild.roles.cache.get(ROLE_ID);
-                channel.send(`<@&${ROLE_ID}>`);
-
-                if (!channel) return;
-                await forceRaffle(channel, client);
-            }
             
         }catch(error){
              console.error("An unexpected error occurred:", error);
         }
+
     }
 });
 
-/*function hasRole(member, roleName) {
+function hasRole(member, roleName) {
     return member.roles.cache.some(role => role.name === roleName);
 }
 const ROLE_ID = '1256328712086098040';
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1255577403854426133');
+    const channel = client.channels.cache.get('1256331822812500068');
     const role = channel.guild.roles.cache.get(ROLE_ID);
     channel.send(`<@&${ROLE_ID}>`);
     
     if (!channel) return;
     await forceRaffle(channel, client);
-}*/
+}
 
 client.login(process.env.Token);
