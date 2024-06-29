@@ -871,7 +871,7 @@ client.on("messageCreate", async (msg) => {
                 const input = args.filter((code) => code.trim() !== "");
                 const cardId = input[0];
                 const numberOfCards = input[1];
-                if (input[1] === undefined || !isNaN(input[1])) {
+                if (input[1] === undefined || isNaN(input[1])) {
                     msg.reply("**Please input an amount of cards to feed**");
                     return;
                 }
@@ -1071,7 +1071,6 @@ client.on("messageCreate", async (msg) => {
                 );
                 if (role && msg.member.roles.cache.has(role.id)) {
                     if (msg.mentions.users.size > 0) {
-                        // Checks if someone has been mentioned
                         user = msg.mentions.users.first().id;
                     } else {
                         if (args[0] != undefined) {
@@ -1087,7 +1086,7 @@ client.on("messageCreate", async (msg) => {
                         }
                     }
                     if (args.length >= 1) {
-                        if ((args[1] = !undefined)) {
+                        if ((args[1] != undefined)) {
                             const amountStr = String(args[1]).trim();
                             if (!amountStr || isNaN(amountStr)) {
                                 msg.reply("Please provide a valid amount.");
@@ -1100,7 +1099,8 @@ client.on("messageCreate", async (msg) => {
                         }
                     }
                     try {
-                        saveUserBalance(user, amount);
+                        const currentBal = await getUsersBalance(user);
+                        saveUserBalance(user, (parseInt(currentBal) + amount));
 
                         const embed = new Discord.EmbedBuilder()
                             .setTitle("Balance Modified")
