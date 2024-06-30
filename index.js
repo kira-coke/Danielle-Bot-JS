@@ -258,7 +258,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(() => {
                         msg.channel.send(
-                            `**Reminder:** <@${msg.author.id}> your work is ready!`,
+                            `**Reminder:** <@${msg.author.id}> your drop is ready!`,
                         );
                     }, dropCd); // Convert minutes to milliseconds
                 }
@@ -669,7 +669,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(() => {
                         msg.channel.send(
-                            `**Reminder:** <@${msg.author.id}> your drop is ready!`,
+                            `**Reminder:** <@${msg.author.id}> your work is ready!`,
                         );
                     }, workCd); // Convert minutes to milliseconds
                 }
