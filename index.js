@@ -47,8 +47,12 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    await setPendingReminders(client); //comment in and out depending on which bot testing on
-    setInterval(setPendingReminders, 3 * 60 * 1000); //comment in and out depending on which bot testing on
+    try{
+        await setPendingReminders(client); //comment in and out depending on which bot testing on
+        setInterval(setPendingReminders, 3 * 60 * 1000); //comment in and out depending on which bot testing on
+    }catch(error){
+        console.log("Error setting pending reminders", error);
+    }
 });
 
 client.on("ready", () => {
@@ -532,7 +536,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "gift") {
                 const cardIDToGift = args[1];
-                const numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
+                let numberOfCopiesToGive = parseFloat(args[2]); //ideally should be !gift @user xyz 3
                 let userId = msg.author.id;
                 let targetUser;
 
@@ -567,16 +571,21 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("** Trying to gift yourself? **");
                     return;
                 }
+                if (isNaN(numberOfCopiesToGive) || args.length < 3) {
+                    numberOfCopiesToGive = 1;
+                }
                 if (isNaN(numberOfCopiesToGive)) {
-                    msg.reply(
-                        "Please ensure you have given a card id and amount to gift",
-                    ); //theyve tried to give an invalid amount
+                    msg.reply("Please ensure you have entered a valid number.");
                     return;
                 }
-                if (numberOfCopiesToGive == 0) {
+                if (numberOfCopiesToGive === 0) {
                     msg.reply("Please give a non zero amount to gift"); //theyve tried to give an invalid amount
                     return;
                 }
+                if(numberOfCopiesToGive === undefined){
+                    numberOfCopiesToGive = 1;
+                }
+                console.log(numberOfCopiesToGive);
                 await giftcards(
                     msg,
                     cardIDToGift,
@@ -926,9 +935,12 @@ client.on("messageCreate", async (msg) => {
             if (command === "feed") {
                 const input = args.filter((code) => code.trim() !== "");
                 const cardId = input[0];
-                const numberOfCards = input[1];
-                if (input[1] === undefined || isNaN(input[1])) {
-                    msg.reply("**Please input an amount of cards to feed**");
+                let numberOfCards = input[1];
+                if (isNaN(numberOfCards) || args.length < 2) {
+                    numberOfCards = 1;
+                }
+                if (isNaN(numberOfCards) || numberOfCards === undefined) {
+                    msg.reply("Please ensure you have entered a valid number.");
                     return;
                 }
                 const temp = await awardExp(

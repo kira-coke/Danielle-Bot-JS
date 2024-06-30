@@ -120,12 +120,21 @@ const setPendingReminders = async (client) => {
                     }catch(error){
                         console.log("Error getting channel", error);
                     }
-                    if (channel) {
-                        channel.send(
-                            `**Reminder:** <@${reminder["user-id"]}> your ${reminder.command} is ready!`
-                        ).then(() => {
-                            activeReminders.delete(reminderId);
-                        });
+                    try{
+                        if (channel) {
+                            try{
+                                channel.send(
+                                    `**Reminder:** <@${reminder["user-id"]}> your ${reminder.command} is ready!`
+                                ).then(() => {
+                                    activeReminders.delete(reminderId);
+                                });
+                            }catch(error){
+                                console.log("Error sending reminder", error);
+                            }
+                        }
+                        
+                    }catch(error){
+                        console.log("Error with getting channel", error);
                     }
                 }, timeUntilReminder);
             } else {
