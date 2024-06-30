@@ -47,8 +47,8 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    await setPendingReminders(client);
-    setInterval(setPendingReminders, 3 * 60 * 1000);
+    await setPendingReminders(client); //comment in and out depending on which bot testing on
+    setInterval(setPendingReminders, 3 * 60 * 1000); //comment in and out depending on which bot testing on
 });
 
 client.on("ready", () => {

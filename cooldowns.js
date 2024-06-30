@@ -114,7 +114,12 @@ const setPendingReminders = async (client) => {
             if (user.Reminders === true) {
                 activeReminders.add(reminderId);
                 setTimeout(() => {
-                    const channel = client.channels.cache.get(reminder.channel);
+                    let channel = "";
+                    try{
+                        channel = client.channels.cache.get(reminder.channel);
+                    }catch(error){
+                        console.log("Error getting channel", error);
+                    }
                     if (channel) {
                         channel.send(
                             `**Reminder:** <@${reminder["user-id"]}> your ${reminder.command} is ready!`
