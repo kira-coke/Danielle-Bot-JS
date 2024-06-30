@@ -15,7 +15,7 @@ const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
-const {saveUserCooldown,getUserCooldown} = require("./cooldowns");
+const {saveUserCooldown,getUserCooldown, setPendingReminders} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
@@ -44,6 +44,12 @@ console.log = function(...args) {
     const timestamp = new Date().toISOString();
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
+
+client.once('ready', async () => {
+    console.log('Bot is online!');
+    await setPendingReminders(client);
+    setInterval(setPendingReminders, 3 * 60 * 1000);
+});
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -119,8 +125,9 @@ client.on("messageCreate", async (msg) => {
             const userId = msg.author.id;
             const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
             const userExists = await checkUserExists(userId);
-            const generalCmdCd = Date.now() + 3 * 1000;
+            const generalCmdCd = Date.now() + 1 * 1000;
             const member = msg.member;
+            const channel = msg.channelId;
             const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
 
             if (remainingCooldown !== "0m 0s") {
@@ -197,14 +204,12 @@ client.on("messageCreate", async (msg) => {
                 const command = "c";
                 const defaultCooldown = 300 * 1000; // 300 seconds
                 let claimCd = defaultCooldown;
-                //const claimCd = Date.now() + 300 * 1000; //change back to 300
                 if (hasRole(member, "booster")) {
                     claimCd *= 0.8;
                 } else if (hasRole(member, "supporter")) {
                     claimCd *= 0.6;
                 }
                 const remainingCooldown = await getUserCooldown(userId, command);
-
                 if (remainingCooldown !== "0m 0s") {
                     msg.reply(
                         `You must wait ${remainingCooldown} before using this command again.`,
@@ -212,7 +217,8 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = Date.now() + claimCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                const reminderTimestamp = cooldownTimestamp;
+                await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
                     setTimeout(() => {
@@ -226,7 +232,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "d" || command === "drop") {
                 const command = "d";
-                const defaultCooldown = 600 * 1000; // 300 seconds
+                const defaultCooldown = 600 * 1000; // 600 seconds
                 let dropCd = defaultCooldown;
                 if (hasRole(member, "booster")) {
                     dropCd *= 0.8;
@@ -242,7 +248,8 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = Date.now() + dropCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                const reminderTimestamp = cooldownTimestamp;
+                await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
                     setTimeout(() => {
@@ -647,7 +654,8 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = workCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                const reminderTimestamp = cooldownTimestamp;
+                await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 await work(msg, userId);
             }
 
@@ -737,7 +745,8 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 const cooldownTimestamp = dailyCd;
-                await saveUserCooldown(userId, command, cooldownTimestamp);
+                const reminderTimestamp = cooldownTimestamp;
+                await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const streak = await getUser(userId);
                 const streakNumber = streak["DailyStreak"];
                 await setUserStreak(
@@ -1085,7 +1094,8 @@ client.on("messageCreate", async (msg) => {
                     }
                     await enterDg(msg, userId, code, dgToEnter);
                     const cooldownTimestamp = dgCd;
-                    await saveUserCooldown(userId, command, cooldownTimestamp);
+                    const reminderTimestamp = cooldownTimestamp;
+                    await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                     const user = await getUser(userId);
                     if (user.Reminders === true) {
                         setTimeout(() => {
