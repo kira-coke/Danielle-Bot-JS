@@ -258,7 +258,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(() => {
                         msg.channel.send(
-                            `**Reminder:** <@${msg.author.id}> your drop is ready!`,
+                            `**Reminder:** <@${msg.author.id}> your work is ready!`,
                         );
                     }, dropCd); // Convert minutes to milliseconds
                 }
@@ -665,6 +665,14 @@ client.on("messageCreate", async (msg) => {
                 const cooldownTimestamp = workCd;
                 const reminderTimestamp = cooldownTimestamp;
                 await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
+                const user = await getUser(userId);
+                if (user.Reminders === true) {
+                    setTimeout(() => {
+                        msg.channel.send(
+                            `**Reminder:** <@${msg.author.id}> your drop is ready!`,
+                        );
+                    }, workCd); // Convert minutes to milliseconds
+                }
                 await work(msg, userId);
             }
 
