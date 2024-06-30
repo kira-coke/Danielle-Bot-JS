@@ -1,24 +1,28 @@
 // Object to store cooldown timestamps
 const AWS = require('aws-sdk');
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const activeReminders = new Set();
+const {getUser} = require('./users');
 
-async function saveUserCooldown(userId, command, cooldownTimestamp) {
+async function saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp = null) {
     const params = {
         TableName: 'user-cooldowns',
         Item: {
             "user-id": userId,
             command: command,
             cooldownTimestamp: cooldownTimestamp,
+            channel: channel,
+            reminderTimestamp: reminderTimestamp 
         },
     };
 
     try {
         await dynamoDB.put(params).promise();
-        //console.log(`Cooldown saved for ${userId} - ${command}`);
+        console.log(`Cooldown saved for ${userId} - ${command}, channel ${channel}`);
     } catch (error) {
         console.error('Error saving cooldown:', error);
     }
-};
+}
 
 async function getUserCooldown(userId, command) {
     const params = {
@@ -48,7 +52,7 @@ async function getUserCooldown(userId, command) {
     }
 };
 
-async function checkIfShortCut(userId, command, secondCommand) {
+/*async function checkIfShortCut(userId, command, secondCommand) {
     const params = {
         TableName: 'YourTableName', // Replace with your DynamoDB table name
         KeyConditionExpression: 'userId = :uid and (command = :cmd or secondcommand = :scmd)',
@@ -70,13 +74,63 @@ async function checkIfShortCut(userId, command, secondCommand) {
         console.error('Error querying DynamoDB:', error);
         return { matched: false, item: null }; // Return false in case of any errors
     }
-}
+}*/
 
-module.exports = { checkIfShortCut };
+const loadPendingReminders = async () => {
+    const now = Date.now();
+
+    const params = {
+        TableName: 'user-cooldowns',
+        FilterExpression: 'reminderTimestamp < :now',
+        ExpressionAttributeValues: {
+            ':now': now
+        }
+    };
+
+    try {
+        const data = await dynamoDB.scan(params).promise();
+        return data.Items;
+    } catch (error) {
+        console.error('Error loading pending reminders:', error);
+        return [];
+    }
+};
+
+const setPendingReminders = async (client) => {
+    const reminders = await loadPendingReminders();
+    if(reminders.length === 0){
+        console.log("No pending reminders");
+        return;
+    }
+
+    reminders.forEach(reminder => {
+        const reminderId = `${reminder["user-id"]}-${reminder.command}`;
+        if (activeReminders.has(reminderId)) {
+            return;
+        }
+        const timeUntilReminder = reminder.reminderTimestamp - Date.now();
+        console.log(`Time until ${reminder.command} for ${reminder["user-id"]}: `, timeUntilReminder);
+        getUser(reminder["user-id"]).then(user => {
+            if (user.Reminders === true) {
+                activeReminders.add(reminderId);
+                setTimeout(() => {
+                    const channel = client.channels.cache.get(reminder.channel);
+                    if (channel) {
+                        channel.send(
+                            `**Reminder:** <@${reminder["user-id"]}> your ${reminder.command} is ready!`
+                        ).then(() => {
+                            activeReminders.delete(reminderId);
+                        });
+                    }
+                }, timeUntilReminder);
+            } else {
+                //console.log(`Skipping reminder for ${reminder["user-id"]} because reminders are not enabled.`);
+            }
+        }).catch(error => {
+            console.error('Error fetching user data:', error);
+        });
+    });
+};
 
 
-module.exports = { checkIfShortCut };
-
-
-
-module.exports = { saveUserCooldown, getUserCooldown, checkIfShortCut };
+module.exports = { saveUserCooldown, getUserCooldown, setPendingReminders };
