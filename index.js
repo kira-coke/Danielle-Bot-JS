@@ -400,7 +400,7 @@ client.on("messageCreate", async (msg) => {
                             originalGroupName,
                         );
 
-                        const cardsPerPage = 4;
+                        const cardsPerPage = 7;
                         const totalPages = Math.ceil(
                             filteredCards.length / cardsPerPage,
                         );
@@ -433,7 +433,7 @@ client.on("messageCreate", async (msg) => {
                         console.log("No valid group name provided");
                     }
                 } else {
-                    const cardsPerPage = 4;
+                    const cardsPerPage = 7;
                     const totalPages = Math.ceil(
                         listOfCards.Items.length / cardsPerPage,
                     );
@@ -847,7 +847,7 @@ client.on("messageCreate", async (msg) => {
                         return;
                     }
 
-                    const cardsPerPage = 4;
+                    const cardsPerPage = 10;
                     const totalPages = Math.ceil(
                         filteredCards.length / cardsPerPage,
                     );
@@ -885,7 +885,7 @@ client.on("messageCreate", async (msg) => {
                         return;
                     }
 
-                    const cardsPerPage = 4;
+                    const cardsPerPage = 10;
                     const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
 
                     try {
