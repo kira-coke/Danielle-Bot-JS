@@ -15,7 +15,7 @@ const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
-const {saveUserCooldown,getUserCooldown, setPendingReminders} = require("./cooldowns");
+const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
@@ -47,10 +47,12 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    try{
-        await setPendingReminders(client); //comment in and out depending on which bot testing on
-        setInterval(setPendingReminders(client), 3 * 60 * 1000); //comment in and out depending on which bot testing on
-    }catch(error){
+    try {
+        await setPendingReminders(client); // comment in and out depending on which bot testing on
+        setInterval(async () => {
+            await setPendingReminders(client);
+        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
+    } catch (error) {
         console.log("Error setting pending reminders", error);
     }
 });
@@ -225,7 +227,9 @@ client.on("messageCreate", async (msg) => {
                 await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        const newStatus = await updateCoolDownStatus(userId, command, false);
+                        console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your claim is ready!`,
                         );
@@ -256,11 +260,13 @@ client.on("messageCreate", async (msg) => {
                 await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        const newStatus = await updateCoolDownStatus(userId, command, false);
+                        console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your drop is ready!`,
                         );
-                    }, dropCd); // Convert minutes to milliseconds
+                    }, dropCd);
                 }
                 getDrop(msg, userId);
             }
@@ -653,7 +659,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "w" || command === "work") {
                 const command = "w";
-                const workCd = 3600 * 1000;
+                const workCd = 3600 * 1000; //3600
                 const remainingCooldown = await getUserCooldown(userId, command);
 
                 if (remainingCooldown !== "0m 0s") {
@@ -667,11 +673,13 @@ client.on("messageCreate", async (msg) => {
                 await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        const newStatus = await updateCoolDownStatus(userId, command, false);
+                        console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your work is ready!`,
                         );
-                    }, workCd); // Convert minutes to milliseconds
+                    }, workCd);
                 }
                 await work(msg, userId);
             }
@@ -773,11 +781,13 @@ client.on("messageCreate", async (msg) => {
                 );
                 const user = await getUser(userId);
                 if (user.Reminders === true) {
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        const newStatus = await updateCoolDownStatus(userId, command, false);
+                        console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your daily is ready!`,
                         );
-                    }, 72000 * 1000); // Convert minutes to milliseconds
+                    }, 72000 * 1000);
                 }
                 getDaily(msg, userId);
             }
@@ -1118,11 +1128,13 @@ client.on("messageCreate", async (msg) => {
                     await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                     const user = await getUser(userId);
                     if (user.Reminders === true) {
-                        setTimeout(() => {
+                        setTimeout(async () => {
+                            const newStatus = await updateCoolDownStatus(userId, command, false);
+                            console.log(newStatus);
                             msg.channel.send(
                                 `**Reminder:** <@${msg.author.id}> your dg is ready!`,
                             );
-                        }, 14400 * 1000); // Convert minutes to milliseconds
+                        }, 14400 * 1000);
                     }
                 }
             }
