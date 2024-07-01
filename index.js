@@ -653,7 +653,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "w" || command === "work") {
                 const command = "w";
-                const workCd = Date.now() + 3600 * 1000;
+                const workCd = 3600 * 1000;
                 const remainingCooldown = await getUserCooldown(userId, command);
 
                 if (remainingCooldown !== "0m 0s") {
@@ -662,7 +662,7 @@ client.on("messageCreate", async (msg) => {
                     );
                     return;
                 }
-                const cooldownTimestamp = workCd;
+                const cooldownTimestamp = Date.now() + workCd;
                 const reminderTimestamp = cooldownTimestamp;
                 await saveUserCooldown(userId, command, cooldownTimestamp, channel, reminderTimestamp);
                 const user = await getUser(userId);
