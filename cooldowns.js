@@ -12,7 +12,8 @@ async function saveUserCooldown(userId, command, cooldownTimestamp, channel, rem
             command: command,
             cooldownTimestamp: cooldownTimestamp,
             channel: channel,
-            reminderTimestamp: reminderTimestamp 
+            reminderTimestamp: reminderTimestamp,
+            active: true
         },
     };
 
@@ -76,19 +77,62 @@ async function getUserCooldown(userId, command) {
     }
 }*/
 
+async function getCoolDownStatus(userId, command){
+    const params = {
+        TableName: 'user-cooldowns',
+        Key: {
+            "user-id": userId,
+            command: command,
+        },
+    };
+
+    try {
+        const result = await dynamoDB.get(params).promise();
+        return result.Item.active;
+    } catch (error) {
+        console.error('Error getting cooldown:', error);
+        return  null;
+    }
+}
+
+async function updateCoolDownStatus(userId, command, status) {
+    const params = {
+        TableName: 'user-cooldowns',
+        Key: {
+            "user-id": userId,
+            command: command,
+        },
+        UpdateExpression: "set active = :status",
+        ExpressionAttributeValues: {
+            ":status": status
+        },
+        ReturnValues: "UPDATED_NEW"
+    };
+
+    try {
+        const result = await dynamoDB.update(params).promise();
+        return result.Attributes.active;
+    } catch (error) {
+        console.error('Error updating cooldown:', error);
+        return null;
+    }
+}
+
 const loadPendingReminders = async () => {
     const now = Date.now();
 
     const params = {
         TableName: 'user-cooldowns',
-        FilterExpression: 'reminderTimestamp < :now',
+        FilterExpression: 'reminderTimestamp < :now AND active = :active',
         ExpressionAttributeValues: {
-            ':now': now
+            ':now': now,
+            ':active': true
         }
     };
 
     try {
         const data = await dynamoDB.scan(params).promise();
+        console.log(data);
         return data.Items;
     } catch (error) {
         console.error('Error loading pending reminders:', error);
@@ -102,8 +146,13 @@ const setPendingReminders = async (client) => {
         console.log("No pending reminders");
         return;
     }
+    console.log(reminders);
 
     reminders.forEach(reminder => {
+        if(reminder.active === false){
+            console.log("Reminder has already been sent");
+            return;
+        }
         const reminderId = `${reminder["user-id"]}-${reminder.command}`;
         if (activeReminders.has(reminderId)) {
             return;
@@ -125,7 +174,8 @@ const setPendingReminders = async (client) => {
                             try{
                                 channel.send(
                                     `**Reminder:** <@${reminder["user-id"]}> your ${reminder.command} is ready!`
-                                ).then(() => {
+                                ).then(async () => {
+                                    await updateCoolDownStatus(reminder["user-id"], reminder.command, false);
                                     activeReminders.delete(reminderId);
                                 });
                             }catch(error){
@@ -147,4 +197,4 @@ const setPendingReminders = async (client) => {
 };
 
 
-module.exports = { saveUserCooldown, getUserCooldown, setPendingReminders };
+module.exports = { saveUserCooldown, getUserCooldown, setPendingReminders,getCoolDownStatus, updateCoolDownStatus };
