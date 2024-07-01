@@ -49,7 +49,7 @@ client.once('ready', async () => {
     console.log('Bot is online!');
     try{
         await setPendingReminders(client); //comment in and out depending on which bot testing on
-        setInterval(setPendingReminders, 3 * 60 * 1000); //comment in and out depending on which bot testing on
+        setInterval(setPendingReminders(client), 3 * 60 * 1000); //comment in and out depending on which bot testing on
     }catch(error){
         console.log("Error setting pending reminders", error);
     }
