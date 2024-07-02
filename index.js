@@ -29,7 +29,8 @@ const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
-const {openShop, purchaseItem} = require("./shop.js");
+const {openShop, purchaseItem, packOpen} = require("./shop.js");
+const { getPacks, removePack} = require("./userAssets");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -49,8 +50,8 @@ console.log = function(...args) {
 client.once('ready', async () => {
     console.log('Bot is online!');
     try {
-        //await setPendingReminders(client); // comment in and out depending on which bot testing on
-        /*setInterval(async () => {
+        await setPendingReminders(client); // comment in and out depending on which bot testing on
+        setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
     } catch (error) {
@@ -1143,9 +1144,44 @@ client.on("messageCreate", async (msg) => {
             if(command === "shop" || command === "s"){
                 if ((args[0] === 'buy' || args[0] === 'b') && args[1] === "1") {
                     const itemId = "5_pack";
-                    purchaseItem(msg, itemId, userId);
+                    const userBal = await getUsersBalance(userId);
+                    if(userBal < 10000){
+                        msg.reply("You do not have enough to purchase this item. Current balance: " + Discord.bold(userBal));
+                    }else{
+                        purchaseItem(msg, itemId, userId);
+                        await saveUserBalance(userId, (userBal - 10000))
+                    }
                 } else {
                     openShop(msg);
+                }
+            }
+            
+            if(command === "packs"){
+                try {
+                    const packs = await getPacks(userId);
+                    const embed = new EmbedBuilder()
+                        .setColor('#779be7')
+                        .setTitle('Do .pack open to open a pack')
+                        .setDescription(`You have ${packs} packs.`)
+                        .setTimestamp();
+                    await msg.channel.send({ embeds: [embed] });
+                } catch (err) {
+                    console.error('Failed to retrieve packs:', err);
+                    msg.reply('Failed to retrieve packs. Please try again later.'); // Error message to user
+                }
+            }
+            
+            if(command === "pack"){
+                const args = msg.content.toLowerCase().split(/ +/);
+                const command = args[1];
+                if(command === "open"){
+                    const packNumber = await getPacks(userId);
+                    if(packNumber === 0){
+                        msg.reply("You do not have any packs");
+                        return;
+                    }
+                    await packOpen(msg, userId); 
+                    await removePack(userId);
                 }
             }
 
@@ -1236,7 +1272,6 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
             }
-            
             
         }catch(error){
              console.error("An unexpected error occurred:", error);
