@@ -29,6 +29,7 @@ const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
+const {openShop, purchaseItem} = require("./shop.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -48,10 +49,10 @@ console.log = function(...args) {
 client.once('ready', async () => {
     console.log('Bot is online!');
     try {
-        await setPendingReminders(client); // comment in and out depending on which bot testing on
-        setInterval(async () => {
+        //await setPendingReminders(client); // comment in and out depending on which bot testing on
+        /*setInterval(async () => {
             await setPendingReminders(client);
-        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
+        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
     } catch (error) {
         console.log("Error setting pending reminders", error);
     }
@@ -1139,6 +1140,15 @@ client.on("messageCreate", async (msg) => {
                 }
             }
 
+            if(command === "shop" || command === "s"){
+                if ((args[0] === 'buy' || args[0] === 'b') && args[1] === "1") {
+                    const itemId = "5_pack";
+                    purchaseItem(msg, itemId, userId);
+                } else {
+                    openShop(msg);
+                }
+            }
+
             if (command === "forcedrop") {
                 // Check if the user has the required role
                 const REQUIRED_ROLE_NAME = "mod";
@@ -1226,6 +1236,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
             }
+            
             
         }catch(error){
              console.error("An unexpected error occurred:", error);

@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const {getUser} = require("./users");
 //const s3 = new AWS.S3();
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
@@ -272,4 +273,42 @@ async function filterByAttribute(tableName, attribute, value) {
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute};
+async function getWeightedCard(userId){
+    const user = await getUser(userId);
+    const userFavCard = user["FavCard"];
+    const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
+    const cardData = userFavCardData[0];
+    let cardWeights = {};
+    if(cardData === undefined){
+    }else{
+        if(cardData.tier === 2){
+            cardWeights = {
+                [userFavCard]: 2, 
+            };
+        }
+        if(cardData.tier >= 3){
+            cardWeights = {
+                [userFavCard]: 3, 
+            };
+        }
+    }
+
+    const allCards = await getTotalCards("cards"); // Function to get all cards from the table
+    if (!Array.isArray(allCards.Items)) {
+        console.error("Expected an array but received:", allCards);
+        throw new TypeError("Expected an array of cards");
+    }
+    const weightedList = [];
+
+    allCards.Items.forEach(card => {
+        const weight = cardWeights[[card["card-id"]]] || 1; ; // Default weight is 1 if not specified
+        for (let i = 0; i < weight; i++) {
+            weightedList.push(card);
+        }
+    });
+    const randomIndex = Math.floor(Math.random() * weightedList.length);
+    return weightedList[randomIndex];
+
+}
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard};

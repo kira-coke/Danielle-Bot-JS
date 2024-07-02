@@ -19,7 +19,7 @@ async function saveUserCooldown(userId, command, cooldownTimestamp, channel, rem
 
     try {
         await dynamoDB.put(params).promise();
-        console.log(`Cooldown saved for ${userId} - ${command}, channel ${channel}`);
+        //console.log(`Cooldown saved for ${userId} - ${command}, channel ${channel}`);
     } catch (error) {
         console.error('Error saving cooldown:', error);
     }
