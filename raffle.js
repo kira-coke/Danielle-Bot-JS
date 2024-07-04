@@ -16,7 +16,7 @@ async function raffle(channel, client){
   const prize = prizes[Math.floor(Math.random() * prizes.length)];
   const card = await getRandomDynamoDBItem('cards');
   const amountOfCards = Math.floor(Math.random() * 4) + 1;
-  const amountOfCoins = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+  const amountOfCoins = Math.floor(Math.random() * (4000- 2000 + 1)) + 2000
   const coinsWithCommas = numberWithCommas(amountOfCoins);
   const randomIndex = Math.floor(Math.random() * exp.length);
   const randomExp = exp[randomIndex];

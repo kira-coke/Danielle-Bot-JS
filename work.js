@@ -4,7 +4,7 @@ const Discord = require("discord.js");
 
 async function work(msg, userId){
   const userBal = await getUsersBalance(userId);
-  const randomNumber = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+  const randomNumber = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
   const newBalance = userBal + randomNumber;
   function numberWithCommas(x) {
       return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

@@ -3,6 +3,7 @@ const Discord = require("discord.js");
 const {getUser} = require("./users.js");
 const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
+const emote = '<:DB_currency:1257694003638571048>'; 
 
 async function getDaily(msg,userId){
     const user= await getUser(userId);
@@ -143,7 +144,7 @@ async function getDaily(msg,userId){
                     .setColor("#ffd5b3")
                     .setTitle(streakMessage)
                     .setDescription(
-                        `You have recieved the following card: \n**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
+                        `You have received the following card: \n**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
                     )
                     .addFields(
                         {
@@ -153,12 +154,12 @@ async function getDaily(msg,userId){
                             inline: false,
                         }, 
                         {
-                            name: `You have recieved:  ${Discord.inlineCode(randomAmountWithCommas)}`,
+                            name: `You have received:  ${Discord.inlineCode(randomAmountWithCommas)}${emote} `,
                             value: " ",
                             inline: false,
                         },
                         {
-                            name: `Your new balance is: ${Discord.inlineCode(newBalanceWithCommas)}`,
+                            name: `Your new balance is: ${Discord.inlineCode(newBalanceWithCommas)}${emote}`,
                             value: " ",
                             inline: false,
                         }
