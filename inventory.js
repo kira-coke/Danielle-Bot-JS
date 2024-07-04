@@ -48,7 +48,7 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
                 embed.addFields(
                     { 
                         name: " ", 
-                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Tier "+String(cardData.tier))} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
                 );
@@ -107,7 +107,7 @@ async function generateEmbedInvForGroup(page, totalPages, listOfCards, msg, user
                 embed.addFields(
                     { 
                         name: " ", 
-                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp))}/${Discord.inlineCode(levelUpExp)} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp))}/${Discord.inlineCode(levelUpExp)} | ${Discord.inlineCode("Tier "+String(cardData.tier))} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
                 );

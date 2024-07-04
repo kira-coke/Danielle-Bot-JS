@@ -554,6 +554,11 @@ client.on("messageCreate", async (msg) => {
                                 value: `${Discord.inlineCode(String(userVerOfCard[0].level))}`,
                                 inline: false,
                             });
+                            embed.addFields({
+                                name: "Current tier:",
+                                value: `${Discord.inlineCode(String(userVerOfCard[0].tier))}`,
+                                inline: false,
+                            });
                         }
                         embed
                             .setFooter({
