@@ -7,7 +7,14 @@ async function getRandomDynamoDBItem(tableName) {
     try {
         // Scan the table to get all items
         const scanParams = {
-            TableName: tableName
+            TableName: tableName,
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 1
+            }
         };
         const data = await dynamodb.scan(scanParams).promise();
 
@@ -150,7 +157,14 @@ async function getTotalCards(tableName){
     try {
         // Scan the table to get all items
         const scanParams = {
-            TableName: tableName
+            TableName: tableName,
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 1
+            }
         };
         const data = await dynamodb.scan(scanParams).promise();
 
@@ -311,4 +325,28 @@ async function getWeightedCard(userId){
 
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard};
+async function getCardsWithLevels(tableName, userId) {
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: '#userId = :userId',
+        FilterExpression: '#lvl > :level',
+        ExpressionAttributeNames: {
+            '#userId': 'user-id',
+            '#lvl': 'level'
+        },
+        ExpressionAttributeValues: {
+            ':userId': userId,
+            ':level': 1
+        }
+    };
+
+    try {
+        const data = await dynamodb.query(params).promise();
+        return data.Items;
+    } catch (err) {
+        console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+        throw new Error('Error querying the database');
+    }
+}
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels};

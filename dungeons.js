@@ -4,6 +4,7 @@ const dynamodb = new AWS.DynamoDB.DocumentClient
 const { EmbedBuilder, inlineCode } = require("discord.js");
 const {getUserCard, changeNumberOwned, getHowManyCopiesOwned} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
+const emote = '<:DB_currency:1257694003638571048>'; 
 
 const dungeons = [
     { name: 'Dungeon of JYP (1)', description: ' ', baseWinRate: 1.5},
@@ -60,7 +61,7 @@ async function enterDg(msg, userId, cardId, dg){
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/anime-fight-angel-beats-3ngeq69lph4sfgw7-ezgif.com-webp-to-gif-converter.gif");
       embed.addFields({
           name: ` `,
-          value: `\nYou have earned: ${inlineCode(randomAmountWithCommans)}\nYou now have: ${inlineCode(newBalanceWithCommans )}`,
+          value: `\nYou have earned: ${inlineCode(randomAmountWithCommans)}${emote}\nYou now have: ${inlineCode(newBalanceWithCommans)}${emote}`,
           inline: false
       })
       if(randomCardAmount === 1){
@@ -72,7 +73,7 @@ async function enterDg(msg, userId, cardId, dg){
         }
         embed.addFields({
           name: ' ',
-          value: `\nYou have recieved 1 copy of ${inlineCode(cardId)}`,
+          value: `\nYou have received 1 copy of ${inlineCode(cardId)}`,
           inline: false
         });
       }
@@ -107,7 +108,7 @@ async function enterDg(msg, userId, cardId, dg){
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/anime-fight-flying-kick-o4ddmhew9wwdpp5w-ezgif.com-webp-to-gif-converter.gif");
       embed.addFields({
           name: ` `,
-          value: `\nYou have earned: ${inlineCode(randomAmountWithCommans)}\nYou now have: ${inlineCode(newBalanceWithCommans )}`,
+          value: `\nYou have earned: ${inlineCode(randomAmountWithCommans)}${emote}\nYou now have: ${inlineCode(newBalanceWithCommans)}${emote}`,
           inline: false
       })
       if(randomCardAmount === 1){
@@ -119,7 +120,7 @@ async function enterDg(msg, userId, cardId, dg){
         }
         embed.addFields({
           name: ' ',
-          value: `\nYou have recieved 1 copy of ${inlineCode(cardId)}`,
+          value: `\nYou have received 1 copy of ${inlineCode(cardId)}`,
           inline: false
         });
       }else {
@@ -131,7 +132,7 @@ async function enterDg(msg, userId, cardId, dg){
         }
         embed.addFields({
           name: ' ',
-          value: `\nYou have recieved 2 copies of ${inlineCode(cardId)}`,
+          value: `\nYou have received 2 copies of ${inlineCode(cardId)}`,
           inline: false
         });
       }
@@ -166,7 +167,7 @@ async function enterDg(msg, userId, cardId, dg){
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/anime-fight-mahito-po170m79sga5rnzp-ezgif.com-webp-to-gif-converter.gif");
       embed.addFields({
           name: ` `,
-          value: `\nYou have earned: ${inlineCode(randomAmountWithCommans)}\nYou now have: ${inlineCode(newBalanceWithCommans )}`,
+          value: `\nYou have earned: ${inlineCode(randomAmountWithCommans)}${emote}\nYou now have: ${inlineCode(newBalanceWithCommans)}${emote}`,
           inline: false
       })
       if(randomCardAmount === 2){
@@ -178,7 +179,7 @@ async function enterDg(msg, userId, cardId, dg){
         }
         embed.addFields({
           name: ' ',
-          value: `\nYou have recieved 2 copies of ${inlineCode(cardId)}`,
+          value: `\nYou have received 2 copies of ${inlineCode(cardId)}`,
           inline: false
         });
       }else {
@@ -190,7 +191,7 @@ async function enterDg(msg, userId, cardId, dg){
         }
         embed.addFields({
           name: ' ',
-          value: `\nYou have recieved 3 copies of ${inlineCode(cardId)}`,
+          value: `\nYou have received 3 copies of ${inlineCode(cardId)}`,
           inline: false
         });
       }

@@ -132,7 +132,7 @@ const loadPendingReminders = async () => {
 
     try {
         const data = await dynamoDB.scan(params).promise();
-        console.log(data);
+        //console.log(data);
         return data.Items;
     } catch (error) {
         console.error('Error loading pending reminders:', error);

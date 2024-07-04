@@ -1,5 +1,6 @@
 require("dotenv").config();
 const prefix = ".";
+let isLocked = false;
 const Discord = require("discord.js");
 const AWS = require("aws-sdk");
 const schedule = require('node-schedule');
@@ -16,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -41,6 +42,7 @@ const client = new Discord.Client({
 });
 const {EmbedBuilder} = require("discord.js");
 const originalLog = console.log;
+const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 
 console.log = function(...args) {
     const timestamp = new Date().toISOString();
@@ -49,14 +51,14 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    try {
-        await setPendingReminders(client); // comment in and out depending on which bot testing on
+    //try {
+       /* await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
-    } catch (error) {
+    /*} catch (error) {
         console.log("Error setting pending reminders", error);
-    }
+    }*/
 });
 
 client.on("ready", () => {
@@ -76,6 +78,16 @@ client.on("ready", () => {
 client.on("messageCreate", async (msg) => {
     if (msg.content.startsWith(prefix)) {
         if (!msg.guild) return;
+        /*if (msg.content === '.crash' && msg.member.permissions.has('mod')){
+            msg.channel.send("Simulating a crash");
+            throw new Error('Simulating a crash');
+        }*/
+        if (msg.content === '.restart' && msg.member.permissions.has('mod')) {
+            msg.channel.send('Restarting...')
+                .then(() => {
+                    process.exit();
+                });
+        }
 
         if (msg.content === ".checkpermissions") {
             try {
@@ -148,6 +160,17 @@ client.on("messageCreate", async (msg) => {
             await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp);
 
             if (msg.author.bot) return;
+
+            if (command === 'togglelock') {
+                if (!msg.member.permissions.has('mod')) {
+                    return;
+                }
+                isLocked = !isLocked;
+                return msg.channel.send(`Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`);
+            }
+            if (isLocked) {
+                return msg.channel.send('Bot is under maintenance, please try again later.');
+            }
 
             //check for if theyre blacklisted
             if (userExists) {
@@ -327,7 +350,7 @@ client.on("messageCreate", async (msg) => {
                     .setColor("#ffa791")
                     .setTitle(`${targetUser.username}'s Balance`)
                     .setDescription(
-                        "**Balance: **" + Discord.inlineCode(`${balWithCommas}`),
+                        "**Balance: **" + Discord.inlineCode(`${balWithCommas}`) + currencyEmote,
                     )
                     .setTimestamp();
                 msg.channel.send({ embeds: [balanceEmbed] });
@@ -475,7 +498,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "view" || command === "v") {
                 //get second parameter entered by the user and parse that as the cardid to get from table
-                const cardId = args.join(" ").trim();
+                let cardId = args.join(" ").trim();
                 if (args.length > 1) {
                     msg.reply("Please only input 1 card id");
                     return;
@@ -483,6 +506,10 @@ client.on("messageCreate", async (msg) => {
                 if (cardId === undefined) {
                     msg.reply("**Please input a card id**");
                     return;
+                }
+                if(cardId === "fc"){
+                    const user = await getUser(userId);
+                    cardId = user["FavCard"];
                 }
                 (async () => {
                     try {
@@ -520,6 +547,11 @@ client.on("messageCreate", async (msg) => {
                             embed.addFields({
                                 name: "Your total Exp for this card:",
                                 value: `${Discord.inlineCode(String(userVerOfCard[0].totalExp))}`,
+                                inline: false,
+                            });
+                            embed.addFields({
+                                name: "Your level for this card:",
+                                value: `${Discord.inlineCode(String(userVerOfCard[0].level))}`,
                                 inline: false,
                             });
                         }
@@ -801,7 +833,7 @@ client.on("messageCreate", async (msg) => {
 
                 if (argsCopy[0] !== undefined) {
                     const input = argsCopy.join(" ");
-                    const quoteMatch = input.match(/"([^"]+)"/); // Match text within double quotes
+                    const quoteMatch = input.match(/["'“‘](.*?)["'”’]/); // Match text within double quotes
 
                     if (quoteMatch) {
                         groupName = quoteMatch[1].toLowerCase().trim();
@@ -812,28 +844,25 @@ client.on("messageCreate", async (msg) => {
                     } else {
                         const mentionedIndex = input.indexOf("<@");
 
-                        if (mentionedIndex !== -1) {
-                            groupName = input
-                                .substring(0, mentionedIndex)
-                                .trim()
-                                .toLowerCase();
+                        if (mentionedIndex !== -1) { //checks if theres a mention
+                            groupName = input.substring(0, mentionedIndex).trim().toLowerCase(); //if so group names it the rest of the message
                         } else {
-                            groupName = argsCopy[0].toLowerCase().trim(); // Group name is the first argument
+                            const potentialUserId = argsCopy[argsCopy.length - 1]; //if not, check if the last argument is a valid user ID
+                            if (potentialUserId.match(/^\d{17,19}$/)) {
+                                userId = potentialUserId;
+                                argsCopy.pop(); 
+                                if (argsCopy.length > 0) {
+                                    groupName = argsCopy.join(" ").toLowerCase().trim(); // If its valid, the rest of the message is the group name
+                                }
+                            } else {
+                                groupName = argsCopy.join(" ").toLowerCase().trim(); //if no userId, group name is the rest of the message
+                            }
                         }
                     }
 
                     if (msg.mentions.users.size > 0) {
                         userId = msg.mentions.users.first().id;
-                    } else {
-                        // If no mention, assume the last argument is the userId
-                        const potentialUserId = argsCopy[argsCopy.length - 1];
-                        if (potentialUserId.match(/^\d{17,19}$/)) {
-                            userId = potentialUserId;
-                            argsCopy.pop(); // Remove the userId from args
-                        } else {
-                            userId = argsCopy.slice(1).join(" ").trim();
-                        }
-                    }
+                    } 
                 } else {
                     // no group given
                     if (msg.mentions.users.size > 0) {
@@ -847,84 +876,20 @@ client.on("messageCreate", async (msg) => {
                     userId = msg.author.id;
                 }
 
-                let uniqueGroupNames = [];
-                try {
-                    uniqueGroupNames = await getUniqueGroupNames("cards");
-                } catch (error) {
-                    console.error("Error fetching unique group names:", error);
-                    return;
-                }
-
-                if (groupName) {
-                    const namesToLowerCase = uniqueGroupNames.map((name) =>
-                        name.toLowerCase(),
-                    );
-                    const nameIndex = namesToLowerCase.indexOf(groupName);
-
-                    if (nameIndex === -1) {
-                        msg.reply(
-                            "The specified group name does not exist. Ensure spelling is correct.",
-                        );
-                        return;
-                    }
-
-                    const originalGroupName = uniqueGroupNames[nameIndex];
-                    let filteredCards = [];
+                if (groupName === "levels") {
+                    // Show all leveled cards in user's inventory
+                    let leveledCards = [];
 
                     try {
-                        filteredCards = await filterByAttribute(
-                            "cards",
-                            "GroupName",
-                            originalGroupName,
-                        );
+                        leveledCards = await getCardsWithLevels("user-cards", userId);
+                        console.log(leveledCards);
                     } catch (error) {
-                        console.error(
-                            "Error filtering cards by group name:",
-                            error,
-                        );
+                        console.error("Error getting leveled cards:", error);
                         return;
                     }
 
                     const cardsPerPage = 10;
-                    const totalPages = Math.ceil(
-                        filteredCards.length / cardsPerPage,
-                    );
-
-                    try {
-                        const embedMessage = await msg.channel.send({
-                            embeds: [
-                                await generateEmbedInvForGroup(
-                                    0,
-                                    totalPages,
-                                    filteredCards,
-                                    msg,
-                                    userId,
-                                ),
-                            ],
-                            components: [generateRowInv(0, totalPages)],
-                        });
-                        handleCollectorInvForGroup(
-                            embedMessage,
-                            msg,
-                            totalPages,
-                            filteredCards,
-                            userId,
-                        );
-                    } catch (error) {
-                        console.log("Error:", error);
-                    }
-                } else {
-                    let listOfCards = [];
-
-                    try {
-                        listOfCards = await getUserCards("user-cards", userId);
-                    } catch (error) {
-                        console.log("Error getting user cards:", error);
-                        return;
-                    }
-
-                    const cardsPerPage = 10;
-                    const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
+                    const totalPages = Math.ceil(leveledCards.length / cardsPerPage);
 
                     try {
                         const embedMessage = await msg.channel.send({
@@ -932,9 +897,9 @@ client.on("messageCreate", async (msg) => {
                                 await generateEmbedInv(
                                     0,
                                     totalPages,
-                                    listOfCards,
+                                    leveledCards,
                                     msg,
-                                    userId,
+                                    userId
                                 ),
                             ],
                             components: [generateRowInv(0, totalPages)],
@@ -943,12 +908,118 @@ client.on("messageCreate", async (msg) => {
                             embedMessage,
                             msg,
                             totalPages,
-                            listOfCards,
-                            userId,
+                            leveledCards,
+                            userId
                         );
                     } catch (error) {
                         console.log("Error:", error);
                     }
+
+                }else{ 
+                    let uniqueGroupNames = [];
+                    try {
+                        uniqueGroupNames = await getUniqueGroupNames("cards");
+                    } catch (error) {
+                        console.error("Error fetching unique group names:", error);
+                        return;
+                    }
+
+                    if (groupName) { //only does if there is a group name
+                        const namesToLowerCase = uniqueGroupNames.map((name) =>
+                            name.toLowerCase(),
+                        );
+                        const nameIndex = namesToLowerCase.indexOf(groupName);
+
+                        if (nameIndex === -1) {
+                            msg.reply(
+                                "The specified group name does not exist. Ensure spelling is correct.",
+                            );
+                            return;
+                        }
+
+                        const originalGroupName = uniqueGroupNames[nameIndex];
+                        let filteredCards = [];
+
+                        try {
+                            filteredCards = await filterByAttribute(
+                                "cards",
+                                "GroupName",
+                                originalGroupName,
+                            );
+                        } catch (error) {
+                            console.error(
+                                "Error filtering cards by group name:",
+                                error,
+                            );
+                            return;
+                        }
+
+                        const cardsPerPage = 10;
+                        const totalPages = Math.ceil(
+                            filteredCards.length / cardsPerPage,
+                        );
+
+                        try {
+                            const embedMessage = await msg.channel.send({
+                                embeds: [
+                                    await generateEmbedInvForGroup(
+                                        0,
+                                        totalPages,
+                                        filteredCards,
+                                        msg,
+                                        userId,
+                                    ),
+                                ],
+                                components: [generateRowInv(0, totalPages)],
+                            });
+                            handleCollectorInvForGroup(
+                                embedMessage,
+                                msg,
+                                totalPages,
+                                filteredCards,
+                                userId,
+                            );
+                        } catch (error) {
+                            console.log("Error:", error);
+                        }
+                    } else { //default if theres no groupName
+                        let listOfCards = [];
+
+                        try {
+                            listOfCards = await getUserCards("user-cards", userId);
+                        } catch (error) {
+                            console.log("Error getting user cards:", error);
+                            return;
+                        }
+
+                        const cardsPerPage = 10;
+                        const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
+
+                        try {
+                            const embedMessage = await msg.channel.send({
+                                embeds: [
+                                    await generateEmbedInv(
+                                        0,
+                                        totalPages,
+                                        listOfCards,
+                                        msg,
+                                        userId,
+                                    ),
+                                ],
+                                components: [generateRowInv(0, totalPages)],
+                            });
+                            handleCollectorInv(
+                                embedMessage,
+                                msg,
+                                totalPages,
+                                listOfCards,
+                                userId,
+                            );
+                        } catch (error) {
+                            console.log("Error:", error);
+                        }
+                    }
+                    
                 }
             }
 
@@ -1054,32 +1125,30 @@ client.on("messageCreate", async (msg) => {
                 const dgCd = Date.now() + 14400 * 1000; //
                 const remainingCooldown = await getUserCooldown(userId, command);
 
-                if (remainingCooldown !== "0m 0s") {
-                    msg.reply(
-                        `You must wait ${remainingCooldown} before using this command again.`,
-                    );
-                    return;
-                }
                 const input = args.filter((code) => code.trim() !== "");
-                const code = input[0];
+                let code = input[0];
                 const dgToEnter = input[1];
                 if (code === "1") {
                     msg.reply(
-                        "Challange the boss JYP to recieve 0-1 cards of your chosen card and between 5000- 7000 currency on win!",
+                        `Challange the boss JYP to recieve 0-1 cards of your chosen card and between 5000- 7000 ${currencyEmote} on win!`,
                     );
                     return;
                 }
                 if (code === "2") {
                     msg.reply(
-                        "Challange the boss SM to recieve 1-2 cards of your chosen card and between 7500 - 10000 currency on win!",
+                        `Challange the boss SM to recieve 1-2 cards of your chosen card and between 7500 - 10000 ${currencyEmote} on win!`,
                     );
                     return;
                 }
                 if (code === "3") {
                     msg.reply(
-                        "Challange the boss SM to recieve 2-3 cards of your chosen card and between 10000 - 15000 currency on win!",
+                        `Challange the boss SM to recieve 2-3 cards of your chosen card and between 10000 - 15000 ${currencyEmote} on win!`,
                     );
                     return;
+                }
+                if (code === "fc"){
+                     user = await getUser(userId);
+                     code = user["FavCard"];
                 }
                 try {
                     await getCardFromTable("cards", code);
@@ -1122,6 +1191,18 @@ client.on("messageCreate", async (msg) => {
                     );
                     if (userOwns === 0) {
                         msg.reply("You do not own this card");
+                        return;
+                    }
+                    if (remainingCooldown !== "0m 0s") {
+                        msg.reply(
+                            `You must wait ${remainingCooldown} before using this command again.`,
+                        );
+                        return;
+                    }
+                    if(isNaN(dgToEnter) || dgToEnter === undefined){
+                        msg.reply(
+                            `Please input a valid dg number to enter.`,
+                        );
                         return;
                     }
                     await enterDg(msg, userId, code, dgToEnter);
@@ -1186,17 +1267,33 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "forcedrop") {
-                // Check if the user has the required role
                 const REQUIRED_ROLE_NAME = "mod";
                 const role = msg.guild.roles.cache.find(
                     (role) => role.name === REQUIRED_ROLE_NAME,
                 );
                 if (role && msg.member.roles.cache.has(role.id)) {
-                    getClaim(msg, userId); //maybe change in future idk works for now
+                    const args = msg.content.split(' ');
+                    if (args.length > 1) {
+                        let userId = args[1];
+                        if (userId.startsWith('<@') && userId.endsWith('>')) {
+                            userId = userId.slice(2, -1); // Remove <@ and >
+                            if (userId.startsWith('!')) {
+                                userId = userId.slice(1); // Remove ! if it exists
+                            }
+                        }
+                        if (userId) {
+                            getClaim(msg, userId); //maybe change in future idk works for now
+                        } else {
+                            msg.reply("Please provide a valid user ID or mention.");
+                        }
+                    } else {
+                        msg.reply("Please provide a user ID or mention.");
+                    }
                 } else {
-                    return;
+                    msg.reply("You do not have the required role to use this command.");
                 }
             }
+
 
             if (command === "modify") {
                 let user = " ";
@@ -1250,7 +1347,6 @@ client.on("messageCreate", async (msg) => {
                                 },
                             )
                             .setTimestamp();
-
                         msg.channel.send({ embeds: [embed] });
                     } catch (error) {
                         console.log(error);
@@ -1260,7 +1356,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
             }
-
+            
             if (command === "createraffle") {
                 const REQUIRED_ROLE_NAME = "mod"; //change back to admin
                 const role = msg.guild.roles.cache.find(
@@ -1271,12 +1367,10 @@ client.on("messageCreate", async (msg) => {
                 } else {
                     return;
                 }
-            }
-            
+            }   
         }catch(error){
              console.error("An unexpected error occurred:", error);
         }
-
     }
 });
 
@@ -1294,3 +1388,13 @@ async function sendRaffleEmbed() {
 }
 
 client.login(process.env.Token);
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    process.exit(1); // Exit and let PM2 restart the bot
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1); // Exit and let PM2 restart the bot
+});

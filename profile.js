@@ -23,7 +23,7 @@ async function getUserProfile(msg, userId){
                   name:
                       "**Balance: **" +
                       Discord.inlineCode(
-                          String(userData["Balance"])
+                          String(numberWithCommas(userData["Balance"]))
                               .toString()
                               .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
                       ),
@@ -47,14 +47,14 @@ async function getUserProfile(msg, userId){
               .addFields({
                   name:
                       "**Card Count: **" +
-                      Discord.inlineCode(String(userData["cardCount"])),
+                      Discord.inlineCode(String(numberWithCommas(userData["cardCount"]))),
                   value: " ",
                   inline: false,
               })
               .addFields({
                     name:
                         "**Total EXP: **" +
-                        Discord.inlineCode(String(userData.TotalExp)),
+                        Discord.inlineCode(String(numberWithCommas(userData.TotalExp))),
                     value: " ",
                     inline: false,
                 })
@@ -71,6 +71,10 @@ async function getUserProfile(msg, userId){
         console.log(error);
     }
  
+}
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 module.exports = {getUserProfile};

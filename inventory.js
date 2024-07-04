@@ -195,7 +195,6 @@ const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, 
     });
 };
 
-
 async function getUniqueGroupNames(tableName) {
     let params = {
         TableName: tableName,
@@ -228,4 +227,5 @@ async function getUniqueGroupNames(tableName) {
     await scanDynamoDB();
     return Array.from(uniqueGroupNames);
 }
+
 module.exports = { generateEmbedInv, generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, handleCollectorInvForGroup  };
