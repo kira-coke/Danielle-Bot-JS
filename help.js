@@ -12,6 +12,9 @@ const commands = [
     { name: ".dg or .dungeon fc [dg number]", description: "Enter the dg with your currenct favcard." },
     { name: ".bal [@user]", description: "Check your or someone else's balance." },
     { name: ".pay @user amount", description: "Pay another user" },
+    { name: ".shop/.s", description: "View the shop." },
+    { name: ".packs", description: "See how many packs you have." },
+    { name: ".pack open", description: "Open a pack you have stored." },
     { name: ".cd", description: "Check your command cooldowns." },
     { name: ".index [groupName]", description: "View all available cards in the bot (can view cards in a specific group)" },
     { name: ".view or v [card-id] [fc]", description: "View details of a specific card. (fc will default to viewing your current favcard)" },
@@ -26,6 +29,7 @@ const commands = [
     { name: ".inv levels [@user]", description: "View your or someone else's currently leveled cards." },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
     { name: ".upgrade or .u card-id", description: "Upgrade a card to increase its tier."},
+    { name: ".leaderboard/.lb [cards] [exp] [bal/balance]", description: "View the current leaderboards."},
     { name: ".remindersOn / remindersOff", description: "Enables or disables auto reminders."}
 ];
 
