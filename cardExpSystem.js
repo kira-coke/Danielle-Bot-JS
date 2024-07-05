@@ -32,7 +32,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       console.log("Your card is ready to upgrade!");
       return 2;
   }
-  if(cardData.level > 10){
+  if(cardData.level >= 10){
     awardPack = false;
   }
     const potentialNewExp = cardData.exp + expGiven;
@@ -138,7 +138,7 @@ async function handleExpAward(userId, cardId, numberOfCards, msg, user, cardData
     } else {
       msg.channel.send({ embeds: [embed] });
     }
-    if(awardPack === true && cardData.level < 20){
+   if (awardPack === true && cardData.level >= 10 && cardData.level < 20) {
       await storePack(userId);
       const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and recieved 1 pack. This have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
       msg.channel.send({ embeds: [packEmbed] });
