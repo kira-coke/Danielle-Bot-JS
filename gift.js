@@ -30,10 +30,8 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
               userId,
               cardIDToGift,
           );
-          if (
-              numberOfCopies == 0 ||
-              numberOfCopies < numberOfCopiesToGive
-          ) {
+          if (numberOfCopies == 0 || numberOfCopies <= numberOfCopiesToGive)
+           {
               msg.reply(
                   "**You do not own enough copies of this card to gift**",
               );
