@@ -1,4 +1,4 @@
-const prizes = ['3'];
+const prizes = ['1', '2','3'];
 const exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
 const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard, checkTotalCardCount} = require("./cards");
