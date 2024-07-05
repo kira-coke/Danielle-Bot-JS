@@ -41,6 +41,9 @@ async function getPacks(userId) {
     try {
         const data = await dynamodb.get(params).promise();
         //console.log('Successfully retrieved packs:', data.Item);
+        if(data.Item === undefined){
+            return 0;
+        }
         return data.Item.packs || 0; // Return packs count, defaulting to 0 if attribute does not exist
     } catch (err) {
         console.error('Unable to read item:', err);

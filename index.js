@@ -1245,7 +1245,10 @@ client.on("messageCreate", async (msg) => {
             
             if(command === "packs"){
                 try {
-                    const packs = await getPacks(userId);
+                    let packs = await getPacks(userId);
+                    if(packs === undefined){
+                        packs = 0;
+                    }
                     const embed = new EmbedBuilder()
                         .setColor('#779be7')
                         .setTitle('Do .pack open to open a pack')
