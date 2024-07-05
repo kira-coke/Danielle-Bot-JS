@@ -52,14 +52,14 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    try {
-        await setPendingReminders(client); // comment in and out depending on which bot testing on
+    //try {
+       /* await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
-    } catch (error) {
+    /*} catch (error) {
         console.log("Error setting pending reminders", error);
-    }
+    }*/
 });
 
 client.on("ready", () => {
@@ -1245,7 +1245,11 @@ client.on("messageCreate", async (msg) => {
             
             if(command === "packs"){
                 try {
-                    const packs = await getPacks(userId);
+                    let packs = await getPacks(userId);
+                    console.log(packs);
+                    if(packs === undefined){
+                        packs = 0;
+                    }
                     const embed = new EmbedBuilder()
                         .setColor('#779be7')
                         .setTitle('Do .pack open to open a pack')
