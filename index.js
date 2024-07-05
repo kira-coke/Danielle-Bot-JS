@@ -32,6 +32,7 @@ const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js
 const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack} = require("./userAssets");
+const {displayLeaderboard} = require("./leaderboards.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -51,14 +52,14 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    //try {
-       /* await setPendingReminders(client); // comment in and out depending on which bot testing on
+    try {
+        await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
-    /*} catch (error) {
+    } catch (error) {
         console.log("Error setting pending reminders", error);
-    }*/
+    }
 });
 
 client.on("ready", () => {
@@ -1270,6 +1271,11 @@ client.on("messageCreate", async (msg) => {
                     await removePack(userId);
                 }
             }
+            
+            if(command === "leaderboard" || command === "lb"){
+                const leaderboardType = args.filter((code) => code.trim() !== "");
+                await displayLeaderboard(msg, leaderboardType[0], client);
+            }
 
             if (command === "forcedrop") {
                 const REQUIRED_ROLE_NAME = "mod";
@@ -1298,7 +1304,6 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("You do not have the required role to use this command.");
                 }
             }
-
 
             if (command === "modify") {
                 let user = " ";
@@ -1378,6 +1383,7 @@ client.on("messageCreate", async (msg) => {
         }
     }
 });
+
 
 function hasRole(member, roleName) {
     return member.roles.cache.some(role => role.name === roleName);

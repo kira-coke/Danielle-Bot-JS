@@ -164,7 +164,6 @@ async function setUserWishList(tableName, userId, attribute){
       }
 }
 
-
 async function getUserWishList(tableName, userId) {
     try {
         const params = {
@@ -191,7 +190,6 @@ async function getUserWishList(tableName, userId) {
         return false;
     }
 }
-
 
 async function getUserCards(tableName, userId) {
     const params = {
