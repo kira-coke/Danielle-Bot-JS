@@ -1393,7 +1393,7 @@ function hasRole(member, roleName) {
 }
 const ROLE_ID = '1256328712086098040';
 async function sendRaffleEmbed() {
-    const channel = client.channels.cache.get('1256331822812500068');
+    const channel = client.channels.cache.get('1255577403854426133');
     const role = channel.guild.roles.cache.get(ROLE_ID);
     channel.send(`<@&${ROLE_ID}>`);
     
