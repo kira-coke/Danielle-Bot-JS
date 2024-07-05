@@ -2,6 +2,7 @@ const {getUser} = require("./users.js");
 const {EmbedBuilder } = require("discord.js");
 const {getCardFromTable} = require("./cards");
 const Discord = require("discord.js");
+const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 
 async function getUserProfile(msg, userId){
     try{
@@ -19,16 +20,29 @@ async function getUserProfile(msg, userId){
               .setColor("#fffac2") //should be able to change colour
               .setTitle(user.username + "'s Profile")
               .setDescription(userData["Description"]) //should be able to change description
-              .addFields({
+                .addFields(
+                    {
+                    name:
+                        "**Daily Streak: **" +
+                        Discord.inlineCode(
+                            String(numberWithCommas(userData["DailyStreak"]))
+                                .toString()
+                                .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+                        ),
+                    value: " ",
+                    inline: true,
+                })
+              .addFields(
+                  {
                   name:
                       "**Balance: **" +
                       Discord.inlineCode(
-                          String(userData["Balance"])
+                          String(numberWithCommas(userData["Balance"]))
                               .toString()
                               .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-                      ),
+                      ) + currencyEmote,
                   value: " ",
-                  inline: true,
+                  inline: false,
               })
               .addFields(
                   {
@@ -47,14 +61,14 @@ async function getUserProfile(msg, userId){
               .addFields({
                   name:
                       "**Card Count: **" +
-                      Discord.inlineCode(String(userData["cardCount"])),
+                      Discord.inlineCode(String(numberWithCommas(userData["cardCount"]))),
                   value: " ",
                   inline: false,
               })
               .addFields({
                     name:
                         "**Total EXP: **" +
-                        Discord.inlineCode(String(userData.TotalExp)),
+                        Discord.inlineCode(String(numberWithCommas(userData.TotalExp))),
                     value: " ",
                     inline: false,
                 })
@@ -71,6 +85,10 @@ async function getUserProfile(msg, userId){
         console.log(error);
     }
  
+}
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 module.exports = {getUserProfile};

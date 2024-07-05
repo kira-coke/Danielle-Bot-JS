@@ -1,10 +1,11 @@
-const prizes = ['1', '2', '3'];
+const prizes = ['3'];
 const exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
 const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard, checkTotalCardCount} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
 const {getUser, updateTotalExp} = require("./users");
 const {updateUserData, calculateLevelUpXP} = require("./cardExpSystem");
+const {storePack} = require("./userAssets");
 const raffleEntries = new Set();
 
 async function forceRaffle(channel, client){
@@ -16,7 +17,7 @@ async function raffle(channel, client){
   const prize = prizes[Math.floor(Math.random() * prizes.length)];
   const card = await getRandomDynamoDBItem('cards');
   const amountOfCards = Math.floor(Math.random() * 4) + 1;
-  const amountOfCoins = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+  const amountOfCoins = Math.floor(Math.random() * (4000- 2000 + 1)) + 2000
   const coinsWithCommas = numberWithCommas(amountOfCoins);
   const randomIndex = Math.floor(Math.random() * exp.length);
   const randomExp = exp[randomIndex];
@@ -46,7 +47,7 @@ async function raffle(channel, client){
   const message = await channel.send({ embeds: [embed], components: [row] });
 
   const filter = i => i.customId === 'raffle_entry';
-  const collector = message.createMessageComponentCollector({ filter, time: 5 * 60 * 1000 }); //change back to 5
+  const collector = message.createMessageComponentCollector({ filter, time: 0.1 * 60 * 1000 }); //change back to 5
 
   collector.on('collect', async interaction => {
       if (raffleEntries.has(interaction.user.id)) {
@@ -136,12 +137,16 @@ async function awardMoney(winnerId, amount){
 }
 
 async function awardExp(winnerId, exp){
+    let awardPack = true;
     try{
         let expGiven = exp;
         const user = await getUser(winnerId);
         const userFavCard = user["FavCard"];
         const userCardData = await getUserCard("user-cards", winnerId, userFavCard);
         let currentLevel = userCardData[0].level;
+        if(currentLevel > 10){
+            awardPack = false;
+        }
         let currentExp = parseInt(userCardData[0].exp);
         while (expGiven > 0 && currentLevel < 20) {
             const levelUpXP = calculateLevelUpXP(currentLevel);
@@ -157,7 +162,13 @@ async function awardExp(winnerId, exp){
                 expGiven = 0; // All expGiven is now added
             }
         }
-
+        if(currentLevel === 20){
+            await storePack(winnerId);
+            await storePack(winnerId);
+        }
+        if(awardPack === true && currentLevel < 20){
+            await storePack(winnerId);
+        }
         userCardData[0].level = currentLevel;
         userCardData[0].exp = currentExp;
         userCardData[0].totalExp = parseInt(userCardData[0].totalExp) + (exp-expGiven);

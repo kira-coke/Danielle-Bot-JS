@@ -1,45 +1,13 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
-const {getUser} = require("./users.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getTotalCards} = require("./cards");
+const {getUser} = require("./users");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard} = require("./cards");
 
 async function getClaim(msg,userId){
-    const user= await getUser(userId);
+    const user = await getUser(userId);
     const userFavCard = user["FavCard"];
     const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
     const cardData = userFavCardData[0];
-    let cardWeights = {};
-    if(cardData === undefined){
-    }else{
-        if(cardData.tier === 2){
-            cardWeights = {
-                [userFavCard]: 2, 
-            };
-        }
-        if(cardData.tier >= 3){
-            cardWeights = {
-                [userFavCard]: 3, 
-            };
-        }
-    }
-    async function getWeightedRandomCard(tableName) {
-        const allCards = await getTotalCards(tableName); // Function to get all cards from the table
-        if (!Array.isArray(allCards.Items)) {
-            console.error("Expected an array but received:", allCards);
-            throw new TypeError("Expected an array of cards");
-        }
-        const weightedList = [];
-
-        allCards.Items.forEach(card => {
-            const weight = cardWeights[[card["card-id"]]] || 1; ; // Default weight is 1 if not specified
-            for (let i = 0; i < weight; i++) {
-                weightedList.push(card);
-            }
-        });
-        const randomIndex = Math.floor(Math.random() * weightedList.length);
-        return weightedList[randomIndex];
-    }
-
 
     (async () => {
         try {
@@ -50,7 +18,8 @@ async function getClaim(msg,userId){
             }else{
                 if(cardData.tier >=2){
                     try{
-                        randomCard = await getWeightedRandomCard(tableName);
+                        randomCard = await getWeightedCard(userId);
+                        console.log("Got weighted card");
                     }catch(error){
                         console.log("Issue getting weighted random card");
                         console.log(error);

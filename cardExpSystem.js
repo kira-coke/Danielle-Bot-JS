@@ -2,7 +2,10 @@ const AWS = require('aws-sdk');
 const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
 const {getUser, updateTotalExp} = require("./users.js");
 const { ActionRowBuilder, ButtonBuilder, EmbedBuilder } = require("discord.js");
+const {storePack} = require("./userAssets.js")
 const dynamodb = new AWS.DynamoDB.DocumentClient
+
+let awardPack = true;
 
 async function awardExp(userId, cardId, numberOfCards, msg){
   const user = await getUser(userId);
@@ -29,17 +32,21 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       console.log("Your card is ready to upgrade!");
       return 2;
   }
+  if(cardData.level > 10){
+    awardPack = false;
+  }
     const potentialNewExp = cardData.exp + expGiven;
     const potentialNewLevel = calculatePotentialNewLevel(cardData.level, potentialNewExp);
     const expNeeded = calculateLevelUpXP(cardData.level);
 
-    if (potentialNewLevel > 20 && cardData.level < 20) {
+    if (potentialNewLevel >= 20 && cardData.level < 20) {
       const embed = new EmbedBuilder()
         .setColor("#ED4245")
         .setTitle("EXP Warning")
         .setDescription(`Giving **${expGiven} EXP** to your **${cardId}** will over level the card!`)
         .addFields(
-          { name: "Exp needed to level up", value: `${expNeeded - cardData.exp}`, inline: true},
+          { name: "Exp needed to next level up", value: `${expNeeded - cardData.exp}`, inline: true},
+          { name: "Exp needed to max card", value: `${calculateExpNeededToMax(cardData.level, cardData.exp)}`, inline: true},
           { name: "EXP Given", value: `${expGiven}`, inline: true }
         )
         .setTimestamp();
@@ -64,6 +71,10 @@ async function awardExp(userId, cardId, numberOfCards, msg){
       collector.on('collect', async interaction => {
         if (interaction.customId === 'confirm') {
           await handleExpAward(userId, cardId, numberOfCards, msg, user, cardData, expGiven, potentialNewExp, interaction);
+          await storePack(userId);
+          await storePack(userId);
+          const packEmbed = new EmbedBuilder().setTitle("Packs added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached max level and recieved 2 packs. These have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
+          msg.channel.send({ embeds: [packEmbed] });
         } else {
           await interaction.update({ content: 'Cancelled feeding', embeds: [], components: [] });
         }
@@ -127,6 +138,11 @@ async function handleExpAward(userId, cardId, numberOfCards, msg, user, cardData
     } else {
       msg.channel.send({ embeds: [embed] });
     }
+    if(awardPack === true && cardData.level < 20){
+      await storePack(userId);
+      const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and recieved 1 pack. This have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
+      msg.channel.send({ embeds: [packEmbed] });
+    }
   }
 
 function calculateLevelUpXP(level) {
@@ -135,13 +151,25 @@ function calculateLevelUpXP(level) {
    }
    return Math.round(100 * Math.pow(1.1, level));
 }
+function calculatePotentialLevelUpXP(level) {
+   return Math.round(100 * Math.pow(1.1, level));
+}
 
 function calculatePotentialNewLevel(level, exp) {
-  while (exp >= calculateLevelUpXP(level) && level < 20) {
-    exp -= calculateLevelUpXP(level);
+  while (exp >= calculatePotentialLevelUpXP(level)) {
+    exp -= calculatePotentialLevelUpXP(level);
     level += 1;
   }
+  console.log(level);
   return level;
+}
+
+function calculateExpNeededToMax(level, exp) {
+  while (exp >= calculatePotentialLevelUpXP(level) && level < 20 ) {
+    exp -= calculatePotentialLevelUpXP(level);
+    level += 1;
+  }
+  return exp;
 }
 
 async function upgrade(userId, cardId, msg){
@@ -178,7 +206,6 @@ async function upgrade(userId, cardId, msg){
     return false;
   }
 }
-
 
 async function updateUserData(tableName, cardData) {
   try{
