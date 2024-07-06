@@ -4,11 +4,11 @@ const { EmbedBuilder } = require("discord.js");
 
 async function getCooldowns(userId, msg){
   const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
-  let dropCd = await getUserCooldown(userId, "d");
-  let claimCd = await getUserCooldown(userId, "c");
-  let workCd = await getUserCooldown(userId, "w");
+  let dropCd = await getUserCooldown(userId, "drop");
+  let claimCd = await getUserCooldown(userId, "claim");
+  let workCd = await getUserCooldown(userId, "work");
   let dailyCd = await getUserCooldown(userId, "daily");
-  let dgCd = await getUserCooldown(userId, "dg");
+  let dgCd = await getUserCooldown(userId, "dungeon");
   if(dropCd === '0m 0s'){
       dropCd = 'Available';
   }
