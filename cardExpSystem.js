@@ -138,7 +138,11 @@ async function handleExpAward(userId, cardId, numberOfCards, msg, user, cardData
     } else {
       msg.channel.send({ embeds: [embed] });
     }
+   console.log("User should be awarded pack: ", awardPack);
    if (awardPack === true && cardData.level >= 10 && cardData.level < 20) {
+      console.log("Award pack: ", awardPack);
+      console.log("Level bigger or equal to 10: ", cardData.level >= 10);
+      console.log("Level less than 20 : ", cardData.level < 20);
       await storePack(userId);
       const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and recieved 1 pack. This have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
       msg.channel.send({ embeds: [packEmbed] });
