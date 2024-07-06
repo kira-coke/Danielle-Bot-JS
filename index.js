@@ -233,7 +233,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "c" || command === "claim") {
-                const command = "c";
+                const command = "claim";
                 const defaultCooldown = 300 * 1000; // 300 seconds
                 let claimCd = defaultCooldown;
                 if (hasRole(member, "booster")) {
@@ -265,7 +265,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "d" || command === "drop") {
-                const command = "d";
+                const command = "drop";
                 const defaultCooldown = 600 * 1000; // 600 seconds
                 let dropCd = defaultCooldown;
                 if (hasRole(member, "booster")) {
@@ -698,7 +698,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "w" || command === "work") {
-                const command = "w";
+                const command = "work";
                 const workCd = 3600 * 1000; //3600
                 const remainingCooldown = await getUserCooldown(userId, command);
 
@@ -1127,7 +1127,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "dg" || command === "dungeon") {
-                const command = "dg";
+                const command = "dungeon";
                 const dgCd = Date.now() + 14400 * 1000; //
                 const remainingCooldown = await getUserCooldown(userId, command);
 
