@@ -5,8 +5,6 @@ const { ActionRowBuilder, ButtonBuilder, EmbedBuilder } = require("discord.js");
 const {storePack} = require("./userAssets.js")
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
-let awardPack = true;
-
 async function awardExp(userId, cardId, numberOfCards, msg){
   const user = await getUser(userId);
   const expGiven = numberOfCards * 50; //each card gives 50 exp
@@ -35,6 +33,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
   if(cardData.level >= 10){
     awardPack = false;
   }
+    const wasBelowLevel10 = cardData.level < 10;
     const potentialNewExp = cardData.exp + expGiven;
     const potentialNewLevel = calculatePotentialNewLevel(cardData.level, potentialNewExp);
     const expNeeded = calculateLevelUpXP(cardData.level);
@@ -82,6 +81,13 @@ async function awardExp(userId, cardId, numberOfCards, msg){
 
     } else {
       await handleExpAward(userId, cardId, numberOfCards, msg, user, cardData, expGiven, potentialNewExp);
+      if (wasBelowLevel10 && cardData.level >= 10 && cardData.level < 20) {
+        console.log("User has been awarded pack for level 10");
+        await storePack(userId);
+        const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and received 1 pack. This has been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
+        msg.channel.send({ embeds: [packEmbed] });
+      }
+      
     }
   }
   
@@ -137,15 +143,6 @@ async function handleExpAward(userId, cardId, numberOfCards, msg, user, cardData
      }
     } else {
       msg.channel.send({ embeds: [embed] });
-    }
-   console.log("User should be awarded pack: ", awardPack);
-   if (awardPack === true && cardData.level >= 10 && cardData.level < 20) {
-      console.log("Award pack: ", awardPack);
-      console.log("Level bigger or equal to 10: ", cardData.level >= 10);
-      console.log("Level less than 20 : ", cardData.level < 20);
-      await storePack(userId);
-      const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and recieved 1 pack. This have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
-      msg.channel.send({ embeds: [packEmbed] });
     }
   }
 
