@@ -368,24 +368,26 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 let targetUser;
-                let userId;
                 if (msg.mentions.users.size > 0) {
                     targetUser = msg.mentions.users.first();
                 } else {
-                    userId = args.slice(0, -1).join("").trim();
-                    if (!userId || isNaN(userId)) {
+                    targetUser = args.slice(0, -1).join("").trim();
+                    console.log(targetUser);
+                    if (!targetUser || isNaN(targetUser)) {
                         msg.reply(
                             "Please mention a user or provide a valid user ID.",
                         );
                         return;
                     }
                     try {
-                        targetUser = await msg.client.users.fetch(userId);
+                        targetUser = await msg.client.users.fetch(targetUser);
                     } catch (error) {
                         msg.reply("Could not find a user with that ID.");
                         return;
                     }
                 }
+                console.log(targetUser);
+                console.log(msg.author);
                 if (targetUser === msg.author) {
                     msg.reply("** Trying to give yourself money? **");
                     return;
@@ -398,6 +400,8 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("Please provide a valid amount!");
                     return;
                 }
+                console.log(userId);
+                console.log(targetUser);
                 await payCommand(msg, userId, targetUser, amount);
             }
 
@@ -1104,7 +1108,7 @@ client.on("messageCreate", async (msg) => {
                     .setColor("#d81159")
                     .setTitle("Auto Reminders Turned Off")
                     .setDescription(
-                        `You will no longer receive reminders for claims, drops, and daily.`,
+                        `You will no longer receive reminders for claims, drops, work and daily.`,
                     )
                     .setTimestamp();
 
@@ -1119,7 +1123,7 @@ client.on("messageCreate", async (msg) => {
                     .setColor("#04a777")
                     .setTitle("Auto Reminders Turned On")
                     .setDescription(
-                        `You will now receive reminders for claims, drops, and daily.`,
+                        `You will now receive reminders for claims, drops, work and daily.`,
                     )
                     .setTimestamp();
 
