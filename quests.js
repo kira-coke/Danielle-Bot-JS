@@ -191,7 +191,7 @@ async function getQuest(questId){
   }
 }
 
-async function handleClaimAction(userId) {
+async function handleClaimAction(userId, msg) {
   const userQuests = await getUserQuests(userId);
   //console.log(userQuests);
   const questId1 = "1";
@@ -207,6 +207,7 @@ async function handleClaimAction(userId) {
       await deleteUserQuests(userId, questId1); //remove when finished
       const balance = await getUsersBalance(userId);
       await saveUserBalance(userId, balance + 3000);
+      msg.reply("You have completed a quest and received 3000 coins!");
     }
     console.log(`Quest ${questId1} progress updated.`);
   }
@@ -220,6 +221,7 @@ async function handleClaimAction(userId) {
       questData.status = false;
       await deleteUserQuests(userId, questId2); //remove when finished
       await storePack(userId);
+      msg.reply("You have completed a quest and received 1 pack!");
     }
     console.log(`Quest ${questId2} progress updated.`);
   }
@@ -235,12 +237,13 @@ async function handleClaimAction(userId) {
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
+      msg.reply("You have completed a quest and received 2 copies of your favCard!");
     }
     console.log(`Quest ${questId1} progress updated.`);
   }
 }
 
-async function handleDropAction(userId){
+async function handleDropAction(userId, msg){
   const userQuests = await getUserQuests(userId);
   const questId4 = "4";
   const questId5 = "5"; 
@@ -255,6 +258,7 @@ async function handleDropAction(userId){
       await deleteUserQuests(userId, questId4); //remove when finished
       const balance = await getUsersBalance(userId);
       await saveUserBalance(userId, balance + 3000);
+      msg.reply("You have completed a quest and received 3000 coins!");
     }
     console.log(`Quest ${questId4} progress updated.`);
   }
@@ -268,6 +272,7 @@ async function handleDropAction(userId){
       questData.status = false;
       await deleteUserQuests(userId, questId5); //remove when finished
       await storePack(userId);
+      msg.reply("You have completed a quest and received 1 pack!");
     }
     console.log(`Quest ${questId5} progress updated.`);
   }
@@ -283,13 +288,14 @@ async function handleDropAction(userId){
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       await changeNumberOwned("user-cards", userId, favCard, numberOwned + 3);
+      msg.reply("You have completed a quest and received 3 copies of your favCard!");
     }
     console.log(`Quest ${questId6} progress updated.`);
   }
   
 }
 
-async function handleFeedAction(userId, copies) {
+async function handleFeedAction(userId, copies, msg) {
   console.log(copies);
   const userQuests = await getUserQuests(userId);
   console.log(userQuests);
@@ -306,6 +312,7 @@ async function handleFeedAction(userId, copies) {
       await deleteUserQuests(userId, questId7); //remove when finished
       const balance = await getUsersBalance(userId);
       await saveUserBalance(userId, balance + 1500);
+      msg.reply("You have completed a quest and received 1500 coins!");
     }
     console.log(`Quest ${questId7} progress updated.`);
   }
@@ -321,6 +328,7 @@ async function handleFeedAction(userId, copies) {
       await deleteUserQuests(userId, questId8); //remove when finished
       const balance = await getUsersBalance(userId);
       await saveUserBalance(userId, balance + 4000);
+      msg.reply("You have completed a quest and received 4000 coins!");
     }
     console.log(`Quest ${questId8} progress updated.`);
   }
@@ -333,12 +341,13 @@ async function handleFeedAction(userId, copies) {
       questData.status = false;
       await deleteUserQuests(userId, questId9); //remove when finished
       await storePack(userId);
+      msg.reply("You have completed a quest and received 1 pack!");
     }
     console.log(`Quest ${questId9} progress updated.`);
   }
 }
 
-async function handleWorkAction(userId) {
+async function handleWorkAction(userId, msg) {
   const userQuests = await getUserQuests(userId);
   //console.log(userQuests);
   const questId10 = "10";
@@ -354,6 +363,7 @@ async function handleWorkAction(userId) {
       await deleteUserQuests(userId, questId10); //remove when finished
       const balance = await getUsersBalance(userId);
       await saveUserBalance(userId, balance + 4000);
+      msg.reply("You have completed a quest and received 4000 coins!");
     }
     console.log(`Quest ${questId10} progress updated.`);
   }
@@ -367,6 +377,7 @@ async function handleWorkAction(userId) {
       questData.status = false;
       await deleteUserQuests(userId, questId11); //remove when finished
       await storePack(userId);
+      msg.reply("You have completed a quest and received 1 pack!");
     }
     console.log(`Quest ${questId11} progress updated.`);
   }
@@ -382,6 +393,7 @@ async function handleWorkAction(userId) {
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
+      msg.reply("You have completed a quest and received 4 copies of your favCard!");
     }
     console.log(`Quest ${questId12} progress updated.`);
   }

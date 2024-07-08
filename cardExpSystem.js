@@ -6,7 +6,7 @@ const {storePack} = require("./userAssets.js")
 const {handleFeedAction} = require("./quests.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
-async function awardExp(userId, cardId, numberOfCards, msg, input){
+async function awardExp(userId, cardId, numberOfCards, msg){
   const user = await getUser(userId);
   const expGiven = numberOfCards * 50; //each card gives 50 exp
   const card = await getUserCard("user-cards", userId, cardId); //geting the user card with this id
@@ -76,7 +76,7 @@ async function awardExp(userId, cardId, numberOfCards, msg, input){
           const packEmbed = new EmbedBuilder().setTitle("Packs added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached max level and recieved 2 packs. These have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
           const userOwns = await getHowManyCopiesOwned("user-cards", userId, cardId);
           await changeNumberOwned("user-cards", userId, cardId, (userOwns - numberOfCards));
-          await handleFeedAction(userId, parseInt(numberOfCards));
+          await handleFeedAction(userId, parseInt(numberOfCards), msg);
           msg.channel.send({ embeds: [packEmbed] });
         } else {
           await interaction.update({ content: 'Cancelled feeding', embeds: [], components: [] });
@@ -93,7 +93,7 @@ async function awardExp(userId, cardId, numberOfCards, msg, input){
       }
       const userOwns = await getHowManyCopiesOwned("user-cards", userId, cardId);
       await changeNumberOwned("user-cards", userId, cardId, (userOwns - numberOfCards)); 
-      await handleFeedAction(userId, parseInt(numberOfCards));
+      await handleFeedAction(userId, parseInt(numberOfCards), msg);
     }
   }
   

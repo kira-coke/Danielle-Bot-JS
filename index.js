@@ -263,7 +263,7 @@ client.on("messageCreate", async (msg) => {
                     }, claimCd);
                 }
                 getClaim(msg, userId);
-                await handleClaimAction(userId); //quest handling 
+                await handleClaimAction(userId, msg); //quest handling 
             }
 
             if (command === "d" || command === "drop") {
@@ -297,7 +297,7 @@ client.on("messageCreate", async (msg) => {
                     }, dropCd);
                 }
                 getDrop(msg, userId);
-                await handleDropAction(userId);
+                await handleDropAction(userId, msg);
             }
 
             if (command === "bal") {
@@ -729,7 +729,7 @@ client.on("messageCreate", async (msg) => {
                     }, workCd);
                 }
                 await work(msg, userId);
-                await handleWorkAction(userId);
+                await handleWorkAction(userId, msg);
             }
 
             if (command === "wishlist" || command === "wl") {
