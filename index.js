@@ -33,7 +33,7 @@ const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
-const {setUserQuests, getUserQuests, createQuestEmbed, updateUserQuests, handleClaimAction} = require("./quests.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, handleFeedAction} = require("./quests.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -297,6 +297,7 @@ client.on("messageCreate", async (msg) => {
                     }, dropCd);
                 }
                 getDrop(msg, userId);
+                await handleDropAction(userId);
             }
 
             if (command === "bal") {
@@ -728,6 +729,7 @@ client.on("messageCreate", async (msg) => {
                     }, workCd);
                 }
                 await work(msg, userId);
+                await handleWorkAction(userId);
             }
 
             if (command === "wishlist" || command === "wl") {
@@ -1069,6 +1071,7 @@ client.on("messageCreate", async (msg) => {
                     String(cardId),
                     numberOfCards,
                     msg,
+                    input[1],
                 );
                 const amountOwnedBefore = await getHowManyCopiesOwned(
                     "user-cards",
@@ -1089,12 +1092,6 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("**Your card is already at max level!**");
                     return;
                 }
-                await changeNumberOwned(
-                    "user-cards",
-                    userId,
-                    cardId,
-                    newAmountOwned,
-                );
             }
 
             if (command === "upgrade" || command === "u") {
@@ -1310,6 +1307,7 @@ client.on("messageCreate", async (msg) => {
                 const userQuests = await getUserQuests(userId);
                 const embed = await createQuestEmbed(userQuests, msg);
                 msg.channel.send({ embeds: [embed] });
+                
             }
 
             if (command === "forcedrop") {
