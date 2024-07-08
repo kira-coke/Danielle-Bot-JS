@@ -13,11 +13,6 @@ async function awardExp(userId, cardId, numberOfCards, msg){
     console.log("User does not own this card");
     return 0;
   }
-  const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
-  if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
-    console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
-    return 1;
-  }
   const cardData = card[0];
   if(cardData.level === 20){
     console.log(cardData.upgradable);
@@ -25,6 +20,11 @@ async function awardExp(userId, cardId, numberOfCards, msg){
     await updateUserData("user-cards", cardData);
     console.log("User is already at max level");
     return 2;
+  }
+  const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
+  if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
+    console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
+    return 1;
   }
   if(cardData.level > 20){
       console.log("Your card is ready to upgrade!");
