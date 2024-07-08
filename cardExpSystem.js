@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
+const {getUserCard, getHowManyCopiesOwned, changeNumberOwned} = require("./cards.js");
 const {getUser, updateTotalExp} = require("./users.js");
 const { ActionRowBuilder, ButtonBuilder, EmbedBuilder } = require("discord.js");
 const {storePack} = require("./userAssets.js")
@@ -73,6 +73,8 @@ async function awardExp(userId, cardId, numberOfCards, msg){
           await storePack(userId);
           await storePack(userId);
           const packEmbed = new EmbedBuilder().setTitle("Packs added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached max level and recieved 2 packs. These have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
+          const userOwns = await getHowManyCopiesOwned("user-cards", userId, cardId);
+          await changeNumberOwned("user-cards", userId, cardId, (userOwns - numberOfCards));
           msg.channel.send({ embeds: [packEmbed] });
         } else {
           await interaction.update({ content: 'Cancelled feeding', embeds: [], components: [] });
@@ -152,6 +154,7 @@ function calculateLevelUpXP(level) {
    }
    return Math.round(100 * Math.pow(1.1, level));
 }
+
 function calculatePotentialLevelUpXP(level) {
    return Math.round(100 * Math.pow(1.1, level));
 }
