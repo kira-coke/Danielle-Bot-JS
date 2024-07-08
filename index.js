@@ -51,7 +51,7 @@ console.log = function(...args) {
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
 
-/*client.once('ready', async () => {
+client.once('ready', async () => {
     console.log('Bot is online!');
     try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
@@ -61,7 +61,7 @@ console.log = function(...args) {
     } catch (error) {
         console.log("Error setting pending reminders", error);
     }
-});*/
+});
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
