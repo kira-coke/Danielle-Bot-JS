@@ -40,6 +40,7 @@ async function setUserQuests(userId, maxQuests = 3){
   const questsToAssign = shuffledQuests.slice(0, numQuestsToAssign);
 
   for (const quest of questsToAssign) {
+    quest.progress = 0;
     await assignQuestToUser(userId, quest['quest-id']);
   }
 
