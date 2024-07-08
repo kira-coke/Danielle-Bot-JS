@@ -1038,7 +1038,7 @@ client.on("messageCreate", async (msg) => {
             if (command === "feed") {
                 const input = args.filter((code) => code.trim() !== "");
                 let cardId = input[0];
-                let numberOfCards = input[1].toLowerCase();
+                let numberOfCards = input[1];
                 if(cardId === "fc" || cardId === "FC" || cardId === "fC"|| cardId === "Fc"){
                     const user = await getUser(userId);
                     console.log(user);
@@ -1075,7 +1075,8 @@ client.on("messageCreate", async (msg) => {
                     userId,
                     cardId,
                 );
-                const newAmountOwner = amountOwnedBefore - numberOfCards;
+                const newAmountOwned = amountOwnedBefore - numberOfCards;
+
                 if (temp === 0) {
                     msg.reply("**You do not own this card**");
                     return;
@@ -1092,7 +1093,7 @@ client.on("messageCreate", async (msg) => {
                     "user-cards",
                     userId,
                     cardId,
-                    newAmountOwner,
+                    newAmountOwned,
                 );
             }
 
