@@ -28,6 +28,7 @@ const commands = [
     { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory." },
     { name: ".inv levels [@user]", description: "View your or someone else's currently leveled cards." },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
+    { name: ".quest / .q", description: "View your current quests."},
     { name: ".upgrade or .u card-id", description: "Upgrade a card to increase its tier."},
     { name: ".leaderboard/.lb [cards] [exp] [bal/balance]", description: "View the current leaderboards."},
     { name: ".remindersOn / remindersOff", description: "Enables or disables auto reminders."}
