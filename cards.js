@@ -349,4 +349,29 @@ async function getCardsWithLevels(tableName, userId) {
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels};
+async function addcardToCards(args, msg){
+    console.log(args);
+    const [cardId, cardRarity, cardUrl, groupMember, groupName, theme, version] = args;
+    const params = {
+        TableName: 'cards',
+        Item: {
+            'card-id': cardId,
+            cardRarity: parseInt(cardRarity), // Assuming cardRarity should be a number
+            cardUrl: cardUrl,
+            groupMember: groupMember,
+            groupName: groupName,
+            theme: theme,
+            version: parseInt(version), // Assuming version should be a number
+        },
+    };
+
+    try {
+        await dynamodb.put(params).promise();
+        msg.reply(`Card '${cardId}' added successfully.`);
+    } catch (error) {
+        console.error('Error adding card:', error);
+        msg.reply('Failed to add card. Please try again later.');
+    }
+}
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards};
