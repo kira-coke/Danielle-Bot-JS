@@ -33,7 +33,8 @@ const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
-const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, handleFeedAction} = require("./quests.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
+const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -51,7 +52,7 @@ console.log = function(...args) {
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
 
-client.once('ready', async () => {
+/*client.once('ready', async () => {
     console.log('Bot is online!');
     try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
@@ -61,7 +62,7 @@ client.once('ready', async () => {
     } catch (error) {
         console.log("Error setting pending reminders", error);
     }
-});
+});*/
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -1337,6 +1338,78 @@ client.on("messageCreate", async (msg) => {
                 const embed = await createQuestEmbed(userQuests, msg);
                 msg.channel.send({ embeds: [embed] });
                 
+            }
+
+            if(command === "gts"){
+                const input = args.filter((code) => code.trim() !== "");
+                if(input[0] === undefined){
+                     const embed = await globalTradeStationEmbed();
+                     msg.channel.send({ embeds: [embed] });
+                     return;
+                }
+                if(input[0] === "mine"){
+                    //add embed to show only your trades up
+                }
+                if(input[0] === "delete"){
+                     const tradeId = input[1];
+                     const trade = await getTradeByGlobalTradeId(tradeId);
+                     console.log(trade);
+                     if(trade.length === 0){
+                         msg.reply("Ensure you have entered a valid trade id");
+                         return;
+                     }
+                    if(trade[0]["user-id"] != userId){
+                        msg.reply("This is not a trade you own. You can only delete your own trades");
+                        return;
+                    }
+                    await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
+                    //return the cardUft to the user
+                }
+                if(input[0] === "create"){
+                    const cardUft = input[1];
+                    const cardLf = input[2];
+                    if(cardUft === cardLf){
+                        msg.reply("You cannot have your uft card be the same as your lf card");
+                        return;
+                    }
+                    try {
+                        await getCardFromTable("cards", cardUft);
+                        await getCardFromTable("cards", cardLf);
+                    } catch (error) {
+                        msg.reply("Please ensure both are valid card ids");
+                        console.log("Error:", error);
+                        return;
+                    }
+                    const userId = msg.author.id; 
+                    const cardCount = await getHowManyCopiesOwned("user-cards", userId, cardUft);
+                    if(cardCount === 0 || cardCount === 1){
+                        msg.reply("You do not own enough copies of this card to add this trade to the gts");
+                        return;
+                    }
+                    const userGTS =  await getUserGTS(userId);
+                    const missingIds = getMissingIds(userGTS);
+                    if(userGTS.length === 10){
+                        msg.reply("You have reached the max number of entries");
+                        return;
+                    }
+                    const tradeId = missingIds[0].toString();
+                    const timestamp = Date.now();
+                    await addToGTS(userId, tradeId, cardUft, cardLf, timestamp);
+                    //add removing of this card from users inv
+                }else{
+                    if(input[0] === "trade"){
+                         const trade = await getTradeByGlobalTradeId(input[0]);
+                         console.log(trade);
+                         if(trade.length === 0){
+                             msg.reply("Ensure you have entered a valid trade id");
+                             return;
+                         }
+                         msg.reply("Will add all this stuff later"); 
+                         //add one count of the lf card to the users inv
+                         //add one count of the uft card to the other users inv
+                         //remove trade from table
+                    }
+                }
             }
 
             if (command === "forcedrop") {
