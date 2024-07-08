@@ -33,6 +33,7 @@ const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, updateUserQuests, handleClaimAction} = require("./quests.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -50,17 +51,17 @@ console.log = function(...args) {
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
 
-client.once('ready', async () => {
+/*client.once('ready', async () => {
     console.log('Bot is online!');
     try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
-        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
+        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
     } catch (error) {
         console.log("Error setting pending reminders", error);
     }
-});
+});*/
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -262,6 +263,7 @@ client.on("messageCreate", async (msg) => {
                     }, claimCd);
                 }
                 getClaim(msg, userId);
+                await handleClaimAction(userId); //quest handling 
             }
 
             if (command === "d" || command === "drop") {
@@ -1300,6 +1302,13 @@ client.on("messageCreate", async (msg) => {
             if(command === "leaderboard" || command === "lb"){
                 const leaderboardType = args.filter((code) => code.trim() !== "");
                 await displayLeaderboard(msg, leaderboardType[0], client);
+            }
+
+            if(command === "quests" || command === "q"){
+                await setUserQuests(userId);
+                const userQuests = await getUserQuests(userId);
+                const embed = await createQuestEmbed(userQuests, msg);
+                msg.channel.send({ embeds: [embed] });
             }
 
             if (command === "forcedrop") {
