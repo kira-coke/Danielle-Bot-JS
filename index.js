@@ -146,7 +146,7 @@ client.on("messageCreate", async (msg) => {
               console.log(`Bot lacks required permissions in channel ${msg.channel.name} (${msg.channel.id}).`);
               return;
             }
-            const args = msg.content.slice(prefix.length).trim().split(" ");
+            let args = msg.content.slice(prefix.length).trim().split(" ");
             const command = args.shift().toLowerCase();
             const userId = msg.author.id;
             const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
@@ -157,8 +157,14 @@ client.on("messageCreate", async (msg) => {
             const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
 
             if (command === 'addcard' && msg.member.permissions.has('mod')) {
+                const contentWithoutPrefix = msg.content.slice(prefix.length).trim();
+                const [cmd, ...args] = contentWithoutPrefix.match(/(?:[^\s"]+|"[^"]*")+/g).map(arg => arg.replace(/"/g, ''));
+                console.log(args);
                 if (args.length < 7) {
                     return msg.reply('Not enough arguments provided. Usage: .addcard card-id cardRarity cardUrl GroupMember GroupName Theme version');
+                }
+                if(args.length > 7){
+                    return msg.reply('Too many arguments provided. Usage: .addcard card-id cardRarity cardUrl GroupMember GroupName Theme version');
                 }
                 await addcardToCards(args, msg);
             }
