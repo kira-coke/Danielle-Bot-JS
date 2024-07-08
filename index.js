@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -52,7 +52,7 @@ console.log = function(...args) {
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
 
-/*client.once('ready', async () => {
+client.once('ready', async () => {
     console.log('Bot is online!');
     try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
@@ -62,7 +62,7 @@ console.log = function(...args) {
     } catch (error) {
         console.log("Error setting pending reminders", error);
     }
-});*/
+});
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -95,7 +95,6 @@ client.on("messageCreate", async (msg) => {
                     process.exit();
                 });
         }
-
         if (msg.content === ".checkpermissions") {
             try {
                 const requiredPermissions = [
@@ -156,6 +155,13 @@ client.on("messageCreate", async (msg) => {
             const member = msg.member;
             const channel = msg.channelId;
             const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
+
+            if (command === 'addcard' && msg.member.permissions.has('mod')) {
+                if (args.length < 7) {
+                    return msg.reply('Not enough arguments provided. Usage: .addcard card-id cardRarity cardUrl GroupMember GroupName Theme version');
+                }
+                await addcardToCards(args, msg);
+            }
 
             if (remainingCooldown !== "0m 0s") {
                 msg.reply(
@@ -1340,7 +1346,7 @@ client.on("messageCreate", async (msg) => {
                 
             }
 
-            if(command === "gts"){
+            /*if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
                 if(input[0] === undefined){
                      const embed = await globalTradeStationEmbed();
@@ -1410,7 +1416,7 @@ client.on("messageCreate", async (msg) => {
                          //remove trade from table
                     }
                 }
-            }
+            }*/
 
             if (command === "forcedrop") {
                 const REQUIRED_ROLE_NAME = "mod";
