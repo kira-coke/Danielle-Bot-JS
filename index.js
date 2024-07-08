@@ -69,7 +69,7 @@ client.on("ready", () => {
         client.user.setPresence({
             status: 'online',
             activities: [{
-                name: 'Hybe Boy',
+                name: 'Hype Boy',
                 type: ActivityType.Listening,
             }],
         });
@@ -172,16 +172,30 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 isLocked = !isLocked;
-                try {
-                    client.user.setPresence({
-                        status: 'idle',
-                        activities: [{
-                            name: 'Hybe Boy',
-                            type: ActivityType.Listening,
-                        }],
-                    });
-                } catch (error) {
-                    console.error('Error setting presence:', error);
+                if(isLocked === true){
+                    try {
+                        client.user.setPresence({
+                            status: 'idle',
+                            activities: [{
+                                name: 'Hype Boy',
+                                type: ActivityType.Listening,
+                            }],
+                        });
+                    } catch (error) {
+                        console.error('Error setting presence:', error);
+                    }
+                }else{
+                    try {
+                        client.user.setPresence({
+                            status: 'online',
+                            activities: [{
+                                name: 'Hype Boy',
+                                type: ActivityType.Listening,
+                            }],
+                        });
+                    } catch (error) {
+                        console.error('Error setting presence:', error);
+                    }
                 }
                 return msg.channel.send(`Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`);
             }
