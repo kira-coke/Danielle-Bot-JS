@@ -161,7 +161,6 @@ function calculatePotentialNewLevel(level, exp) {
     exp -= calculatePotentialLevelUpXP(level);
     level += 1;
   }
-  console.log(level);
   return level;
 }
 

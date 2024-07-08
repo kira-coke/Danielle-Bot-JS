@@ -1035,14 +1035,32 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "feed") {
                 const input = args.filter((code) => code.trim() !== "");
-                const cardId = input[0];
-                let numberOfCards = input[1];
-                if (isNaN(numberOfCards) || args.length < 2) {
-                    numberOfCards = 1;
+                let cardId = input[0];
+                let numberOfCards = input[1].toLowerCase();
+                if(cardId === "fc" || cardId === "FC" || cardId === "fC"|| cardId === "Fc"){
+                    const user = await getUser(userId);
+                    console.log(user);
+                    cardId = user["FavCard"];
                 }
-                if (isNaN(numberOfCards) || numberOfCards === undefined) {
-                    msg.reply("Please ensure you have entered a valid number.");
+                try{
+                    await getCardFromTable("cards", cardId);
+                }catch(error){
+                    msg.reply("**This is not a valid card id.**");
+                    console.log("Error getting item from table: ", error);
                     return;
+                }
+                if(numberOfCards === "all"){
+                    const all = await getHowManyCopiesOwned("user-cards", userId, cardId);
+                    numberOfCards = all - 1;
+                    console.log("Number owned: ", numberOfCards)
+                }else{
+                    if (isNaN(numberOfCards) || args.length < 2) {
+                        numberOfCards = 1;
+                    }
+                    if (isNaN(numberOfCards) || numberOfCards === undefined) {
+                        msg.reply("Please ensure you have entered a valid number.");
+                        return;
+                    }
                 }
                 const temp = await awardExp(
                     userId,
