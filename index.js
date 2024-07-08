@@ -42,7 +42,7 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const {EmbedBuilder} = require("discord.js");
+const {EmbedBuilder, ActivityType} = require("discord.js");
 const originalLog = console.log;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 
@@ -65,13 +65,17 @@ client.once('ready', async () => {
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setPresence({
-        status: 'online',
-        activities: [{
-            name: 'Hybe Boy',
-            type: 'LISTENING',
-        }],
-    });
+    try {
+        client.user.setPresence({
+            status: 'online',
+            activities: [{
+                name: 'Hybe Boy',
+                type: ActivityType.Listening,
+            }],
+        });
+    } catch (error) {
+        console.error('Error setting presence:', error);
+    }
     schedule.scheduleJob('*/20 * * * *', () => { //change to
         sendRaffleEmbed();
     });
