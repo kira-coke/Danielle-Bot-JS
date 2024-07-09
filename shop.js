@@ -191,7 +191,7 @@ async function packOpen(msg, userId) {
                 inline: false
             })));
 
-        msg.channel.send({ embeds: [embed] });
+        msg.reply({ embeds: [embed] });
     } catch (error) {
         console.error('Error opening pack:', error);
         msg.channel.send('An error occurred while opening the pack. Please try again later.');
