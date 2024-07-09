@@ -35,6 +35,7 @@ const { getPacks, removePack} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
+const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -54,14 +55,14 @@ console.log = function(...args) {
 
 client.once('ready', async () => {
     console.log('Bot is online!');
-    try {
+    /*try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
     } catch (error) {
         console.log("Error setting pending reminders", error);
-    }
+    }*/
 });
 
 client.on("ready", () => {
@@ -306,6 +307,8 @@ client.on("messageCreate", async (msg) => {
                 }
                 getClaim(msg, userId);
                 await handleClaimAction(userId, msg); //quest handling 
+                await updateComDgStats(userId, 1);
+                await updateUserDgStats(userId, 1);
             }
 
             if (command === "d" || command === "drop") {
@@ -340,6 +343,8 @@ client.on("messageCreate", async (msg) => {
                 }
                 getDrop(msg, userId);
                 await handleDropAction(userId, msg);
+                await updateComDgStats(userId, 2);
+                await updateUserDgStats(userId, 2);
             }
 
             if (command === "bal") {
@@ -772,6 +777,8 @@ client.on("messageCreate", async (msg) => {
                 }
                 await work(msg, userId);
                 await handleWorkAction(userId, msg);
+                await updateComDgStats(userId, 12);
+                await updateUserDgStats(userId, 12);
             }
 
             if (command === "wishlist" || command === "wl") {
@@ -1342,6 +1349,11 @@ client.on("messageCreate", async (msg) => {
             if(command === "leaderboard" || command === "lb"){
                 const leaderboardType = args.filter((code) => code.trim() !== "");
                 await displayLeaderboard(msg, leaderboardType[0], client);
+            }
+
+            if(command === "community" || command === "com"){
+                const input = args.filter((code) => code.trim() !== "");
+                await sortCommunityOut(msg, input, userId);
             }
 
             if(command === "quests" || command === "q"){

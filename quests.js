@@ -60,7 +60,6 @@ async function assignQuestToUser(userId, questId) {
 
   try {
     await dynamodb.put(params).promise();
-    console.log(`Assigned quest ${questId} to user ${userId}`);
   } catch (error) {
     console.log("Error assigning quest:", error);
     throw error;
@@ -144,7 +143,7 @@ async function updateUserQuests(userId, questId, progress){
 
   try {
     const data = await dynamodb.update(params).promise();
-    console.log(`Updated quest progress for quest ${questId} for user ${userId}. New progress: ${data.Attributes.progress}`);
+    //console.log(`Updated quest progress for quest ${questId} for user ${userId}. New progress: ${data.Attributes.progress}`);
     return data.Attributes.progress; // Return updated progress
   } catch (error) {
     console.error("Error updating quest progress:", error);
@@ -163,7 +162,7 @@ async function deleteUserQuests(userId, questId){
 
   try {
     await dynamodb.delete(params).promise();
-    console.log(`Deleted quest ${questId} for user ${userId}`);
+    //console.log(`Deleted quest ${questId} for user ${userId}`);
   } catch (error) {
     console.log("Error deleting quest:", error);
     throw error;
@@ -210,7 +209,7 @@ async function handleClaimAction(userId, msg) {
       await saveUserBalance(userId, balance + 3000);
       msg.reply("You have completed a quest and received 3000 coins!");
     }
-    console.log(`Quest ${questId1} progress updated.`);
+    //console.log(`Quest ${questId1} progress updated.`);
   }
 
   const quest2 = userQuests.find(quest => quest['quest-id'] === questId2);  //sees if user has quest 2
@@ -224,7 +223,7 @@ async function handleClaimAction(userId, msg) {
       await storePack(userId);
       msg.reply("You have completed a quest and received 1 pack!");
     }
-    console.log(`Quest ${questId2} progress updated.`);
+    //console.log(`Quest ${questId2} progress updated.`);
   }
   const quest3 = userQuests.find(quest => quest['quest-id'] === questId3); //sees if user has quest 1
   if (quest3) {
@@ -240,7 +239,7 @@ async function handleClaimAction(userId, msg) {
       await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
       msg.reply("You have completed a quest and received 2 copies of your favCard!");
     }
-    console.log(`Quest ${questId1} progress updated.`);
+    //console.log(`Quest ${questId1} progress updated.`);
   }
 }
 
@@ -261,7 +260,7 @@ async function handleDropAction(userId, msg){
       await saveUserBalance(userId, balance + 3000);
       msg.reply("You have completed a quest and received 3000 coins!");
     }
-    console.log(`Quest ${questId4} progress updated.`);
+    //console.log(`Quest ${questId4} progress updated.`);
   }
 
   const quest5 = userQuests.find(quest => quest['quest-id'] === questId5);  //sees if user has quest 2
@@ -275,7 +274,7 @@ async function handleDropAction(userId, msg){
       await storePack(userId);
       msg.reply("You have completed a quest and received 1 pack!");
     }
-    console.log(`Quest ${questId5} progress updated.`);
+    //console.log(`Quest ${questId5} progress updated.`);
   }
   const quest6 = userQuests.find(quest => quest['quest-id'] === questId6); //sees if user has quest 1
   if (quest6) {
@@ -291,15 +290,15 @@ async function handleDropAction(userId, msg){
       await changeNumberOwned("user-cards", userId, favCard, numberOwned + 3);
       msg.reply("You have completed a quest and received 3 copies of your favCard!");
     }
-    console.log(`Quest ${questId6} progress updated.`);
+    //console.log(`Quest ${questId6} progress updated.`);
   }
   
 }
 
 async function handleFeedAction(userId, copies, msg) {
-  console.log(copies);
+  //console.log(copies);
   const userQuests = await getUserQuests(userId);
-  console.log(userQuests);
+  //console.log(userQuests);
   const questId7 = "7";
   const questId8 = "8"; 
   const questId9 = "9";
@@ -315,12 +314,12 @@ async function handleFeedAction(userId, copies, msg) {
       await saveUserBalance(userId, balance + 1500);
       msg.reply("You have completed a quest and received 1500 coins!");
     }
-    console.log(`Quest ${questId7} progress updated.`);
+    //console.log(`Quest ${questId7} progress updated.`);
   }
 
   const quest8 = userQuests.find(quest => quest['quest-id'] === questId8);  //sees if user has quest 2
   if (quest8) {
-    console.log("checked quest right");
+    //console.log("checked quest right");
     const progress8 = copies; // Example: Increment progress by 1 for each claim
     await updateUserQuests(userId, questId8, progress8);
     const questData = await getUserQuest(userId, questId8);
@@ -331,7 +330,7 @@ async function handleFeedAction(userId, copies, msg) {
       await saveUserBalance(userId, balance + 4000);
       msg.reply("You have completed a quest and received 4000 coins!");
     }
-    console.log(`Quest ${questId8} progress updated.`);
+    //console.log(`Quest ${questId8} progress updated.`);
   }
   const quest9 = userQuests.find(quest => quest['quest-id'] === questId9); //sees if user has quest 1
   if (quest9) {
@@ -344,7 +343,7 @@ async function handleFeedAction(userId, copies, msg) {
       await storePack(userId);
       msg.reply("You have completed a quest and received 1 pack!");
     }
-    console.log(`Quest ${questId9} progress updated.`);
+    //console.log(`Quest ${questId9} progress updated.`);
   }
 }
 
@@ -366,7 +365,7 @@ async function handleWorkAction(userId, msg) {
       await saveUserBalance(userId, balance + 4000);
       msg.reply("You have completed a quest and received 4000 coins!");
     }
-    console.log(`Quest ${questId10} progress updated.`);
+    //console.log(`Quest ${questId10} progress updated.`);
   }
 
   const quest11 = userQuests.find(quest => quest['quest-id'] === questId11);  //sees if user has quest 2
@@ -380,7 +379,7 @@ async function handleWorkAction(userId, msg) {
       await storePack(userId);
       msg.reply("You have completed a quest and received 1 pack!");
     }
-    console.log(`Quest ${questId11} progress updated.`);
+    //console.log(`Quest ${questId11} progress updated.`);
   }
   const quest12 = userQuests.find(quest => quest['quest-id'] === questId12); //sees if user has quest 1
   if (quest12) {
@@ -396,7 +395,7 @@ async function handleWorkAction(userId, msg) {
       await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
       msg.reply("You have completed a quest and received 4 copies of your favCard!");
     }
-    console.log(`Quest ${questId12} progress updated.`);
+    //console.log(`Quest ${questId12} progress updated.`);
   }
 }
 
