@@ -35,6 +35,7 @@ const { getPacks, removePack} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
+const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -45,13 +46,17 @@ const client = new Discord.Client({
 });
 const {EmbedBuilder, ActivityType} = require("discord.js");
 const originalLog = console.log;
+const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 
 console.log = function(...args) {
     const timestamp = new Date().toISOString();
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
-
+console.error = function(...args) {
+    const timestamp = new Date().toISOString();
+    originalError.apply(console, [`[${timestamp}]`, ...args]);
+};
 client.once('ready', async () => {
     console.log('Bot is online!');
     try {
@@ -306,6 +311,8 @@ client.on("messageCreate", async (msg) => {
                 }
                 getClaim(msg, userId);
                 await handleClaimAction(userId, msg); //quest handling 
+                await updateComDgStats(userId, 1);
+                await updateUserDgStats(userId, 1);
             }
 
             if (command === "d" || command === "drop") {
@@ -340,6 +347,8 @@ client.on("messageCreate", async (msg) => {
                 }
                 getDrop(msg, userId);
                 await handleDropAction(userId, msg);
+                await updateComDgStats(userId, 2);
+                await updateUserDgStats(userId, 2);
             }
 
             if (command === "bal") {
@@ -772,15 +781,18 @@ client.on("messageCreate", async (msg) => {
                 }
                 await work(msg, userId);
                 await handleWorkAction(userId, msg);
+                await updateComDgStats(userId, 12);
+                await updateUserDgStats(userId, 12);
             }
 
             if (command === "wishlist" || command === "wl") {
-                const codes = args.filter((code) => code.trim() !== "");
-                if (codes[0] === undefined) {
+                const action = args[0];
+                const codes = args.slice(1).filter((code) => code.trim() !== "");
+                if (action === undefined) {
                     msg.reply("**Please input at least .wl clear, .wl add or .wl set");
                     return;
                 }
-                if(codes[0] === "clear"){
+                if(action === "clear"){
                     await setUserWishList(
                         "Dani-bot-playerbase",
                         userId,
@@ -789,13 +801,13 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("Your wishlist has been cleared");
                     return;
                 }
-                if(codes[0] === "add"){
+                if(action === "add"){
                     const currentWl = await getUserWishList("Dani-bot-playerbase",userId);
                     let newWl = "";
                     if((currentWl.length+codes.length) > 10){
                         msg.reply("Your wl will be over 10 codes. You currently have "+ currentWl.length + " codes in your wishlist");
                     }else{
-                        for (let i = 1; i < codes.length; i++) {
+                        for (let i = 0; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -806,8 +818,9 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const newCodes = codes.slice(1); 
+                        const newCodes = codes; 
                         const updatedWishlist = currentWl.concat(newCodes);
+                        console.log(updatedWishlist);
                         newWl = updatedWishlist.join(", "); 
                         console.log(newWl);
                         await setUserWishList(
@@ -820,12 +833,12 @@ client.on("messageCreate", async (msg) => {
                         );
                     }
                 }
-                if(codes[0] === "set"){
-                    if (codes.length > 11) {
+                if(action === "set"){
+                    if (codes.length > 10) {
                         msg.reply("**The limit is 10 codes**");
                         return;
                     } else {
-                        for (let i = 1; i < codes.length; i++) {
+                        for (let i = 0 ; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -836,7 +849,7 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const codesString = codes.slice(1).join(", ");
+                        const codesString = codes.slice(0).join(", ");
                         await setUserWishList(
                             "Dani-bot-playerbase",
                             userId,
@@ -1343,6 +1356,11 @@ client.on("messageCreate", async (msg) => {
                 const leaderboardType = args.filter((code) => code.trim() !== "");
                 await displayLeaderboard(msg, leaderboardType[0], client);
             }
+
+            //if(command === "community" || command === "com"){
+                //const input = args.filter((code) => code.trim() !== "");
+                //await sortCommunityOut(msg, input, userId);
+            //}
 
             if(command === "quests" || command === "q"){
                 await setUserQuests(userId);
