@@ -2,6 +2,7 @@ const AWS = require('aws-sdk');
 const {getUser} = require("./users");
 //const s3 = new AWS.S3();
 const dynamodb = new AWS.DynamoDB.DocumentClient
+const {EmbedBuilder, inlineCode} = require("discord.js");
 
 async function getRandomDynamoDBItem(tableName) {
     try {
@@ -401,4 +402,54 @@ async function addcardToCards(args, msg){
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards};
+async function modGiftCard(targetUser, cardIDToGift, msg){
+    let cardData = " ";
+    try{
+        cardData = await getCardFromTable("cards", cardIDToGift);
+    }catch(error){
+        msg.reply("Please ensure the card id is valid");
+        return;
+    }
+    if(targetUser){
+        let item = {};
+        try{
+            const totalCount = await getHowManyCopiesOwned("user-cards", targetUser.id, cardIDToGift);
+            if(totalCount === 0){
+                item = {
+                    "user-id": targetUser.id, //primary key
+                    "card-id": cardIDToGift, //secondary key
+                    exp: 0,
+                    level: 0,
+                    upgradable: false,
+                    "copies-owned": 1,
+                    tier: 1,
+                    totalExp: 0
+                };
+                writeToDynamoDB("user-cards", item)
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+            }else{
+                const amount = parseInt(totalCount) + 1;
+                changeNumberOwned("user-cards", targetUser.id, cardIDToGift, amount);
+            }
+        }catch(error){
+            console.log(error);
+        }
+        const totalOwned = await checkTotalCardCount("Dani-bot-playerbase", targetUser.id)
+        await addToTotalCardCount("Dani-bot-playerbase", targetUser.id, parseInt(totalOwned) + 1);
+        const embed = new EmbedBuilder()
+            .setColor('#dd2d4a')
+            .setTitle('Card Gifted!')
+            .setDescription(`<@${targetUser.id}> has been gifted card: ${inlineCode(cardIDToGift)}`)
+            .setThumbnail(cardData["cardUrl"])
+            .setTimestamp();
+
+        msg.channel.send({ embeds: [embed] });
+    }else{
+        msg.reply("Please mention a user.")
+        return;
+    }
+}
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard};

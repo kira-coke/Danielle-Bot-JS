@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -1336,7 +1336,7 @@ client.on("messageCreate", async (msg) => {
             //if(command === "community" || command === "com"){
                // const input = args.filter((code) => code.trim() !== "");
                // await sortCommunityOut(msg, input, userId);
-           // }
+            //}
 
             if(command === "quests" || command === "q"){
                 await setUserQuests(userId);
@@ -1506,6 +1506,24 @@ client.on("messageCreate", async (msg) => {
                 } else {
                     return;
                 }
+            }
+
+            if(command === "giftcard"){
+                let user = " ";
+                const REQUIRED_ROLE_NAME = "mod";
+                const cardIDToGift = args[1];
+                const role = msg.guild.roles.cache.find(
+                    (role) => role.name === REQUIRED_ROLE_NAME,
+                );
+                 if (role && msg.member.roles.cache.has(role.id)) {
+                    const targetUser = msg.mentions.users.first();
+                     try{
+                         await modGiftCard(targetUser, cardIDToGift, msg);
+                     }catch(error){
+                         msg.reply("Issue gifting card to user.");
+                         console.log("Error: ", error);
+                     }
+                 }
             }
             
             if (command === "createraffle") {
