@@ -107,7 +107,11 @@ async function packOpen(msg, userId) {
                 cardPromises.push(getRandomDynamoDBItem("cards"));
             } else {
                 if (cardData.tier >= 2) {
-                    cardPromises.push(getWeightedCard(userId));
+                    if(cardData.cardRarity === 1){
+                        cardPromises.push(getWeightedCard(userId));
+                    }else{
+                        cardPromises.push(getRandomDynamoDBItem("cards"));
+                    }
                 } else {
                     cardPromises.push(getRandomDynamoDBItem("cards"));
                 }

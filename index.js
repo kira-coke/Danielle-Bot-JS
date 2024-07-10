@@ -1357,10 +1357,10 @@ client.on("messageCreate", async (msg) => {
                 await displayLeaderboard(msg, leaderboardType[0], client);
             }
 
-            if(command === "community" || command === "com"){
-                const input = args.filter((code) => code.trim() !== "");
-                await sortCommunityOut(msg, input, userId);
-            }
+            //if(command === "community" || command === "com"){
+                //const input = args.filter((code) => code.trim() !== "");
+                //await sortCommunityOut(msg, input, userId);
+            //}
 
             if(command === "quests" || command === "q"){
                 await setUserQuests(userId);

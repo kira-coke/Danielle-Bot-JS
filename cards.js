@@ -292,6 +292,10 @@ async function getWeightedCard(userId){
     const userFavCard = user["FavCard"];
     const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
     const cardData = userFavCardData[0];
+    if(cardData.cardRarity != 1){
+        console.log("User fav card is custom/le/event.")
+        return;
+    }
     let cardWeights = {};
     if(cardData === undefined){
     }else{

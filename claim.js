@@ -18,8 +18,12 @@ async function getClaim(msg,userId){
             }else{
                 if(cardData.tier >=2){
                     try{
-                        randomCard = await getWeightedCard(userId);
-                        console.log("Got weighted card");
+                        if(cardData.cardRarity === 1){
+                            randomCard = await getWeightedCard(userId);
+                            console.log("Got weighted card");
+                        }else{
+                            randomCard = await getRandomDynamoDBItem(tableName);
+                        }
                     }catch(error){
                         console.log("Issue getting weighted random card");
                         console.log(error);

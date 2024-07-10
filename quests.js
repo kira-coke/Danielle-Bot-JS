@@ -310,14 +310,16 @@ async function handleFeedAction(userId, copies, msg) {
     if(questData.progress >= 5){
       questData.status = false;
       await deleteUserQuests(userId, questId7); //remove when finished
-      const balance = await getUsersBalance(userId);
-      await saveUserBalance(userId, balance + 1500);
-      msg.reply("You have completed a quest and received 1500 coins!");
+      const user = await getUser(userId);
+      const favCard = user["FavCard"];
+      const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
+      await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
+      msg.reply("You have completed a quest and received 1 copy of your favCard!");
     }
     //console.log(`Quest ${questId7} progress updated.`);
   }
 
-  const quest8 = userQuests.find(quest => quest['quest-id'] === questId8);  //sees if user has quest 2
+  /*const quest8 = userQuests.find(quest => quest['quest-id'] === questId8);  //sees if user has quest 2
   if (quest8) {
     //console.log("checked quest right");
     const progress8 = copies; // Example: Increment progress by 1 for each claim
@@ -344,7 +346,7 @@ async function handleFeedAction(userId, copies, msg) {
       msg.reply("You have completed a quest and received 1 pack!");
     }
     //console.log(`Quest ${questId9} progress updated.`);
-  }
+  }*/
 }
 
 async function handleWorkAction(userId, msg) {
