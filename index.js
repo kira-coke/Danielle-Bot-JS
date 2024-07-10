@@ -953,6 +953,10 @@ client.on("messageCreate", async (msg) => {
                         console.error("Error getting custom cards:", error);
                         return;
                     }
+                    if(userCustoms.length === 0){
+                        msg.reply("You have no custom cards");
+                        return;
+                    }
                     const cardsPerPage = 10;
                     const totalPages = Math.ceil(userCustoms.length / cardsPerPage);
 
