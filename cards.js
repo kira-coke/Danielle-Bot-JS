@@ -353,6 +353,23 @@ async function getCardsWithLevels(tableName, userId) {
     }
 }
 
+async function getUserCustomCards(userId) {
+    try {
+        const customCards = await filterByAttribute("cards", "cardRarity", 4);
+        let userOwnedCustomCards = [];
+        for (const card of customCards) {
+            const userOwns = await checkIfUserOwnsCard("user-cards", userId, card["card-id"]);
+            if(userOwns != 0){
+                userOwnedCustomCards.push(card);
+            }
+        }
+        return userOwnedCustomCards;
+    } catch (error) {
+        console.error("Error fetching user custom cards:", error);
+        throw error;
+    }
+}
+
 async function addcardToCards(args, msg){
     console.log(args);
     const [cardId, cardRarity, cardUrl, groupMember, groupName, theme, version] = args;
@@ -378,4 +395,4 @@ async function addcardToCards(args, msg){
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards};
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards};
