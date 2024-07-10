@@ -371,7 +371,6 @@ async function getUserCustomCards(userId) {
 }
 
 async function addcardToCards(args, msg){
-    console.log(args);
     const [cardId, cardRarity, cardUrl, groupMember, groupName, theme, version] = args;
     const params = {
         TableName: 'cards',
@@ -379,19 +378,26 @@ async function addcardToCards(args, msg){
             'card-id': cardId,
             cardRarity: parseInt(cardRarity), // Assuming cardRarity should be a number
             cardUrl: cardUrl,
-            groupMember: groupMember,
-            groupName: groupName,
-            theme: theme,
+            GroupMember: groupMember,
+            GroupName: groupName,
+            Theme: theme,
             version: parseInt(version), // Assuming version should be a number
         },
+        ConditionExpression: 'attribute_not_exists(#cardId)', // Ensure card-id does not already exist
+        ExpressionAttributeNames: {
+            '#cardId': 'card-id'
+        }
     };
-
     try {
         await dynamodb.put(params).promise();
         msg.reply(`Card '${cardId}' added successfully.`);
     } catch (error) {
         console.error('Error adding card:', error);
-        msg.reply('Failed to add card. Please try again later.');
+        if (error.statusCode === 400) {
+            msg.reply('Failed to add card. Likely due to duplicate code.');
+        }else{
+            msg.reply('Failed to add card. Please try again later.');
+        }
     }
 }
 
