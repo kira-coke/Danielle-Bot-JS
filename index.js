@@ -588,7 +588,7 @@ client.on("messageCreate", async (msg) => {
                         const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                             .setColor("#feb69e")
                             .setDescription(
-                                `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}**`,
+                                `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}** (${cardToView["Theme"]})`,
                             )
                             .setImage(cardToView["cardUrl"]); // changed depending on the card recieved
                         embed.addFields({
