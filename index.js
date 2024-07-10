@@ -1334,9 +1334,9 @@ client.on("messageCreate", async (msg) => {
             }
 
             //if(command === "community" || command === "com"){
-                //const input = args.filter((code) => code.trim() !== "");
-                //await sortCommunityOut(msg, input, userId);
-            //}
+               // const input = args.filter((code) => code.trim() !== "");
+               // await sortCommunityOut(msg, input, userId);
+           // }
 
             if(command === "quests" || command === "q"){
                 await setUserQuests(userId);

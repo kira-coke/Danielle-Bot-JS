@@ -625,7 +625,12 @@ async function sortCommunityOut(msg, input, userId){
   }
   
   if(input[0] === undefined){
-    const userCom = await getUserCommunity(userId);
+    const userInCom = await checkIfUserIsInCommunity(msg.author.id);
+    if(userInCom === false){
+        console.log("User is not in a community");
+        return;
+    }
+    const userCom = await getUserCommunity(msg.author.id);
     const comData = await getCommunityData(userCom["communityName"]);
     const embed = communityEmbed(comData);
     await msg.channel.send({ embeds: [embed] });
@@ -634,6 +639,11 @@ async function sortCommunityOut(msg, input, userId){
 }
 
 async function updateComDgStats(userId, amount){
+  const userInCom = await checkIfUserIsInCommunity(userId);
+  if(userInCom === false){
+      console.log("User is not in a community");
+      return;
+  }
   try{
     const userData = await getUserCommunity(userId);
     const userCom = userData["communityName"];
@@ -662,6 +672,11 @@ async function updateComDgStats(userId, amount){
 }
 
 async function updateUserDgStats(userId, amount){
+  const userInCom = await checkIfUserIsInCommunity(userId);
+  if(userInCom === false){
+      console.log("User is not in a community");
+      return;
+  }
   try{
     const userData = await getUserCommunity(userId);
     let dgStats = userData["dgStats"];
