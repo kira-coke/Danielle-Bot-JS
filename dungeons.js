@@ -78,8 +78,8 @@ async function enterDg(msg, userId, cardId, dg){
           inline: false
         });
       }
-      await updateComDgStats(userId, 80);
-      await updateUserDgStats(userId, 80);
+      //await updateComDgStats(userId, 80);
+      //await updateUserDgStats(userId, 80);
     }else {
        embed.setColor("dd2d4a");
         embed.addFields({
@@ -88,8 +88,8 @@ async function enterDg(msg, userId, cardId, dg){
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
-      await updateComDgStats(userId, 30);
-      await updateUserDgStats(userId, 30);
+      //await updateComDgStats(userId, 30);
+      //await updateUserDgStats(userId, 30);
     }
   }
 
@@ -141,8 +141,8 @@ async function enterDg(msg, userId, cardId, dg){
           inline: false
         });
       }
-      await updateComDgStats(userId, 80);
-      await updateUserDgStats(userId, 80);
+      //await updateComDgStats(userId, 80);
+      //await updateUserDgStats(userId, 80);
     }else {
        embed.setColor("dd2d4a");
         embed.addFields({
@@ -151,8 +151,8 @@ async function enterDg(msg, userId, cardId, dg){
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
-      await updateComDgStats(userId, 30);
-      await updateUserDgStats(userId, 30);
+      //await updateComDgStats(userId, 30);
+      //await updateUserDgStats(userId, 30);
     }
   }
 
@@ -204,8 +204,8 @@ async function enterDg(msg, userId, cardId, dg){
           inline: false
         });
       }
-      await updateComDgStats(userId, 80);
-      await updateUserDgStats(userId, 80);
+      //await updateComDgStats(userId, 80);
+      //await updateUserDgStats(userId, 80);
     }else {
        embed.setColor("dd2d4a");
         embed.addFields({
@@ -214,8 +214,8 @@ async function enterDg(msg, userId, cardId, dg){
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
-      await updateComDgStats(userId, 30);
-      await updateUserDgStats(userId, 30);
+      //await updateComDgStats(userId, 30);
+      //await updateUserDgStats(userId, 30);
     }
   }
   msg.channel.send({ embeds: [embed] });
