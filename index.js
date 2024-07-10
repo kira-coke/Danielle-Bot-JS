@@ -46,6 +46,7 @@ const client = new Discord.Client({
 });
 const {EmbedBuilder, ActivityType} = require("discord.js");
 const originalLog = console.log;
+const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 
 console.log = function(...args) {
@@ -785,12 +786,13 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "wishlist" || command === "wl") {
-                const codes = args.filter((code) => code.trim() !== "");
-                if (codes[0] === undefined) {
+                const action = args[0];
+                const codes = args.slice(1).filter((code) => code.trim() !== "");
+                if (action === undefined) {
                     msg.reply("**Please input at least .wl clear, .wl add or .wl set");
                     return;
                 }
-                if(codes[0] === "clear"){
+                if(action === "clear"){
                     await setUserWishList(
                         "Dani-bot-playerbase",
                         userId,
@@ -799,13 +801,13 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("Your wishlist has been cleared");
                     return;
                 }
-                if(codes[0] === "add"){
+                if(action === "add"){
                     const currentWl = await getUserWishList("Dani-bot-playerbase",userId);
                     let newWl = "";
                     if((currentWl.length+codes.length) > 10){
                         msg.reply("Your wl will be over 10 codes. You currently have "+ currentWl.length + " codes in your wishlist");
                     }else{
-                        for (let i = 1; i < codes.length; i++) {
+                        for (let i = 0; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -816,8 +818,9 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const newCodes = codes.slice(1); 
+                        const newCodes = codes; 
                         const updatedWishlist = currentWl.concat(newCodes);
+                        console.log(updatedWishlist);
                         newWl = updatedWishlist.join(", "); 
                         console.log(newWl);
                         await setUserWishList(
@@ -830,12 +833,12 @@ client.on("messageCreate", async (msg) => {
                         );
                     }
                 }
-                if(codes[0] === "set"){
-                    if (codes.length > 11) {
+                if(action === "set"){
+                    if (codes.length > 10) {
                         msg.reply("**The limit is 10 codes**");
                         return;
                     } else {
-                        for (let i = 1; i < codes.length; i++) {
+                        for (let i = 0 ; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -846,7 +849,7 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const codesString = codes.slice(1).join(", ");
+                        const codesString = codes.slice(0).join(", ");
                         await setUserWishList(
                             "Dani-bot-playerbase",
                             userId,
