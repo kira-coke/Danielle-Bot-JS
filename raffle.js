@@ -54,7 +54,12 @@ async function raffle(channel, client){
           await interaction.reply({ content: 'You have already entered the raffle.', ephemeral: true });
       } else {
           raffleEntries.add(interaction.user.id);
-          await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+          try {
+            await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+          } catch (error) {
+            console.error('Error while sending reply:', error);
+          }
+
       }
   });
   collector.on('end', () => {
