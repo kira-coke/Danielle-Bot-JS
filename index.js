@@ -59,14 +59,14 @@ console.error = function(...args) {
 };
 client.once('ready', async () => {
     console.log('Bot is online!');
-    /*try {
+    try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
     } catch (error) {
         console.log("Error setting pending reminders", error);
-    }*/
+    }
 });
 
 client.on("ready", () => {
