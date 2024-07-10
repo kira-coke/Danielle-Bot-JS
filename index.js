@@ -52,7 +52,10 @@ console.log = function(...args) {
     const timestamp = new Date().toISOString();
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
-
+console.error = function(...args) {
+    const timestamp = new Date().toISOString();
+    originalError.apply(console, [`[${timestamp}]`, ...args]);
+};
 client.once('ready', async () => {
     console.log('Bot is online!');
     /*try {
