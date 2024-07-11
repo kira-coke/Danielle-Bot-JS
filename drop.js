@@ -66,7 +66,7 @@ async function getDrop(msg,userId){
 
             const sentMessage = await msg.channel.send({ embeds: [embed], components: [row] });
             const filter = i => i.user.id === userId;
-            const collector = sentMessage.createMessageComponentCollector({ filter, max: 1, time: 10000 });
+            const collector = sentMessage.createMessageComponentCollector({ filter, max: 1, time: 60000 });
             let card = "";
             collector.on('collect', async interaction => {
                 if (!interaction.isButton()) return;
