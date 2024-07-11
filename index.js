@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -33,6 +33,9 @@ const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
+const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
+const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -41,22 +44,26 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const {EmbedBuilder} = require("discord.js");
+const {EmbedBuilder, ActivityType} = require("discord.js");
 const originalLog = console.log;
+const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 
 console.log = function(...args) {
     const timestamp = new Date().toISOString();
     originalLog.apply(console, [`[${timestamp}]`, ...args]);
 };
-
+console.error = function(...args) {
+    const timestamp = new Date().toISOString();
+    originalError.apply(console, [`[${timestamp}]`, ...args]);
+};
 client.once('ready', async () => {
     console.log('Bot is online!');
     try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
-        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on*/
+        }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
     } catch (error) {
         console.log("Error setting pending reminders", error);
     }
@@ -64,13 +71,17 @@ client.once('ready', async () => {
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setPresence({
-        status: 'online',
-        activities: [{
-            name: 'Hybe Boy',
-            type: 'LISTENING',
-        }],
-    });
+    try {
+        client.user.setPresence({
+            status: 'online',
+            activities: [{
+                name: 'Hype Boy',
+                type: ActivityType.Listening,
+            }],
+        });
+    } catch (error) {
+        console.error('Error setting presence:', error);
+    }
     schedule.scheduleJob('*/20 * * * *', () => { //change to
         sendRaffleEmbed();
     });
@@ -89,7 +100,6 @@ client.on("messageCreate", async (msg) => {
                     process.exit();
                 });
         }
-
         if (msg.content === ".checkpermissions") {
             try {
                 const requiredPermissions = [
@@ -141,7 +151,7 @@ client.on("messageCreate", async (msg) => {
               console.log(`Bot lacks required permissions in channel ${msg.channel.name} (${msg.channel.id}).`);
               return;
             }
-            const args = msg.content.slice(prefix.length).trim().split(" ");
+            let args = msg.content.slice(prefix.length).trim().split(" ");
             const command = args.shift().toLowerCase();
             const userId = msg.author.id;
             const authorTag = `${msg.author.username}#${msg.author.discriminator}`;
@@ -150,6 +160,19 @@ client.on("messageCreate", async (msg) => {
             const member = msg.member;
             const channel = msg.channelId;
             const remainingCooldown = await getUserCooldown(userId, "generalCmdCd");
+
+            if (command === 'addcard' && msg.member.permissions.has('mod')) {
+                const contentWithoutPrefix = msg.content.slice(prefix.length).trim();
+                const [cmd, ...args] = contentWithoutPrefix.match(/(?:[^\s"]+|"[^"]*")+/g).map(arg => arg.replace(/"/g, ''));
+                console.log(args);
+                if (args.length < 7) {
+                    return msg.reply('Not enough arguments provided. Usage: .addcard card-id cardRarity cardUrl GroupMember GroupName Theme version');
+                }
+                if(args.length > 7){
+                    return msg.reply('Too many arguments provided. Usage: .addcard card-id cardRarity cardUrl GroupMember GroupName Theme version');
+                }
+                await addcardToCards(args, msg);
+            }
 
             if (remainingCooldown !== "0m 0s") {
                 msg.reply(
@@ -167,6 +190,31 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 isLocked = !isLocked;
+                if(isLocked === true){
+                    try {
+                        client.user.setPresence({
+                            status: 'idle',
+                            activities: [{
+                                name: 'Hype Boy',
+                                type: ActivityType.Listening,
+                            }],
+                        });
+                    } catch (error) {
+                        console.error('Error setting presence:', error);
+                    }
+                }else{
+                    try {
+                        client.user.setPresence({
+                            status: 'online',
+                            activities: [{
+                                name: 'Hype Boy',
+                                type: ActivityType.Listening,
+                            }],
+                        });
+                    } catch (error) {
+                        console.error('Error setting presence:', error);
+                    }
+                }
                 return msg.channel.send(`Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`);
             }
             if (isLocked) {
@@ -233,7 +281,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "c" || command === "claim") {
-                const command = "c";
+                const command = "claim";
                 const defaultCooldown = 300 * 1000; // 300 seconds
                 let claimCd = defaultCooldown;
                 if (hasRole(member, "booster")) {
@@ -262,10 +310,13 @@ client.on("messageCreate", async (msg) => {
                     }, claimCd);
                 }
                 getClaim(msg, userId);
+                await handleClaimAction(userId, msg); //quest handling 
+                await updateComDgStats(userId, 1);
+                await updateUserDgStats(userId, 1);
             }
 
             if (command === "d" || command === "drop") {
-                const command = "d";
+                const command = "drop";
                 const defaultCooldown = 600 * 1000; // 600 seconds
                 let dropCd = defaultCooldown;
                 if (hasRole(member, "booster")) {
@@ -295,6 +346,9 @@ client.on("messageCreate", async (msg) => {
                     }, dropCd);
                 }
                 getDrop(msg, userId);
+                await handleDropAction(userId, msg);
+                await updateComDgStats(userId, 2);
+                await updateUserDgStats(userId, 2);
             }
 
             if (command === "bal") {
@@ -368,24 +422,26 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 let targetUser;
-                let userId;
                 if (msg.mentions.users.size > 0) {
                     targetUser = msg.mentions.users.first();
                 } else {
-                    userId = args.slice(0, -1).join("").trim();
-                    if (!userId || isNaN(userId)) {
+                    targetUser = args.slice(0, -1).join("").trim();
+                    console.log(targetUser);
+                    if (!targetUser || isNaN(targetUser)) {
                         msg.reply(
                             "Please mention a user or provide a valid user ID.",
                         );
                         return;
                     }
                     try {
-                        targetUser = await msg.client.users.fetch(userId);
+                        targetUser = await msg.client.users.fetch(targetUser);
                     } catch (error) {
                         msg.reply("Could not find a user with that ID.");
                         return;
                     }
                 }
+                console.log(targetUser);
+                console.log(msg.author);
                 if (targetUser === msg.author) {
                     msg.reply("** Trying to give yourself money? **");
                     return;
@@ -398,6 +454,8 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("Please provide a valid amount!");
                     return;
                 }
+                console.log(userId);
+                console.log(targetUser);
                 await payCommand(msg, userId, targetUser, amount);
             }
 
@@ -530,7 +588,7 @@ client.on("messageCreate", async (msg) => {
                         const embed = new EmbedBuilder() //embed that shows the group name, member name, card id and card url
                             .setColor("#feb69e")
                             .setDescription(
-                                `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}**`,
+                                `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}** (${cardToView["Theme"]})`,
                             )
                             .setImage(cardToView["cardUrl"]); // changed depending on the card recieved
                         embed.addFields({
@@ -698,7 +756,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "w" || command === "work") {
-                const command = "w";
+                const command = "work";
                 const workCd = 3600 * 1000; //3600
                 const remainingCooldown = await getUserCooldown(userId, command);
 
@@ -722,15 +780,19 @@ client.on("messageCreate", async (msg) => {
                     }, workCd);
                 }
                 await work(msg, userId);
+                await handleWorkAction(userId, msg);
+                await updateComDgStats(userId, 12);
+                await updateUserDgStats(userId, 12);
             }
 
             if (command === "wishlist" || command === "wl") {
-                const codes = args.filter((code) => code.trim() !== "");
-                if (codes[0] === undefined) {
-                    msg.reply("**Please input at least .wl clear, .wl add or .wl set");
+                const action = args[0];
+                const codes = args.slice(1).filter((code) => code.trim() !== "");
+                if (action === undefined) {
+                    msg.reply("Please input at least .wl clear, .wl add or .wl set");
                     return;
                 }
-                if(codes[0] === "clear"){
+                if(action === "clear"){
                     await setUserWishList(
                         "Dani-bot-playerbase",
                         userId,
@@ -739,13 +801,13 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("Your wishlist has been cleared");
                     return;
                 }
-                if(codes[0] === "add"){
+                if(action === "add"){
                     const currentWl = await getUserWishList("Dani-bot-playerbase",userId);
                     let newWl = "";
                     if((currentWl.length+codes.length) > 10){
                         msg.reply("Your wl will be over 10 codes. You currently have "+ currentWl.length + " codes in your wishlist");
                     }else{
-                        for (let i = 1; i < codes.length; i++) {
+                        for (let i = 0; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -756,8 +818,9 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const newCodes = codes.slice(1); 
+                        const newCodes = codes; 
                         const updatedWishlist = currentWl.concat(newCodes);
+                        console.log(updatedWishlist);
                         newWl = updatedWishlist.join(", "); 
                         console.log(newWl);
                         await setUserWishList(
@@ -770,12 +833,12 @@ client.on("messageCreate", async (msg) => {
                         );
                     }
                 }
-                if(codes[0] === "set"){
-                    if (codes.length > 11) {
+                if(action === "set"){
+                    if (codes.length > 10) {
                         msg.reply("**The limit is 10 codes**");
                         return;
                     } else {
-                        for (let i = 1; i < codes.length; i++) {
+                        for (let i = 0 ; i < codes.length; i++) {
                             try {
                                 await getCardFromTable("cards", codes[i]);
                             } catch (error) {
@@ -786,7 +849,7 @@ client.on("messageCreate", async (msg) => {
                                 return;
                             }
                         }
-                        const codesString = codes.slice(1).join(", ");
+                        const codesString = codes.slice(0).join(", ");
                         await setUserWishList(
                             "Dani-bot-playerbase",
                             userId,
@@ -881,47 +944,60 @@ client.on("messageCreate", async (msg) => {
                 if (!userId || userId === msg.author.id) {
                     userId = msg.author.id;
                 }
-
-                if (groupName === "levels") {
-                    // Show all leveled cards in user's inventory
-                    let leveledCards = [];
-
+                if (groupName === "customs") {
+                    let userCustoms = [];
                     try {
-                        leveledCards = await getCardsWithLevels("user-cards", userId);
-                        console.log(leveledCards);
+                        userCustoms = await getUserCustomCards(userId);
+                        //console.log(userCustoms);
                     } catch (error) {
-                        console.error("Error getting leveled cards:", error);
+                        console.error("Error getting custom cards:", error);
                         return;
                     }
-
+                    if(userCustoms.length === 0){
+                        msg.reply("You have no custom cards");
+                        return;
+                    }
                     const cardsPerPage = 10;
-                    const totalPages = Math.ceil(leveledCards.length / cardsPerPage);
+                    const totalPages = Math.ceil(userCustoms.length / cardsPerPage);
 
                     try {
                         const embedMessage = await msg.channel.send({
                             embeds: [
-                                await generateEmbedInv(
-                                    0,
-                                    totalPages,
-                                    leveledCards,
-                                    msg,
-                                    userId
-                                ),
+                                await generateEmbedInv(0, totalPages, userCustoms, msg, userId),
                             ],
                             components: [generateRowInv(0, totalPages)],
                         });
-                        handleCollectorInv(
-                            embedMessage,
-                            msg,
-                            totalPages,
-                            leveledCards,
-                            userId
-                        );
+                        handleCollectorInv(embedMessage, msg, totalPages, userCustoms, userId);
                     } catch (error) {
                         console.log("Error:", error);
                     }
-
-                }else{ 
+                } else if (groupName === "levels") {
+                    // Show all leveled cards in user's inventory
+                    let leveledCards = [];
+    
+                    try {
+                        leveledCards = await getCardsWithLevels("user-cards", userId);
+                        // console.log(leveledCards);
+                    } catch (error) {
+                        console.error("Error getting leveled cards:", error);
+                        return;
+                    }
+    
+                    const cardsPerPage = 10;
+                    const totalPages = Math.ceil(leveledCards.length / cardsPerPage);
+    
+                    try {
+                        const embedMessage = await msg.channel.send({
+                            embeds: [
+                                await generateEmbedInv(0, totalPages, leveledCards, msg, userId),
+                            ],
+                            components: [generateRowInv(0, totalPages)],
+                        });
+                        handleCollectorInv(embedMessage, msg, totalPages, leveledCards, userId);
+                    } catch (error) {
+                        console.log("Error:", error);
+                    }
+                } else {
                     let uniqueGroupNames = [];
                     try {
                         uniqueGroupNames = await getUniqueGroupNames("cards");
@@ -929,129 +1005,112 @@ client.on("messageCreate", async (msg) => {
                         console.error("Error fetching unique group names:", error);
                         return;
                     }
-
-                    if (groupName) { //only does if there is a group name
-                        const namesToLowerCase = uniqueGroupNames.map((name) =>
-                            name.toLowerCase(),
-                        );
+    
+                    if (groupName) { // only if there is a group name (everythign else bellow only applies if not matched above)
+                        const namesToLowerCase = uniqueGroupNames.map((name) => name.toLowerCase());
                         const nameIndex = namesToLowerCase.indexOf(groupName);
-
+    
                         if (nameIndex === -1) {
-                            msg.reply(
-                                "The specified group name does not exist. Ensure spelling is correct.",
-                            );
+                            msg.reply("The specified group name does not exist. Ensure spelling is correct.");
                             return;
                         }
-
+    
                         const originalGroupName = uniqueGroupNames[nameIndex];
                         let filteredCards = [];
-
+    
                         try {
-                            filteredCards = await filterByAttribute(
-                                "cards",
-                                "GroupName",
-                                originalGroupName,
-                            );
+                            filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
+                            filteredCards = filteredCards.filter((card) => card.cardRarity === 1);
                         } catch (error) {
-                            console.error(
-                                "Error filtering cards by group name:",
-                                error,
-                            );
+                            console.error("Error filtering cards by group name:", error);
                             return;
                         }
-
+    
                         const cardsPerPage = 10;
-                        const totalPages = Math.ceil(
-                            filteredCards.length / cardsPerPage,
-                        );
-
+                        const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+    
                         try {
                             const embedMessage = await msg.channel.send({
                                 embeds: [
-                                    await generateEmbedInvForGroup(
-                                        0,
-                                        totalPages,
-                                        filteredCards,
-                                        msg,
-                                        userId,
-                                    ),
+                                    await generateEmbedInvForGroup(0, totalPages, filteredCards, msg, userId),
                                 ],
                                 components: [generateRowInv(0, totalPages)],
                             });
-                            handleCollectorInvForGroup(
-                                embedMessage,
-                                msg,
-                                totalPages,
-                                filteredCards,
-                                userId,
-                            );
+                            handleCollectorInvForGroup(embedMessage, msg, totalPages, filteredCards, userId);
                         } catch (error) {
                             console.log("Error:", error);
                         }
-                    } else { //default if theres no groupName
+                    } else { // default if there's no groupName
                         let listOfCards = [];
-
+    
                         try {
                             listOfCards = await getUserCards("user-cards", userId);
                         } catch (error) {
                             console.log("Error getting user cards:", error);
                             return;
                         }
-
+    
                         const cardsPerPage = 10;
                         const totalPages = Math.ceil(listOfCards.length / cardsPerPage);
-
+    
                         try {
                             const embedMessage = await msg.channel.send({
                                 embeds: [
-                                    await generateEmbedInv(
-                                        0,
-                                        totalPages,
-                                        listOfCards,
-                                        msg,
-                                        userId,
-                                    ),
+                                    await generateEmbedInv(0, totalPages, listOfCards, msg, userId),
                                 ],
                                 components: [generateRowInv(0, totalPages)],
                             });
-                            handleCollectorInv(
-                                embedMessage,
-                                msg,
-                                totalPages,
-                                listOfCards,
-                                userId,
-                            );
+                            handleCollectorInv(embedMessage, msg, totalPages, listOfCards, userId);
                         } catch (error) {
                             console.log("Error:", error);
                         }
                     }
-                    
                 }
             }
 
             if (command === "feed") {
                 const input = args.filter((code) => code.trim() !== "");
-                const cardId = input[0];
+                let cardId = input[0];
                 let numberOfCards = input[1];
-                if (isNaN(numberOfCards) || args.length < 2) {
-                    numberOfCards = 1;
+                if(cardId === "fc" || cardId === "FC" || cardId === "fC"|| cardId === "Fc"){
+                    const user = await getUser(userId);
+                    console.log(user);
+                    cardId = user["FavCard"];
                 }
-                if (isNaN(numberOfCards) || numberOfCards === undefined) {
-                    msg.reply("Please ensure you have entered a valid number.");
+                try{
+                    await getCardFromTable("cards", cardId);
+                }catch(error){
+                    msg.reply("**This is not a valid card id.**");
+                    console.log("Error getting item from table: ", error);
                     return;
+                }
+                if(numberOfCards === "all"){
+                    const all = await getHowManyCopiesOwned("user-cards", userId, cardId);
+                    numberOfCards = all - 1;
+                    console.log("Number owned: ", numberOfCards)
+                }else{
+                    if (isNaN(numberOfCards) || args.length < 2) {
+                        numberOfCards = 1;
+                    }
+                    if (isNaN(numberOfCards) || numberOfCards === undefined) {
+                        msg.reply("Please ensure you have entered a valid number.");
+                        return;
+                    }
                 }
                 const temp = await awardExp(
                     userId,
                     String(cardId),
                     numberOfCards,
                     msg,
+                    input[1],
                 );
                 const amountOwnedBefore = await getHowManyCopiesOwned(
                     "user-cards",
                     userId,
                     cardId,
                 );
-                const newAmountOwner = amountOwnedBefore - numberOfCards;
+                const newAmountOwned = amountOwnedBefore - numberOfCards;
+
                 if (temp === 0) {
                     msg.reply("**You do not own this card**");
                     return;
@@ -1064,12 +1123,6 @@ client.on("messageCreate", async (msg) => {
                     msg.reply("**Your card is already at max level!**");
                     return;
                 }
-                await changeNumberOwned(
-                    "user-cards",
-                    userId,
-                    cardId,
-                    newAmountOwner,
-                );
             }
 
             if (command === "upgrade" || command === "u") {
@@ -1104,7 +1157,7 @@ client.on("messageCreate", async (msg) => {
                     .setColor("#d81159")
                     .setTitle("Auto Reminders Turned Off")
                     .setDescription(
-                        `You will no longer receive reminders for claims, drops, and daily.`,
+                        `You will no longer receive reminders for claims, drops, work and daily.`,
                     )
                     .setTimestamp();
 
@@ -1119,7 +1172,7 @@ client.on("messageCreate", async (msg) => {
                     .setColor("#04a777")
                     .setTitle("Auto Reminders Turned On")
                     .setDescription(
-                        `You will now receive reminders for claims, drops, and daily.`,
+                        `You will now receive reminders for claims, drops, work and daily.`,
                     )
                     .setTimestamp();
 
@@ -1127,7 +1180,7 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "dg" || command === "dungeon") {
-                const command = "dg";
+                const command = "dungeon";
                 const dgCd = Date.now() + 14400 * 1000; //
                 const remainingCooldown = await getUserCooldown(userId, command);
 
@@ -1280,6 +1333,91 @@ client.on("messageCreate", async (msg) => {
                 await displayLeaderboard(msg, leaderboardType[0], client);
             }
 
+            if(command === "community" || command === "com"){
+                const input = args.filter((code) => code.trim() !== "");
+                await sortCommunityOut(msg, input, userId);
+            }
+
+            if(command === "quests" || command === "q"){
+                await setUserQuests(userId);
+                const userQuests = await getUserQuests(userId);
+                const embed = await createQuestEmbed(userQuests, msg);
+                msg.channel.send({ embeds: [embed] });
+                
+            }
+
+            /*if(command === "gts"){
+                const input = args.filter((code) => code.trim() !== "");
+                if(input[0] === undefined){
+                     const embed = await globalTradeStationEmbed();
+                     msg.channel.send({ embeds: [embed] });
+                     return;
+                }
+                if(input[0] === "mine"){
+                    //add embed to show only your trades up
+                }
+                if(input[0] === "delete"){
+                     const tradeId = input[1];
+                     const trade = await getTradeByGlobalTradeId(tradeId);
+                     console.log(trade);
+                     if(trade.length === 0){
+                         msg.reply("Ensure you have entered a valid trade id");
+                         return;
+                     }
+                    if(trade[0]["user-id"] != userId){
+                        msg.reply("This is not a trade you own. You can only delete your own trades");
+                        return;
+                    }
+                    await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
+                    //return the cardUft to the user
+                }
+                if(input[0] === "create"){
+                    const cardUft = input[1];
+                    const cardLf = input[2];
+                    if(cardUft === cardLf){
+                        msg.reply("You cannot have your uft card be the same as your lf card");
+                        return;
+                    }
+                    try {
+                        await getCardFromTable("cards", cardUft);
+                        await getCardFromTable("cards", cardLf);
+                    } catch (error) {
+                        msg.reply("Please ensure both are valid card ids");
+                        console.log("Error:", error);
+                        return;
+                    }
+                    const userId = msg.author.id; 
+                    const cardCount = await getHowManyCopiesOwned("user-cards", userId, cardUft);
+                    if(cardCount === 0 || cardCount === 1){
+                        msg.reply("You do not own enough copies of this card to add this trade to the gts");
+                        return;
+                    }
+                    const userGTS =  await getUserGTS(userId);
+                    const missingIds = getMissingIds(userGTS);
+                    if(userGTS.length === 10){
+                        msg.reply("You have reached the max number of entries");
+                        return;
+                    }
+                    const tradeId = missingIds[0].toString();
+                    const timestamp = Date.now();
+                    await addToGTS(userId, tradeId, cardUft, cardLf, timestamp);
+                    //add removing of this card from users inv
+                }else{
+                    if(input[0] === "trade"){
+                         const trade = await getTradeByGlobalTradeId(input[0]);
+                         console.log(trade);
+                         if(trade.length === 0){
+                             msg.reply("Ensure you have entered a valid trade id");
+                             return;
+                         }
+                         msg.reply("Will add all this stuff later"); 
+                         //add one count of the lf card to the users inv
+                         //add one count of the uft card to the other users inv
+                         //remove trade from table
+                    }
+                }
+            }*/
+
             if (command === "forcedrop") {
                 const REQUIRED_ROLE_NAME = "mod";
                 const role = msg.guild.roles.cache.find(
@@ -1368,6 +1506,24 @@ client.on("messageCreate", async (msg) => {
                 } else {
                     return;
                 }
+            }
+
+            if(command === "giftcard"){
+                let user = " ";
+                const REQUIRED_ROLE_NAME = "mod";
+                const cardIDToGift = args[1];
+                const role = msg.guild.roles.cache.find(
+                    (role) => role.name === REQUIRED_ROLE_NAME,
+                );
+                 if (role && msg.member.roles.cache.has(role.id)) {
+                    const targetUser = msg.mentions.users.first();
+                     try{
+                         await modGiftCard(targetUser, cardIDToGift, msg);
+                     }catch(error){
+                         msg.reply("Issue gifting card to user.");
+                         console.log("Error: ", error);
+                     }
+                 }
             }
             
             if (command === "createraffle") {

@@ -10,6 +10,10 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
       const tableName = "cards";
       try {
           card = await getCardFromTable(tableName, cardIDToGift);
+          if(card.cardRarity === 4){
+              msg.reply("You cannot gift custom cards.")
+              return;
+          }
       } catch (error) {
           console.log(
               "Couldnt find item with this card:" + cardIDToGift,

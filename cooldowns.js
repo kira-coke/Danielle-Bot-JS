@@ -146,7 +146,7 @@ const setPendingReminders = async (client) => {
         console.log("No pending reminders");
         return;
     }
-    console.log(reminders);
+    //console.log(reminders);
 
     reminders.forEach(reminder => {
         if(reminder.active === false){
@@ -158,7 +158,7 @@ const setPendingReminders = async (client) => {
             return;
         }
         const timeUntilReminder = reminder.reminderTimestamp - Date.now();
-        console.log(`Time until ${reminder.command} for ${reminder["user-id"]}: `, timeUntilReminder);
+        //console.log(`Time until ${reminder.command} for ${reminder["user-id"]}: `, timeUntilReminder);
         getUser(reminder["user-id"]).then(user => {
             if (user.Reminders === true) {
                 activeReminders.add(reminderId);

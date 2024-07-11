@@ -4,6 +4,7 @@ const dynamodb = new AWS.DynamoDB.DocumentClient
 const { EmbedBuilder, inlineCode } = require("discord.js");
 const {getUserCard, changeNumberOwned, getHowManyCopiesOwned} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
+const {updateUserDgStats, updateComDgStats} = require("./community.js");
 const emote = '<:DB_currency:1257694003638571048>'; 
 
 const dungeons = [
@@ -77,6 +78,8 @@ async function enterDg(msg, userId, cardId, dg){
           inline: false
         });
       }
+      await updateComDgStats(userId, 80);
+      await updateUserDgStats(userId, 80);
     }else {
        embed.setColor("dd2d4a");
         embed.addFields({
@@ -85,6 +88,8 @@ async function enterDg(msg, userId, cardId, dg){
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
+      await updateComDgStats(userId, 30);
+      await updateUserDgStats(userId, 30);
     }
   }
 
@@ -136,6 +141,8 @@ async function enterDg(msg, userId, cardId, dg){
           inline: false
         });
       }
+      await updateComDgStats(userId, 80);
+      await updateUserDgStats(userId, 80);
     }else {
        embed.setColor("dd2d4a");
         embed.addFields({
@@ -144,6 +151,8 @@ async function enterDg(msg, userId, cardId, dg){
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
+      await updateComDgStats(userId, 30);
+      await updateUserDgStats(userId, 30);
     }
   }
 
@@ -195,6 +204,8 @@ async function enterDg(msg, userId, cardId, dg){
           inline: false
         });
       }
+      await updateComDgStats(userId, 80);
+      await updateUserDgStats(userId, 80);
     }else {
        embed.setColor("dd2d4a");
         embed.addFields({
@@ -203,6 +214,8 @@ async function enterDg(msg, userId, cardId, dg){
             inline: false
         });
       embed.setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/gifs/icegif-222.gif");
+      await updateComDgStats(userId, 30);
+      await updateUserDgStats(userId, 30);
     }
   }
   msg.channel.send({ embeds: [embed] });

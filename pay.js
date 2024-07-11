@@ -15,6 +15,7 @@ async function payCommand(msg, userId, targetUser, amount ){
 
     // Load balances for both users
     const userBalance = await getUsersBalance(userId);
+      console.log(userBalance);
     const targetUserBalance = await getUsersBalance(targetUserId);
 
     if (userBalance === null) {

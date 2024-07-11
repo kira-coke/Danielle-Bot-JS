@@ -1,11 +1,10 @@
 const AWS = require('aws-sdk');
-const {getUserCard, getHowManyCopiesOwned} = require("./cards.js");
+const {getUserCard, getHowManyCopiesOwned, changeNumberOwned} = require("./cards.js");
 const {getUser, updateTotalExp} = require("./users.js");
 const { ActionRowBuilder, ButtonBuilder, EmbedBuilder } = require("discord.js");
 const {storePack} = require("./userAssets.js")
+const {handleFeedAction} = require("./quests.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
-
-let awardPack = true;
 
 async function awardExp(userId, cardId, numberOfCards, msg){
   const user = await getUser(userId);
@@ -15,11 +14,6 @@ async function awardExp(userId, cardId, numberOfCards, msg){
     console.log("User does not own this card");
     return 0;
   }
-  const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
-  if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
-    console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
-    return 1;
-  }
   const cardData = card[0];
   if(cardData.level === 20){
     console.log(cardData.upgradable);
@@ -28,13 +22,19 @@ async function awardExp(userId, cardId, numberOfCards, msg){
     console.log("User is already at max level");
     return 2;
   }
+  const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
+  if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
+    console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
+    return 1;
+  }
   if(cardData.level > 20){
       console.log("Your card is ready to upgrade!");
       return 2;
   }
-  if(cardData.level > 10){
+  if(cardData.level >= 10){
     awardPack = false;
   }
+    const wasBelowLevel10 = cardData.level < 10;
     const potentialNewExp = cardData.exp + expGiven;
     const potentialNewLevel = calculatePotentialNewLevel(cardData.level, potentialNewExp);
     const expNeeded = calculateLevelUpXP(cardData.level);
@@ -74,6 +74,9 @@ async function awardExp(userId, cardId, numberOfCards, msg){
           await storePack(userId);
           await storePack(userId);
           const packEmbed = new EmbedBuilder().setTitle("Packs added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached max level and recieved 2 packs. These have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
+          const userOwns = await getHowManyCopiesOwned("user-cards", userId, cardId);
+          await changeNumberOwned("user-cards", userId, cardId, (userOwns - numberOfCards));
+          await handleFeedAction(userId, parseInt(numberOfCards), msg);
           msg.channel.send({ embeds: [packEmbed] });
         } else {
           await interaction.update({ content: 'Cancelled feeding', embeds: [], components: [] });
@@ -82,6 +85,15 @@ async function awardExp(userId, cardId, numberOfCards, msg){
 
     } else {
       await handleExpAward(userId, cardId, numberOfCards, msg, user, cardData, expGiven, potentialNewExp);
+      if (wasBelowLevel10 && cardData.level >= 10 && cardData.level < 20) {
+        console.log("User has been awarded pack for level 10");
+        await storePack(userId);
+        const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and received 1 pack. This has been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
+        msg.channel.send({ embeds: [packEmbed] });
+      }
+      const userOwns = await getHowManyCopiesOwned("user-cards", userId, cardId);
+      await changeNumberOwned("user-cards", userId, cardId, (userOwns - numberOfCards)); 
+      await handleFeedAction(userId, parseInt(numberOfCards), msg);
     }
   }
   
@@ -138,11 +150,6 @@ async function handleExpAward(userId, cardId, numberOfCards, msg, user, cardData
     } else {
       msg.channel.send({ embeds: [embed] });
     }
-    if(awardPack === true && cardData.level < 20){
-      await storePack(userId);
-      const packEmbed = new EmbedBuilder().setTitle("Pack added to inv!").setColor("#ff4d6d").setDescription("Congrats! You have reached level 10 and recieved 1 pack. This have been added to .packs").setImage("https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png");
-      msg.channel.send({ embeds: [packEmbed] });
-    }
   }
 
 function calculateLevelUpXP(level) {
@@ -151,6 +158,7 @@ function calculateLevelUpXP(level) {
    }
    return Math.round(100 * Math.pow(1.1, level));
 }
+
 function calculatePotentialLevelUpXP(level) {
    return Math.round(100 * Math.pow(1.1, level));
 }
@@ -160,7 +168,6 @@ function calculatePotentialNewLevel(level, exp) {
     exp -= calculatePotentialLevelUpXP(level);
     level += 1;
   }
-  console.log(level);
   return level;
 }
 

@@ -1,4 +1,4 @@
-const prizes = ['3'];
+const prizes = ['1', '2','3'];
 const exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
 const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard, checkTotalCardCount} = require("./cards");
@@ -47,14 +47,19 @@ async function raffle(channel, client){
   const message = await channel.send({ embeds: [embed], components: [row] });
 
   const filter = i => i.customId === 'raffle_entry';
-  const collector = message.createMessageComponentCollector({ filter, time: 0.1 * 60 * 1000 }); //change back to 5
+  const collector = message.createMessageComponentCollector({ filter, time: 5 * 60 * 1000 }); //change back to 5
 
   collector.on('collect', async interaction => {
       if (raffleEntries.has(interaction.user.id)) {
           await interaction.reply({ content: 'You have already entered the raffle.', ephemeral: true });
       } else {
           raffleEntries.add(interaction.user.id);
-          await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+          try {
+            await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+          } catch (error) {
+            console.error('Error while sending reply:', error);
+          }
+
       }
   });
   collector.on('end', () => {
