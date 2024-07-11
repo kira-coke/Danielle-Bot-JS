@@ -1512,13 +1512,22 @@ client.on("messageCreate", async (msg) => {
                 let user = " ";
                 const REQUIRED_ROLE_NAME = "mod";
                 const cardIDToGift = args[1];
+                const amount = args[2];
                 const role = msg.guild.roles.cache.find(
                     (role) => role.name === REQUIRED_ROLE_NAME,
                 );
                  if (role && msg.member.roles.cache.has(role.id)) {
                     const targetUser = msg.mentions.users.first();
                      try{
-                         await modGiftCard(targetUser, cardIDToGift, msg);
+                         if(!targetUser){
+                             msg.reply("Please mention a user.")
+                             return;
+                         }
+                         if(args[2] === undefined || args[2] <= 0){
+                             msg.reply("Please provide a valid number to gift");
+                             return;
+                         }
+                         await modGiftCard(targetUser, cardIDToGift, msg, parseInt(amount));
                      }catch(error){
                          msg.reply("Issue gifting card to user.");
                          console.log("Error: ", error);

@@ -64,7 +64,7 @@ async function getDrop(msg,userId){
                     .setStyle('Secondary')
             );
 
-            const sentMessage = await msg.channel.send({ embeds: [embed], components: [row] });
+            const sentMessage = await msg.reply({ embeds: [embed], components: [row] });
             const filter = i => i.user.id === userId;
             const collector = sentMessage.createMessageComponentCollector({ filter, max: 1, time: 60000 });
             let card = "";
