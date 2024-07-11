@@ -789,7 +789,7 @@ client.on("messageCreate", async (msg) => {
                 const action = args[0];
                 const codes = args.slice(1).filter((code) => code.trim() !== "");
                 if (action === undefined) {
-                    msg.reply("**Please input at least .wl clear, .wl add or .wl set");
+                    msg.reply("Please input at least .wl clear, .wl add or .wl set");
                     return;
                 }
                 if(action === "clear"){
@@ -1333,10 +1333,10 @@ client.on("messageCreate", async (msg) => {
                 await displayLeaderboard(msg, leaderboardType[0], client);
             }
 
-            //if(command === "community" || command === "com"){
-               // const input = args.filter((code) => code.trim() !== "");
-               // await sortCommunityOut(msg, input, userId);
-            //}
+            if(command === "community" || command === "com"){
+                const input = args.filter((code) => code.trim() !== "");
+                await sortCommunityOut(msg, input, userId);
+            }
 
             if(command === "quests" || command === "q"){
                 await setUserQuests(userId);
