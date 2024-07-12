@@ -1,5 +1,5 @@
 const prizes = ['1', '2','3'];
-const exp = [100, 200, 300];
+let exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
 const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard, checkTotalCardCount} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
@@ -7,6 +7,13 @@ const {getUser, updateTotalExp} = require("./users");
 const {updateUserData, calculateLevelUpXP} = require("./cardExpSystem");
 const {storePack} = require("./userAssets");
 const raffleEntries = new Set();
+
+let raffleRewardsDoubled = false;
+
+async function changeRaffleRewards(){
+    raffleRewardsDoubled = !raffleRewardsDoubled;
+    return raffleRewardsDoubled;
+}
 
 async function forceRaffle(channel, client){
     raffleEntries.clear();
@@ -16,11 +23,18 @@ async function forceRaffle(channel, client){
 async function raffle(channel, client){
   const prize = prizes[Math.floor(Math.random() * prizes.length)];
   const card = await getRandomDynamoDBItem('cards');
-  const amountOfCards = Math.floor(Math.random() * 4) + 1;
-  const amountOfCoins = Math.floor(Math.random() * (4000- 2000 + 1)) + 2000
-  const coinsWithCommas = numberWithCommas(amountOfCoins);
-  const randomIndex = Math.floor(Math.random() * exp.length);
-  const randomExp = exp[randomIndex];
+  let amountOfCards = Math.floor(Math.random() * 4) + 1;
+  let amountOfCoins = Math.floor(Math.random() * (4000- 2000 + 1)) + 2000
+  let coinsWithCommas = numberWithCommas(amountOfCoins);
+  let randomIndex = Math.floor(Math.random() * exp.length);
+  let randomExp = exp[randomIndex];
+  if(raffleRewardsDoubled === true){
+      amountOfCards *= 2;
+      amountOfCoins *= 2;
+      coinsWithCommas = numberWithCommas(amountOfCoins);
+      exp = [200, 400, 600];
+      randomExp = exp[randomIndex];
+  }
   const embed = new EmbedBuilder()
   .setTitle('Raffle Time!')
   .setDescription('Click the button below to enter the raffle! You can only enter once.')
@@ -190,4 +204,4 @@ function numberWithCommas(x) {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-module.exports = {forceRaffle, raffle};
+module.exports = {forceRaffle, raffle, changeRaffleRewards};
