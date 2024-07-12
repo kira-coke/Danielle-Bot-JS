@@ -334,7 +334,7 @@ async function sortCommunityOut(msg, input, userId){
         return;
     }
     const applicants = community.applicants;
-    if(applicants.includes(userId)){
+    if(applicants != undefined && applicants.includes(userId)){
         msg.reply("You have already applied to this community.")
         return;
     }
