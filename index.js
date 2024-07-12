@@ -31,11 +31,12 @@ const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
-const { getPacks, removePack} = require("./userAssets");
+const { getPacks, removePack, getEventRolls} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
+const {eventRoll} = require("./event_le.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -345,7 +346,8 @@ client.on("messageCreate", async (msg) => {
                         );
                     }, dropCd);
                 }
-                getDrop(msg, userId);
+                //getDrop(msg, userId);
+                getClaim(msg, userId);
                 await handleDropAction(userId, msg);
                 await updateComDgStats(userId, 2);
                 await updateUserDgStats(userId, 2);
@@ -1345,6 +1347,16 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send({ embeds: [embed] });
                 
             }
+
+            /*if(command === "eventroll" || command === "er"){
+                const rolls = await getEventRolls(userId);
+                console.log(rolls);
+                if(rolls === 0){
+                    msg.reply("You currently don't have any event rolls.")
+                    return;
+                }
+                await eventRoll(userId, msg);
+            }*/
 
             /*if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
