@@ -10,7 +10,7 @@ AWS.config.update({
     region: "eu-west-2",
 });
 const{work} = require("./work");
-const {forceRaffle} = require("./raffle");
+const {forceRaffle, changeRaffleRewards} = require("./raffle");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
@@ -33,7 +33,7 @@ const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack, getEventRolls} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
-const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const {eventRoll} = require("./event_le.js");
@@ -1557,10 +1557,37 @@ client.on("messageCreate", async (msg) => {
                 } else {
                     return;
                 }
-            }   
+            } 
+            
+            if(command === "toggleraffle"){
+                const REQUIRED_ROLE_NAME = "mod"; 
+                const role = msg.guild.roles.cache.find(
+                    (role) => role.name === REQUIRED_ROLE_NAME,
+                );
+                if (role && msg.member.roles.cache.has(role.id)) {
+                    const raffleRewards = await changeQuestRwards();
+                    msg.channel.send(`Double raffle rewards toggled to: **${raffleRewards}**`);
+                } else {
+                    return;
+                }
+            }
+
+            if(command === "togglequests"){
+                const REQUIRED_ROLE_NAME = "mod"; 
+                const role = msg.guild.roles.cache.find(
+                    (role) => role.name === REQUIRED_ROLE_NAME,
+                );
+                if (role && msg.member.roles.cache.has(role.id)) {
+                    const questRewards = await changeQuestRwards();
+                    msg.channel.send(`Double quest rewards toggled to: **${questRewards}**`);
+                } else {
+                    return;
+                }
+            }
         }catch(error){
              console.error("An unexpected error occurred:", error);
         }
+
     }
 });
 
