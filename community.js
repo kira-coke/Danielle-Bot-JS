@@ -289,6 +289,19 @@ async function updateMemberList(memberId, communityName, action) {
 }
 
 async function sortCommunityOut(msg, input, userId){
+
+  if(input === undefined){
+    const userInCom = await checkIfUserIsInCommunity(msg.author.id);
+    if(userInCom === false){
+        console.log("User is not in a community");
+        return;
+    }
+    const userCom = await getUserCommunity(msg.author.id);
+    const comData = await getCommunityData(userCom["communityName"]);
+    const embed = communityEmbed(comData);
+    await msg.channel.send({ embeds: [embed] });
+    return;
+  }
   if(input[0] === "create"){
     const communityName = input[1];
     if(communityName === undefined){
@@ -639,17 +652,6 @@ async function sortCommunityOut(msg, input, userId){
       });
   }
   
-  if(input[0] === undefined){
-    const userInCom = await checkIfUserIsInCommunity(msg.author.id);
-    if(userInCom === false){
-        console.log("User is not in a community");
-        return;
-    }
-    const userCom = await getUserCommunity(msg.author.id);
-    const comData = await getCommunityData(userCom["communityName"]);
-    const embed = communityEmbed(comData);
-    await msg.channel.send({ embeds: [embed] });
-  }
 
 }
 
