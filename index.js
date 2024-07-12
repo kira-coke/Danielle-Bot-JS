@@ -1336,7 +1336,10 @@ client.on("messageCreate", async (msg) => {
             }
 
             if(command === "community" || command === "com"){
-                const input = args.filter((code) => code.trim() !== "");
+                const joinedArgs = args.join(' ');
+                // Use a regular expression to split by spaces except those inside quotes
+                const input = joinedArgs.match(/(?:[^\s"]+|"[^"]*")+/g).map(arg => arg.replace(/"/g, ''));
+
                 await sortCommunityOut(msg, input, userId);
             }
 
