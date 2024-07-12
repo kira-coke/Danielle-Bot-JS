@@ -293,7 +293,8 @@ async function getWeightedCard(userId){
     const userFavCard = user["FavCard"];
     const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
     const cardData = userFavCardData[0];
-    if(cardData.cardRarity != 1){
+    const cardFromCards = await getCardFromTable("cards",cardData["card-id"]);
+    if(cardFromCards.cardRarity != 1){
         console.log("User fav card is custom/le/event.")
         return;
     }
@@ -402,7 +403,7 @@ async function addcardToCards(args, msg){
     }
 }
 
-async function modGiftCard(targetUser, cardIDToGift, msg){
+async function modGiftCard(targetUser, cardIDToGift, msg, copiesToGive){
     let cardData = " ";
     try{
         cardData = await getCardFromTable("cards", cardIDToGift);
@@ -421,7 +422,7 @@ async function modGiftCard(targetUser, cardIDToGift, msg){
                     exp: 0,
                     level: 0,
                     upgradable: false,
-                    "copies-owned": 1,
+                    "copies-owned": copiesToGive,
                     tier: 1,
                     totalExp: 0
                 };
@@ -430,18 +431,18 @@ async function modGiftCard(targetUser, cardIDToGift, msg){
                     console.error("Error:", error);
                 });
             }else{
-                const amount = parseInt(totalCount) + 1;
+                const amount = parseInt(totalCount) + copiesToGive;
                 changeNumberOwned("user-cards", targetUser.id, cardIDToGift, amount);
             }
         }catch(error){
             console.log(error);
         }
         const totalOwned = await checkTotalCardCount("Dani-bot-playerbase", targetUser.id)
-        await addToTotalCardCount("Dani-bot-playerbase", targetUser.id, parseInt(totalOwned) + 1);
+        await addToTotalCardCount("Dani-bot-playerbase", targetUser.id, parseInt(totalOwned) + copiesToGive);
         const embed = new EmbedBuilder()
             .setColor('#dd2d4a')
             .setTitle('Card Gifted!')
-            .setDescription(`<@${targetUser.id}> has been gifted card: ${inlineCode(cardIDToGift)}`)
+            .setDescription(`<@${targetUser.id}> has been gifted ${inlineCode(copiesToGive)} copies of: ${inlineCode(cardIDToGift)}`)
             .setThumbnail(cardData["cardUrl"])
             .setTimestamp();
 

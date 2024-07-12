@@ -10,7 +10,7 @@ AWS.config.update({
     region: "eu-west-2",
 });
 const{work} = require("./work");
-const {forceRaffle} = require("./raffle");
+const {forceRaffle, changeRaffleRewards} = require("./raffle");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
@@ -31,11 +31,12 @@ const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
-const { getPacks, removePack} = require("./userAssets");
+const { getPacks, removePack, getEventRolls} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
-const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction} = require("./quests.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
+const {eventRoll} = require("./event_le.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -345,7 +346,8 @@ client.on("messageCreate", async (msg) => {
                         );
                     }, dropCd);
                 }
-                getDrop(msg, userId);
+                //getDrop(msg, userId);
+                getClaim(msg, userId);
                 await handleDropAction(userId, msg);
                 await updateComDgStats(userId, 2);
                 await updateUserDgStats(userId, 2);
@@ -789,7 +791,7 @@ client.on("messageCreate", async (msg) => {
                 const action = args[0];
                 const codes = args.slice(1).filter((code) => code.trim() !== "");
                 if (action === undefined) {
-                    msg.reply("**Please input at least .wl clear, .wl add or .wl set");
+                    msg.reply("Please input at least .wl clear, .wl add or .wl set");
                     return;
                 }
                 if(action === "clear"){
@@ -1333,10 +1335,10 @@ client.on("messageCreate", async (msg) => {
                 await displayLeaderboard(msg, leaderboardType[0], client);
             }
 
-            //if(command === "community" || command === "com"){
-               // const input = args.filter((code) => code.trim() !== "");
-               // await sortCommunityOut(msg, input, userId);
-            //}
+            if(command === "community" || command === "com"){
+                const input = args.filter((code) => code.trim() !== "");
+                await sortCommunityOut(msg, input, userId);
+            }
 
             if(command === "quests" || command === "q"){
                 await setUserQuests(userId);
@@ -1345,6 +1347,16 @@ client.on("messageCreate", async (msg) => {
                 msg.channel.send({ embeds: [embed] });
                 
             }
+
+            /*if(command === "eventroll" || command === "er"){
+                const rolls = await getEventRolls(userId);
+                console.log(rolls);
+                if(rolls === 0){
+                    msg.reply("You currently don't have any event rolls.")
+                    return;
+                }
+                await eventRoll(userId, msg);
+            }*/
 
             /*if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
@@ -1512,13 +1524,22 @@ client.on("messageCreate", async (msg) => {
                 let user = " ";
                 const REQUIRED_ROLE_NAME = "mod";
                 const cardIDToGift = args[1];
+                const amount = args[2];
                 const role = msg.guild.roles.cache.find(
                     (role) => role.name === REQUIRED_ROLE_NAME,
                 );
                  if (role && msg.member.roles.cache.has(role.id)) {
                     const targetUser = msg.mentions.users.first();
                      try{
-                         await modGiftCard(targetUser, cardIDToGift, msg);
+                         if(!targetUser){
+                             msg.reply("Please mention a user.")
+                             return;
+                         }
+                         if(args[2] === undefined || args[2] <= 0){
+                             msg.reply("Please provide a valid number to gift");
+                             return;
+                         }
+                         await modGiftCard(targetUser, cardIDToGift, msg, parseInt(amount));
                      }catch(error){
                          msg.reply("Issue gifting card to user.");
                          console.log("Error: ", error);
@@ -1536,10 +1557,37 @@ client.on("messageCreate", async (msg) => {
                 } else {
                     return;
                 }
-            }   
+            } 
+            
+            if(command === "toggleraffle"){
+                const REQUIRED_ROLE_NAME = "mod"; 
+                const role = msg.guild.roles.cache.find(
+                    (role) => role.name === REQUIRED_ROLE_NAME,
+                );
+                if (role && msg.member.roles.cache.has(role.id)) {
+                    const raffleRewards = await changeQuestRwards();
+                    msg.channel.send(`Double raffle rewards toggled to: **${raffleRewards}**`);
+                } else {
+                    return;
+                }
+            }
+
+            if(command === "togglequests"){
+                const REQUIRED_ROLE_NAME = "mod"; 
+                const role = msg.guild.roles.cache.find(
+                    (role) => role.name === REQUIRED_ROLE_NAME,
+                );
+                if (role && msg.member.roles.cache.has(role.id)) {
+                    const questRewards = await changeQuestRwards();
+                    msg.channel.send(`Double quest rewards toggled to: **${questRewards}**`);
+                } else {
+                    return;
+                }
+            }
         }catch(error){
              console.error("An unexpected error occurred:", error);
         }
+
     }
 });
 

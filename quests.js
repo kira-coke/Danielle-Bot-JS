@@ -2,10 +2,17 @@ const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient
 const {EmbedBuilder, inlineCode} = require("discord.js");
 const {saveUserBalance, getUsersBalance} = require("./userBalanceCmds");
-const {storePack} = require("./userAssets");
+const {storePack, storeEventRoll} = require("./userAssets");
 const {getUser} = require("./users");
 const {getHowManyCopiesOwned, changeNumberOwned} = require("./cards")
+const emote = '<:test:1261060311813718187>'; 
 const isEvent = false;
+let questRewardsDoubled = false;
+
+async function changeQuestRwards(){
+    questRewardsDoubled = !questRewardsDoubled;
+    return questRewardsDoubled;
+}
 
 async function getQuests(tableName){
   const params = {
@@ -119,9 +126,25 @@ async function createQuestEmbed(userQuests, msg){
   for (const quest of userQuests) {
     const questData = await getQuest(quest['quest-id']);
     const data = questData[0];
-    embed.addFields(
-      { name: `Quest: ${data['Description']}`, value: `Progress: ${inlineCode(String(quest.progress)+ "/" + String(data.Criteria))}\nReward: ${inlineCode(data["Reward"])}`, inline: false }
-    );
+    console.log(questRewardsDoubled);
+    if(questRewardsDoubled === true){
+      const doubledReward = doubleNumbersInString(data["Reward"]);
+      console.log(doubledReward);
+      embed.addFields(
+        { name: `Quest: ${data['Description']}`, value: `Progress: ${inlineCode(String(quest.progress)+ "/" + String(data.Criteria))}\nReward: ${inlineCode(doubledReward)}`, inline: false }
+      );
+    }else{
+      if(isEvent === false){
+        embed.addFields(
+          { name: `Quest: ${data['Description']}`, value: `Progress: ${inlineCode(String(quest.progress)+ "/" + String(data.Criteria))}\nReward: ${inlineCode(data["Reward"])}`, inline: false }
+        );
+      }
+      if(isEvent === true){
+        embed.addFields(
+          { name: `Quest: ${data['Description']}`, value: `Progress: ${inlineCode(String(quest.progress)+ "/" + String(data.Criteria))}\nReward: ${inlineCode(data["Reward"] + " + 1 Random Event Roll")} ${emote}`, inline: false }
+        );
+      }
+    }
   }
   return embed;
 }
@@ -206,8 +229,16 @@ async function handleClaimAction(userId, msg) {
       questData.status = false;
       await deleteUserQuests(userId, questId1); //remove when finished
       const balance = await getUsersBalance(userId);
-      await saveUserBalance(userId, balance + 3000);
-      msg.reply("You have completed a quest and received 3000 coins!");
+      if(questRewardsDoubled === true){
+        await saveUserBalance(userId, balance + 6000);
+        msg.reply("You have completed a quest and received 6000 coins!");
+      }else{
+        await saveUserBalance(userId, balance + 3000);
+        msg.reply("You have completed a quest and received 3000 coins!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId1} progress updated.`);
   }
@@ -221,7 +252,15 @@ async function handleClaimAction(userId, msg) {
       questData.status = false;
       await deleteUserQuests(userId, questId2); //remove when finished
       await storePack(userId);
-      msg.reply("You have completed a quest and received 1 pack!");
+      if(questRewardsDoubled === true){
+        await storePack(userId);
+        msg.reply("You have completed a quest and received 2 packs!");
+      }else{
+        msg.reply("You have completed a quest and received 1 pack!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId2} progress updated.`);
   }
@@ -236,8 +275,16 @@ async function handleClaimAction(userId, msg) {
       const user = await getUser(userId);
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
-      await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-      msg.reply("You have completed a quest and received 2 copies of your favCard!");
+      if(questRewardsDoubled === true){
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
+        msg.reply("You have completed a quest and received 4 copies of your favCard!");
+      }else{
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
+        msg.reply("You have completed a quest and received 2 copies of your favCard!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId1} progress updated.`);
   }
@@ -257,8 +304,16 @@ async function handleDropAction(userId, msg){
       questData.status = false;
       await deleteUserQuests(userId, questId4); //remove when finished
       const balance = await getUsersBalance(userId);
-      await saveUserBalance(userId, balance + 3000);
-      msg.reply("You have completed a quest and received 3000 coins!");
+      if(questRewardsDoubled === true){
+        await saveUserBalance(userId, balance + 6000);
+        msg.reply("You have completed a quest and received 6000 coins!");
+      }else{
+        await saveUserBalance(userId, balance + 3000);
+        msg.reply("You have completed a quest and received 3000 coins!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId4} progress updated.`);
   }
@@ -272,7 +327,15 @@ async function handleDropAction(userId, msg){
       questData.status = false;
       await deleteUserQuests(userId, questId5); //remove when finished
       await storePack(userId);
-      msg.reply("You have completed a quest and received 1 pack!");
+      if(questRewardsDoubled === true){
+        await storePack(userId);
+        msg.reply("You have completed a quest and received 2 packs!");
+      }else{
+        msg.reply("You have completed a quest and received 1 pack!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId5} progress updated.`);
   }
@@ -287,8 +350,16 @@ async function handleDropAction(userId, msg){
       const user = await getUser(userId);
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
-      await changeNumberOwned("user-cards", userId, favCard, numberOwned + 3);
-      msg.reply("You have completed a quest and received 3 copies of your favCard!");
+      if(questRewardsDoubled === true){
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 6);
+        msg.reply("You have completed a quest and received 6 copies of your favCard!");
+      }else{
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 3);
+        msg.reply("You have completed a quest and received 3 copies of your favCard!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId6} progress updated.`);
   }
@@ -313,40 +384,20 @@ async function handleFeedAction(userId, copies, msg) {
       const user = await getUser(userId);
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
-      await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
-      msg.reply("You have completed a quest and received 1 copy of your favCard!");
+      if(questRewardsDoubled === true){
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
+        msg.reply("You have completed a quest and received 2 copy of your favCard!");
+      }else{
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
+        msg.reply("You have completed a quest and received 1 copy of your favCard!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId7} progress updated.`);
   }
 
-  /*const quest8 = userQuests.find(quest => quest['quest-id'] === questId8);  //sees if user has quest 2
-  if (quest8) {
-    //console.log("checked quest right");
-    const progress8 = copies; // Example: Increment progress by 1 for each claim
-    await updateUserQuests(userId, questId8, progress8);
-    const questData = await getUserQuest(userId, questId8);
-    if(questData.progress >= 10){
-      questData.status = false;
-      await deleteUserQuests(userId, questId8); //remove when finished
-      const balance = await getUsersBalance(userId);
-      await saveUserBalance(userId, balance + 4000);
-      msg.reply("You have completed a quest and received 4000 coins!");
-    }
-    //console.log(`Quest ${questId8} progress updated.`);
-  }
-  const quest9 = userQuests.find(quest => quest['quest-id'] === questId9); //sees if user has quest 1
-  if (quest9) {
-    const progress9 = copies; // Example: Increment progress by 1 for each claim
-    await updateUserQuests(userId, questId9, progress9);
-    const questData = await getUserQuest(userId, questId9);
-    if(questData.progress >= 15){
-      questData.status = false;
-      await deleteUserQuests(userId, questId9); //remove when finished
-      await storePack(userId);
-      msg.reply("You have completed a quest and received 1 pack!");
-    }
-    //console.log(`Quest ${questId9} progress updated.`);
-  }*/
 }
 
 async function handleWorkAction(userId, msg) {
@@ -364,8 +415,16 @@ async function handleWorkAction(userId, msg) {
       questData.status = false;
       await deleteUserQuests(userId, questId10); //remove when finished
       const balance = await getUsersBalance(userId);
-      await saveUserBalance(userId, balance + 4000);
-      msg.reply("You have completed a quest and received 4000 coins!");
+      if(questRewardsDoubled === true){
+        await saveUserBalance(userId, balance + 8000);
+        msg.reply("You have completed a quest and received 8000 coins!");
+      }else{
+        await saveUserBalance(userId, balance + 4000);
+        msg.reply("You have completed a quest and received 4000 coins!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId10} progress updated.`);
   }
@@ -379,7 +438,15 @@ async function handleWorkAction(userId, msg) {
       questData.status = false;
       await deleteUserQuests(userId, questId11); //remove when finished
       await storePack(userId);
-      msg.reply("You have completed a quest and received 1 pack!");
+      if(questRewardsDoubled === true){
+        await storePack(userId);
+        msg.reply("You have completed a quest and received 2 packs!");
+      }else{
+        msg.reply("You have completed a quest and received 1 pack!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId11} progress updated.`);
   }
@@ -394,8 +461,16 @@ async function handleWorkAction(userId, msg) {
       const user = await getUser(userId);
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
-      await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
-      msg.reply("You have completed a quest and received 4 copies of your favCard!");
+      if(questRewardsDoubled === true){
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 8);
+        msg.reply("You have completed a quest and received 8 copies of your favCard!");
+      }else{
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
+        msg.reply("You have completed a quest and received 4 copies of your favCard!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
     }
     //console.log(`Quest ${questId12} progress updated.`);
   }
@@ -414,4 +489,8 @@ function shuffle(array) {
   return array;
 }
 
-module.exports = {setUserQuests, getUserQuests, createQuestEmbed, deleteUserQuests, updateUserQuests, handleClaimAction, handleDropAction, handleWorkAction, handleFeedAction};
+const doubleNumbersInString = (str) => {
+  return str.replace(/\d+/g, (match) => String(Number(match) * 2));
+};
+
+module.exports = {setUserQuests, getUserQuests, createQuestEmbed, deleteUserQuests, updateUserQuests, handleClaimAction, handleDropAction, handleWorkAction, handleFeedAction, changeQuestRwards};

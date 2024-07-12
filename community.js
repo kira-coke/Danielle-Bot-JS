@@ -518,16 +518,25 @@ async function sortCommunityOut(msg, input, userId){
   if(input[0] === "kick"){
     const member = input[1];
     const memberData = await getUserCommunity(member);
-    if(memberData === false){
-      msg.reply("This user is not in a community, dont be mean and try to kick them from something they dont have :(");
-      return;
-    }
-    const memberCom = memberData["communityName"]; 
-    const com = await getCommunityData(memberCom); //member community data
-    if (com["owner"] !== userId) {
-        msg.reply("You are not the owner of this community and do not have the perms to kick members");
+    if (memberData === false) {
+        msg.reply(
+            "This user is not in a community, dont be mean and try to kick them from something they dont have :(",
+        );
         return;
     }
+    const memberCom = memberData["communityName"];
+    const com = await getCommunityData(memberCom); //member community data
+    if (com["owner"] !== userId) {
+        msg.reply(
+            "You are not the owner of this community and do not have the perms to kick members",
+        );
+        return;
+    }
+    if (com["owner"] === userId) {
+        msg.reply("You cannot kick yourself silly!");
+        return;
+    }
+      
     await updateMemberList(member, memberCom, "remove");
     await leaveCommunity(member, memberCom);
     const embed = new EmbedBuilder()
@@ -539,7 +548,13 @@ async function sortCommunityOut(msg, input, userId){
   
   if(input[0] === "leaderboard" || input[0] === "lb"){
     const communityName = input[1];
-    const comData = await getCommunityData(communityName);
+    let comData = "";
+    try{
+        comData = await getCommunityData(communityName);
+    }catch(error){
+        console.log("No community given");
+        return;
+    }
     if(comData === false){
         msg.reply("This community does not exist.");
         return;

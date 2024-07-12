@@ -1,13 +1,14 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard, getCardFromTable} = require("./cards");
 
 async function getClaim(msg,userId){
     const user = await getUser(userId);
     const userFavCard = user["FavCard"];
     const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
     const cardData = userFavCardData[0];
+    const cardFromCards = await getCardFromTable("cards", userFavCard);
 
     (async () => {
         try {
@@ -18,7 +19,7 @@ async function getClaim(msg,userId){
             }else{
                 if(cardData.tier >=2){
                     try{
-                        if(cardData.cardRarity === 1){
+                        if(cardFromCards.cardRarity === 1){
                             randomCard = await getWeightedCard(userId);
                             console.log("Got weighted card");
                         }else{
@@ -96,7 +97,7 @@ async function getClaim(msg,userId){
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
-                    .setTitle("**You have dropped**")
+                    .setTitle("**You have claimed**")
                     .setDescription(
                         `**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
                     )
