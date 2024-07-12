@@ -392,7 +392,7 @@ async function sortCommunityOut(msg, input, userId){
     console.log(com);
     if(communityName === userCom["communityName"]){
       if(com["owner"] === userId){
-        msg.reply("You cannot leave a community you own. Do **.com delete** instead to remove this community completely.")
+        msg.reply("You cannot leave a community you own. Please contact a staff member with reasons why.")
         return;
       }
       await leaveCommunity(userId);
@@ -652,7 +652,6 @@ async function sortCommunityOut(msg, input, userId){
       });
   }
   
-
 }
 
 async function updateComDgStats(userId, amount){
