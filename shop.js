@@ -168,6 +168,7 @@ async function packOpen(msg, userId) {
                 //console.log("Added card to user", randomCard);
             }
             items.push(item);
+            //console.log(items);
         }
         // Batch write to DynamoDB
         try{
@@ -201,6 +202,7 @@ async function packOpen(msg, userId) {
         msg.channel.send('An error occurred while opening the pack. Please try again later.');
     }
 }
+
 async function writeToDynamoDBBatch(tableName, items) {
     const batches = [];
     while (items.length) {
@@ -216,10 +218,13 @@ async function writeToDynamoDBBatch(tableName, items) {
         };
 
         for (const item of batch) {
+            //console.log("item: ", item);
             const key = `${item["user-id"]}-${item["card-id"]}`;
             if (uniqueKeys.has(key)) {
                 // Item with same key already exists, increment copies-owned
-                uniqueKeys.get(key)["copies-owned"] += item["copies-owned"];
+                const existingItem = uniqueKeys.get(key);
+                const copiesNowOwned = parseInt(existingItem["copies-owned"]) + 1;
+                existingItem["copies-owned"] = copiesNowOwned;
             } else {
                 // New item, add to uniqueKeys map
                 uniqueKeys.set(key, item);
