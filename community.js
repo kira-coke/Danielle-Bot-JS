@@ -800,6 +800,8 @@ function communityEmbed(com){
       .addFields({name: 'Current assets', value:`${inlineCode(com.assets*memberCount)}${emote}`, inline: true})
       .addFields({name: ' ', value: ' '})
       .addFields({name: 'Current member paycheck', value:`${inlineCode(com.assets)}${emote} \n ${italic("This will be added to your balance every week on Monday at 0:00 BST")}`, inline: true})
+      .addFields({name: ' ', value: ' '})
+      .addFields({name: 'Current community dungeon stats', value:`${inlineCode(com.dgStats)}`, inline: true})
 
   if (com.memberList && com.memberList.length > 0) {
       const memberList = com.memberList.map(member => `<@${member}>`).join(' ');
