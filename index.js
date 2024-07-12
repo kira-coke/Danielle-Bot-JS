@@ -1568,7 +1568,7 @@ client.on("messageCreate", async (msg) => {
                     (role) => role.name === REQUIRED_ROLE_NAME,
                 );
                 if (role && msg.member.roles.cache.has(role.id)) {
-                    const raffleRewards = await changeQuestRwards();
+                    const raffleRewards = await changeRaffleRewards();
                     msg.channel.send(`Double raffle rewards toggled to: **${raffleRewards}**`);
                 } else {
                     return;
