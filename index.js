@@ -1336,7 +1336,10 @@ client.on("messageCreate", async (msg) => {
             }
 
             if(command === "community" || command === "com"){
-                const input = args.filter((code) => code.trim() !== "");
+                const joinedArgs = args.join(' ');
+                // Use a regular expression to split by spaces except those inside quotes
+                const input = joinedArgs.match(/(?:[^\s"]+|"[^"]*")+/g).map(arg => arg.replace(/"/g, ''));
+
                 await sortCommunityOut(msg, input, userId);
             }
 
@@ -1565,7 +1568,7 @@ client.on("messageCreate", async (msg) => {
                     (role) => role.name === REQUIRED_ROLE_NAME,
                 );
                 if (role && msg.member.roles.cache.has(role.id)) {
-                    const raffleRewards = await changeQuestRwards();
+                    const raffleRewards = await changeRaffleRewards();
                     msg.channel.send(`Double raffle rewards toggled to: **${raffleRewards}**`);
                 } else {
                     return;
