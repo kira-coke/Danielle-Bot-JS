@@ -292,6 +292,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 await setUserAlbum("Dani-bot-playerbase", userId, newFavALbum[0]);
+                msg.reply("You have set your favourite album to " + newFavALbum[0]);
             }
 
             if(command === "toggleprofile"){
