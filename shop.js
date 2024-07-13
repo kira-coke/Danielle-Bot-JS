@@ -3,7 +3,7 @@ const {getUser} = require("./users");
 const {getRandomDynamoDBItem,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard} = require("./cards");
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient
-const {storePack} = require("./userAssets");
+const {storePack, storeAlbumToken} = require("./userAssets");
 
 const emote = '<:DB_currency:1257694003638571048>'; 
 
@@ -14,8 +14,13 @@ const shopItems = [
         image: 'https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/CARDPACK.png',
         price: 10000,
     },
+    {
+        id: 'AlbumToken',
+        name: "Album Token",
+        //image: 'https://danielle-bot-images.s3.eu-west-2.amazonaws.com/assets/DB_currency.png',
+        price: 20000,
+    },
 ];
-const priceWithNumbers = numberWithCommas(shopItems[0].price);
 
 function openShop(msg) {
     const embed = new EmbedBuilder()
@@ -24,10 +29,17 @@ function openShop(msg) {
         .setColor('#fb6f92');
 
     shopItems.forEach(item => {
+        let id;
+        if(item.id === "5_pack"){
+            id = `1️⃣`
+        }
+        if(item.id === "AlbumToken"){
+            id = `2️⃣`
+        }
           embed.addFields(
               {
-                  name: `1️⃣  ${item.name}`,
-                  value: '**Price: **' + inlineCode(String(priceWithNumbers)) + `${emote}`,
+                  name: `${id}  ${item.name}`,
+                  value: '**Price: **' + inlineCode(String(numberWithCommas(item.price))) + `${emote}`,
                   inline: false,
               },
           )
@@ -42,55 +54,68 @@ async function purchaseItem(msg, itemId, userId) {
         return msg.channel.send('Item not found!');
     }
 
-    const embed = new EmbedBuilder()
+    if(item.id === "AlbumToken"){
+        await storeAlbumToken(userId);
+        const embed = new EmbedBuilder()
         .setTitle(`Purchased ${item.name}`)
-        .setDescription(`Price: ${inlineCode(String(priceWithNumbers))} ${emote}`)
-        .setImage(item.image)
+        .setDescription(`Price: ${inlineCode(String(numberWithCommas(item.price)))} ${emote}`)
+        //.setImage(item.image)
         .setColor('#efcfe3');
+        msg.channel.send({ embeds: [embed]});
+    }
 
-    const customId = `open_pack_${msg.id}_${itemId}`;
+    if(item.id === "5_pack"){
+        const embed = new EmbedBuilder()
+            .setTitle(`Purchased ${item.name}`)
+            .setDescription(`Price: ${inlineCode(String(priceWithNumbers))} ${emote}`)
+            .setImage(item.image)
+            .setColor('#efcfe3');
 
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(customId)
-                .setLabel('Open Pack')
-                .setStyle('Secondary')
-        );
+        const customId = `open_pack_${msg.id}_${itemId}`;
 
-    const message = await msg.channel.send({ embeds: [embed], components: [row] });
-    const filter = interaction => interaction.customId === customId && interaction.user.id === msg.author.id;
-    
-    const collector = msg.channel.createMessageComponentCollector({ filter, time: 60000});
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(customId)
+                    .setLabel('Open Pack')
+                    .setStyle('Secondary')
+            );
 
-    collector.on('collect', async interaction => {
-        await interaction.deferUpdate();
-        if (interaction.customId === customId) {;
-            const disabledRow = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(customId)
-                        .setLabel('Open Pack')
-                        .setStyle('Secondary')
-                        .setDisabled(true)
-                );
-            await interaction.message.edit({ components: [disabledRow] });
-            await packOpen(msg, userId); 
-            collector.stop(); 
-        }
-    });
-    collector.on('end', async collected => {
-        if (collected.size === 0) {
-            try {
-                await message.delete();
-                msg.channel.send("Button has timed out! Do **.packs** to see all bought packs and do **.pack open** to open");
-                const data = await storePack(userId);
-                console.log(data);
-            } catch (error) {
-                console.error('Failed to delete message:', error);
+        const message = await msg.channel.send({ embeds: [embed], components: [row] });
+        const filter = interaction => interaction.customId === customId && interaction.user.id === msg.author.id;
+
+        const collector = msg.channel.createMessageComponentCollector({ filter, time: 60000});
+
+        collector.on('collect', async interaction => {
+            await interaction.deferUpdate();
+            if (interaction.customId === customId) {;
+                const disabledRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(customId)
+                            .setLabel('Open Pack')
+                            .setStyle('Secondary')
+                            .setDisabled(true)
+                    );
+                await interaction.message.edit({ components: [disabledRow] });
+                await packOpen(msg, userId); 
+                collector.stop(); 
             }
-        }
-    });
+        });
+        collector.on('end', async collected => {
+            if (collected.size === 0) {
+                try {
+                    await message.delete();
+                    msg.channel.send("Button has timed out! Do **.packs** to see all bought packs and do **.pack open** to open");
+                    const data = await storePack(userId);
+                    console.log(data);
+                } catch (error) {
+                    console.error('Failed to delete message:', error);
+                }
+            }
+        });
+    }
+    
 }
 
 async function packOpen(msg, userId) {

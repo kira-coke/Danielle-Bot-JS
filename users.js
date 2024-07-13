@@ -107,6 +107,35 @@ async function setUserCard(tableName, userId, attribute){
       }
 }
 
+async function setUserAlbum(tableName, userId, attribute){
+    const updateCount = 'SET #FavAlbum = :newFavAlbum';
+    const expressionAttributeValues = {
+        ':newFavAlbum': attribute // New value for 'copies-owned'
+    };
+    const expressionAttributeNames = {
+        '#FavAlbum': 'FavAlbum' // Attribute name alias for 'copies-owned'
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId, 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
+
+        // Call DynamoDB update API
+        const data = await dynamodb.update(params).promise();
+        return data.Attributes; // Return the updated attributes
+      } catch (err) {
+          console.error('Unable to check if user exists:', err);
+          return false;
+      }
+}
+
 async function setUserBio(tableName, userId, attribute){
     const updateCount = 'SET #Description = :newBio';
     const expressionAttributeValues = {
@@ -270,4 +299,34 @@ async function updateTotalExp(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList};
+async function setDisplayPreference(tableName, userId, preference) {
+    try {
+        // Validate preference (optional depending on your application logic)
+        if (preference !== 'favCard' && preference !== 'favAlbum') {
+            throw new Error('Invalid preference value');
+        }
+
+        // Construct update parameters
+        const updateParams = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId,
+            },
+            UpdateExpression: 'SET displayPreference = :preference',
+            ExpressionAttributeValues: {
+                ':preference': preference
+            },
+            ReturnValues: "UPDATED_NEW"
+        };
+
+        // Update user profile
+        const data = await dynamodb.update(updateParams).promise();
+        return data.Attributes; // Return the updated attributes
+    } catch (err) {
+        console.error('Error setting display preference:', err);
+        return false;
+    }
+}
+
+
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList, setUserAlbum, setDisplayPreference};

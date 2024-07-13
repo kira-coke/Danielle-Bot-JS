@@ -15,7 +15,7 @@ const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -31,11 +31,12 @@ const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
-const { getPacks, removePack, getEventRolls} = require("./userAssets");
+const { getPacks, removePack, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
+const {createAlbum, addCardToAlbum, deleteAlbum, getAlbums, generateAlbumImage, getAlbum, removeCard, replaceCard} = require("./albums.js");
 const {eventRoll} = require("./event_le.js");
 const client = new Discord.Client({
     intents: [
@@ -45,7 +46,7 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const {EmbedBuilder, ActivityType} = require("discord.js");
+const {EmbedBuilder, ActivityType, Attachment} = require("discord.js");
 const originalLog = console.log;
 const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
@@ -281,6 +282,30 @@ client.on("messageCreate", async (msg) => {
                 }
             }
 
+            if(command === "favalbum" || command === "fa"){
+                const newFavALbum = args.filter((code) => code.trim() !== "");
+                console.log(newFavALbum[0]);
+                try{
+                    await getAlbum(userId, newFavALbum[0]);
+                }catch(error){
+                    msg.reply("You do not have an album with that name");
+                    return;
+                }
+                await setUserAlbum("Dani-bot-playerbase", userId, newFavALbum[0]);
+            }
+
+            if(command === "toggleprofile"){
+                let preferance = args[0];
+                if(preferance === "favcard"){
+                    preferance = "favCard";
+                }
+                if(preferance === "favalbum"){
+                    preferance = "favAlbum";
+                }
+                await setDisplayPreference("Dani-bot-playerbase", userId, preferance);
+                msg.reply("You have successfully changed your display preference to: " + Discord.inlineCode(preferance));
+            }
+
             if (command === "c" || command === "claim") {
                 const command = "claim";
                 const defaultCooldown = 300 * 1000; // 300 seconds
@@ -402,12 +427,16 @@ client.on("messageCreate", async (msg) => {
                     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
                 }
                 const balWithCommas = numberWithCommas(userBal);
+                const albumTokens = await getAlbumTokens(userId);
 
                 const balanceEmbed = new EmbedBuilder()
                     .setColor("#ffa791")
                     .setTitle(`${targetUser.username}'s Balance`)
                     .setDescription(
                         "**Balance: **" + Discord.inlineCode(`${balWithCommas}`) + currencyEmote,
+                    )
+                    .addFields(
+                        { name: ' ', value: `**Album Tokens**: ` + Discord.inlineCode(albumTokens.toString()), inline: true } // Assuming albumTokens is the variable holding the token count
                     )
                     .setTimestamp();
                 msg.channel.send({ embeds: [balanceEmbed] });
@@ -1284,16 +1313,25 @@ client.on("messageCreate", async (msg) => {
             }
 
             if(command === "shop" || command === "s"){
+                const userBal = await getUsersBalance(userId);
                 if ((args[0] === 'buy' || args[0] === 'b') && args[1] === "1") {
                     const itemId = "5_pack";
-                    const userBal = await getUsersBalance(userId);
                     if(userBal < 10000){
                         msg.reply("You do not have enough to purchase this item. Current balance: " + Discord.bold(userBal));
                     }else{
                         purchaseItem(msg, itemId, userId);
                         await saveUserBalance(userId, (userBal - 10000))
                     }
-                } else {
+                } 
+                if ((args[0] === 'buy' || args[0] === 'b') && args[1] === "2") {
+                    const itemId = "AlbumToken";
+                    if(userBal < 20000){
+                        msg.reply("You do not have enough to purchase this item. Current balance: " + Discord.bold(userBal));
+                    }else{
+                        purchaseItem(msg, itemId, userId);
+                        await saveUserBalance(userId, (userBal - 20000))
+                    }
+                }else {
                     openShop(msg);
                 }
             }
@@ -1354,6 +1392,143 @@ client.on("messageCreate", async (msg) => {
                 const embed = await createQuestEmbed(userQuests, msg);
                 msg.channel.send({ embeds: [embed] });
                 
+            }
+
+            if(command === "album"){
+                if(args[0] === 'create'){
+                    const albumTokens = await getAlbumTokens(userId);
+                    if(albumTokens === 0){
+                        msg.reply("You do not have any album tokens. Do .s b 2 to buy one.")
+                        return;
+                    }
+                    const albumName = args.slice(1).join(' ');
+                    const created = await createAlbum(userId, albumName);
+                    if(created === false){
+                        msg.reply("You already have a album with that name");
+                        return;
+                    }else{
+                        msg.reply("Album created with name: " + albumName);
+                        await removeAlbumToken(userId);
+                        return;
+                    }
+                }
+                if(args[0] === "delete"){
+                    const albumName = args.slice(1).join(' ');
+                    const deleted = await deleteAlbum(userId, albumName);
+                    if(deleted === false){
+                        msg.reply("Issue deleting album. Check you have an album with this name.");
+                        return;
+                    }else{
+                        msg.reply("Album with name: " + albumName + " deleted");
+                        return;
+                    }
+                }
+                if(args[0] === "list"){
+                    try {
+                        const albumNames = await getAlbums(userId);
+                        if (albumNames.length === 0) {
+                            msg.channel.send('You have no albums.');
+                            return;
+                        }
+                        const embed = new EmbedBuilder()
+                            .setTitle('Your Albums')
+                            .setDescription(Discord.inlineCode(albumNames.join('\n')))
+                            .setColor('#a2d2ff');
+
+                        msg.channel.send({ embeds: [embed] });
+                    } catch (error) {
+                        console.error('Error sending user albums embed:', error);
+                        msg.channel.send('An error occurred while fetching your albums.');
+                    }
+
+                }
+                if(args[0] === "view"){
+                    const albumName = args.slice(1).join(' ');
+                    try{
+                        await getAlbum(userId, albumName);
+                    }catch(error){
+                        msg.reply("You do not have an album with that name");
+                        return;
+                    }
+                    const buffer = await generateAlbumImage(userId, albumName, msg);
+                    const embed = new EmbedBuilder()
+                        .setTitle(`Viewing album: ${Discord.inlineCode(albumName)}`)
+                        .setImage(`attachment://album.png`);
+
+                    msg.channel.send({ embeds: [embed], files: [{ attachment: buffer, name: 'album.png' }] });
+                }
+                if(args[0] === "add"){
+                    const albumName = args[1];
+                    const cardId = args[2];
+                    const position = parseInt(args[3]);
+                    if(position < 1 || position > 8 || isNaN(position)){
+                        msg.reply("Give a number between 1 and 8");
+                        return;
+                    }
+                    try {
+                        await getCardFromTable("cards", cardId);
+                    } catch (error) {
+                        msg.reply("Please input a valid card id");
+                        console.log("Error:", error);
+                        return;
+                    }
+                    try{
+                        const userOwns = await checkIfUserOwnsCard("user-cards", userId, cardId);
+                        console.log(userOwns);
+                        if(parseInt(userOwns) === 0){
+                            msg.reply("You must have at least one copy to add to an album");
+                            return;
+                        }else{
+                           await addCardToAlbum(userId, albumName, cardId, position);
+                           msg.reply(`Card ${Discord.inlineCode(cardId)} added to ${Discord.inlineCode(albumName)} at position ${Discord.inlineCode(position)}`);
+                        }
+                    }catch(error){
+                        msg.reply("Something went wrong adding card to album", albumName + ". Check you own an album with this name.");
+                        console.log(error);
+                    }
+
+                }
+                if(args[0] === "remove"){
+                    const albumName = args[1];
+                    const position = parseInt(args[2]);
+                    if(position < 1 || position > 8 || isNaN(position)){
+                        msg.reply("Give a number between 1 and 8");
+                        return;
+                    }
+                    try{
+                        const removed = await removeCard(userId, albumName, position);
+                        if(removed === false){
+                            msg.reply("No card at this position.")
+                            return;
+                        }
+                        msg.reply("You have removed the card at position " + Discord.inlineCode(String(position)) + " from the album " + Discord.inlineCode(albumName));
+                    }catch(error){
+                        msg.reply("Something went wrong removing card from album" + albumName);
+                        console.log(error);
+                    }
+                }
+                /*if(args[0] === "replace"){
+                    const albumName = args[1];
+                    const cardId = args[2];
+                    const position = parseInt(args[3]);
+                    if(position < 1 || position > 8 || isNaN(position)){
+                        msg.reply("Give a number between 1 and 8");
+                        return;
+                    }
+                    try {
+                        await getCardFromTable("cards", cardId);
+                    } catch (error) {
+                        msg.reply("Please input a valid card id");
+                        console.log("Error:", error);
+                        return;
+                    }
+                    try{
+                        await replaceCard(userId, albumName, cardId, position);
+                    }catch(error){
+                        msg.reply("Something went wrong replacing card from album" + albumName);
+                        console.log(error);
+                    }
+                }*/
             }
 
             /*if(command === "eventroll" || command === "er"){
