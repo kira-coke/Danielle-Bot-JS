@@ -67,7 +67,7 @@ async function purchaseItem(msg, itemId, userId) {
     if(item.id === "5_pack"){
         const embed = new EmbedBuilder()
             .setTitle(`Purchased ${item.name}`)
-            .setDescription(`Price: ${inlineCode(String(priceWithNumbers))} ${emote}`)
+            .setDescription(`Price: ${inlineCode(String(numberWithCommas(item.price)))} ${emote}`)
             .setImage(item.image)
             .setColor('#efcfe3');
 
