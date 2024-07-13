@@ -1332,7 +1332,8 @@ client.on("messageCreate", async (msg) => {
                         purchaseItem(msg, itemId, userId);
                         await saveUserBalance(userId, (userBal - 20000))
                     }
-                }else {
+                }
+                if(args[0] === undefined){
                     openShop(msg);
                 }
             }
