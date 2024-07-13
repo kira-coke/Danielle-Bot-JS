@@ -15,7 +15,6 @@ async function getUserProfile(msg, userId){
               userData["FavCard"],
           );
           const userFavAlbum = userData["FavAlbum"];
-          const favAlbumImage = await generateAlbumImage(userId, userFavAlbum, msg);
           
           const favCardUrl = userFavcard["cardUrl"];
           if(String(userData["Description"]).length === 0){
@@ -83,6 +82,7 @@ async function getUserProfile(msg, userId){
               })
               .setTimestamp();
               if(userData["displayPreference"] === "favAlbum"){
+                    const favAlbumImage = await generateAlbumImage(userId, userFavAlbum, msg);
                     embed.setImage(`attachment://album.png`) //they should be able to change this - change card etc
                     msg.reply({ embeds: [embed], files: [{ attachment: favAlbumImage, name: 'album.png' }] });
               }else{
