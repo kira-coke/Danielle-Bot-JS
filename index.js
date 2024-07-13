@@ -292,6 +292,7 @@ client.on("messageCreate", async (msg) => {
                     return;
                 }
                 await setUserAlbum("Dani-bot-playerbase", userId, newFavALbum[0]);
+                msg.reply("You have set your favourite album to " + newFavALbum[0]);
             }
 
             if(command === "toggleprofile"){
@@ -1461,15 +1462,20 @@ client.on("messageCreate", async (msg) => {
                     const albumName = args[1];
                     const cardId = args[2];
                     const position = parseInt(args[3]);
-                    if(position < 1 || position > 8 || isNaN(position)){
-                        msg.reply("Give a number between 1 and 8");
-                        return;
+                    try{
+                        await getAlbum(userId, albumName);
+                    }catch(error){
+                        msg.reply("You do not have an album with that name");
                     }
                     try {
                         await getCardFromTable("cards", cardId);
                     } catch (error) {
                         msg.reply("Please input a valid card id");
                         console.log("Error:", error);
+                        return;
+                    }
+                    if(position < 1 || position > 8 || isNaN(position)){
+                        msg.reply("Give a number between 1 and 8");
                         return;
                     }
                     try{
