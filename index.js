@@ -219,7 +219,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 return msg.channel.send(`Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`);
             }
-            if (isLocked) {
+            if (isLocked && !msg.member.permissions.has('mod')) {
                 return msg.channel.send('Bot is under maintenance, please try again later.');
             }
 
