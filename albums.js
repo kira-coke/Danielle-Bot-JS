@@ -91,30 +91,37 @@ async function generateAlbumImage(userId, albumName) {
     const cardWidth = 800;  // Width of each card
     const cardHeight = 1120; // Height of each card
     const columns = 4;      // Number of columns
-    //const rows = 2;         // Number of rows
     const albumData = await getAlbum(userId, albumName);
-    //console.log(albumData.positions);
     const albumCards = albumData.positions;
-    //console.log(albumCards);
 
-    for(let i = 0; i < albumCards.length; i++) {
-        if(albumCards[i]) {
-          try{
-            const card = await getCardFromTable("cards", albumCards[i]);
-            //console.log(card)
-            const img = await loadImage(card["cardUrl"]);
+    // Helper function to load an image
+    const loadImageAsync = async (cardId) => {
+        try {
+            const card = await getCardFromTable("cards", cardId);
+            return await loadImage(card["cardUrl"]);
+        } catch (error) {
+            console.log(error);
+            console.log("No card likely given");
+            return null;
+        }
+    };
+
+    // Load all images in parallel
+    const imagePromises = albumCards.map(cardId => cardId ? loadImageAsync(cardId) : Promise.resolve(null));
+    const images = await Promise.all(imagePromises);
+
+    // Draw images on the canvas
+    images.forEach((img, i) => {
+        if (img) {
             const x = (i % columns) * cardWidth;
             const y = Math.floor(i / columns) * cardHeight;
             ctx.drawImage(img, x, y, cardWidth, cardHeight);
-          }catch(error){
-            console.log(error);
-            console.log("No card likely given");
-          }
         }
-    }
+    });
 
     return canvas.toBuffer();
 }
+
 
 async function getAlbums(userId){
   const params = {
