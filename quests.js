@@ -490,7 +490,25 @@ function shuffle(array) {
 }
 
 const doubleNumbersInString = (str) => {
-  return str.replace(/\d+/g, (match) => String(Number(match) * 2));
+  return str.replace(/\d+/g, (match) => {
+    // Split the match into individual digits
+    let digits = match.split('').reverse();
+    let carry = 0;
+
+    // Double each digit and handle carry
+    let doubled = digits.map(digit => {
+      let doubledDigit = (Number(digit) * 2) + carry;
+      carry = Math.floor(doubledDigit / 10);
+      return (doubledDigit % 10).toString();
+    });
+
+    if (carry > 0) {
+      doubled.push(carry.toString());
+    }
+
+    // Reverse back and join to form the doubled number string
+    return doubled.reverse().join('');
+  });
 };
 
 module.exports = {setUserQuests, getUserQuests, createQuestEmbed, deleteUserQuests, updateUserQuests, handleClaimAction, handleDropAction, handleWorkAction, handleFeedAction, changeQuestRwards};
