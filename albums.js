@@ -86,7 +86,7 @@ async function addCardToAlbum(userId, albumName, cardId, position){
 }
 
 async function generateAlbumImage(userId, albumName) {
-    const canvas = createCanvas(3300, 2200);
+    const canvas = createCanvas(3300, 2250);
     const ctx = canvas.getContext('2d');
     const cardWidth = 800;  // Width of each card
     const cardHeight = 1120; // Height of each card

@@ -45,8 +45,8 @@ async function awardExp(userId, cardId, numberOfCards, msg){
         .setTitle("EXP Warning")
         .setDescription(`Giving **${expGiven} EXP** to your **${cardId}** will over level the card!`)
         .addFields(
-          { name: "Exp needed to next level up", value: `${expNeeded - cardData.exp}`, inline: true},
-          { name: "Exp needed to max card", value: `${calculateExpNeededToMax(cardData.level, cardData.exp)}`, inline: true},
+          { name: "Exp needed to next level up", value: `${calculateExpNeededToMax(cardData.level, cardData.exp)}`, inline: true},
+          { name: "Exp needed to max card", value: `${expNeeded - cardData.exp}`, inline: true},
           { name: "EXP Given", value: `${expGiven}`, inline: true }
         )
         .setTimestamp();
@@ -171,12 +171,14 @@ function calculatePotentialNewLevel(level, exp) {
   return level;
 }
 
-function calculateExpNeededToMax(level, exp) {
-  while (exp >= calculatePotentialLevelUpXP(level) && level < 20 ) {
-    exp -= calculatePotentialLevelUpXP(level);
-    level += 1;
+function calculateExpNeededToMax(level, currentExp) {
+  let expNeeded = 0;
+  for (let lvl = level; lvl < 20; lvl++) {
+    expNeeded += calculatePotentialLevelUpXP(lvl);
   }
-  return exp;
+  expNeeded -= currentExp;
+
+  return expNeeded;
 }
 
 async function upgrade(userId, cardId, msg){
