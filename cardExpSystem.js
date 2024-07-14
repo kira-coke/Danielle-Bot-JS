@@ -45,7 +45,7 @@ async function awardExp(userId, cardId, numberOfCards, msg){
         .setTitle("EXP Warning")
         .setDescription(`Giving **${expGiven} EXP** to your **${cardId}** will over level the card!`)
         .addFields(
-          { name: "Exp needed to next level up", value: `${calculateExpNeededToMax(cardData.level, cardData.exp)}`, inline: true},
+          //{ name: "Exp needed to next level up", value: `${calculateExpNeededToMax(cardData.level, cardData.exp)}`, inline: true},
           { name: "Exp needed to max card", value: `${expNeeded - cardData.exp}`, inline: true},
           { name: "EXP Given", value: `${expGiven}`, inline: true }
         )
