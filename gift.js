@@ -1,6 +1,6 @@
 const {getHowManyCopiesOwned,getCardFromTable,changeNumberOwned, checkIfUserOwnsCard, writeToDynamoDB} = require("./cards");
 const {checkUserExists} = require("./users.js");
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, inlineCode } = require("discord.js");
 const Discord = require("discord.js");
 
 async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesToGive){
@@ -169,4 +169,97 @@ async function giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesTo
   
 }
 
-module.exports = {giftcards};
+async function massGift(msg, userId, targetUser, gifts) {
+    const embed = new EmbedBuilder()
+        .setTitle("Mass Gift")
+        .setColor("#57F287")
+        .setFooter({
+            text: msg.author.tag,
+            iconURL: msg.author.displayAvatarURL({ dynamic: true })
+        })
+        .setTimestamp();
+
+    let totalGifts = 0;
+
+    for (const gift of gifts) {
+        const { cardID, numberOfCopiesToGive } = gift;
+
+        const card = await getCardFromTable("cards", cardID);
+        if (card.cardRarity === 4) {
+            embed.addFields({ name: `Card ID: ${inlineCode(cardID)}`, value: "Cannot gift custom cards." });
+            continue;
+        }
+
+        const userExists = await checkUserExists(targetUser.id);
+        if (!userExists) {
+            embed.addFields({ name: `Card ID: ${inlineCode(cardID)}`, value: "Target user is not registered." });
+            continue;
+        }
+
+        const numberOfCopies = await getHowManyCopiesOwned("user-cards", userId, cardID);
+        if (numberOfCopies <= numberOfCopiesToGive) {
+            embed.addFields({ name: `Card ID: ${inlineCode(cardID)}`, value: "Not enough copies to gift." });
+            continue;
+        }
+
+        const currentOwnedByUser1 = await getHowManyCopiesOwned("user-cards", userId, cardID);
+        if (currentOwnedByUser1 <= 1) {
+            embed.addFields({ name: `Card ID: ${inlineCode(cardID)}`, value: "Must own more than 1 copy to gift duplicates." });
+            continue;
+        }
+
+        let userOwns = await checkIfUserOwnsCard("user-cards", targetUser.id, cardID) !== 0;
+        if (!userOwns) {
+            const item = {
+                "user-id": targetUser.id,
+                "card-id": cardID,
+                "copies-owned": 1,
+                exp: 0,
+                level: 0,
+                upgradable: false,
+                tier: 1,
+                totalExp: 0
+            };
+            await writeToDynamoDB("user-cards", item).catch((error) => console.error("Error:", error));
+        }
+
+        const currentOwnedByUser2 = await getHowManyCopiesOwned("user-cards", targetUser.id, cardID);
+        if (currentOwnedByUser2 === 1 && numberOfCopiesToGive === 1) {
+            if (!userOwns) {
+                console.log("Correctly added only 1 copy to user");
+            } else {
+                await changeNumberOwned("user-cards", targetUser.id, cardID, currentOwnedByUser2 + numberOfCopiesToGive);
+            }
+        } else if (currentOwnedByUser2 === 1 && numberOfCopiesToGive > 1) {
+            if (!userOwns) {
+                await changeNumberOwned("user-cards", targetUser.id, cardID, currentOwnedByUser2 + numberOfCopiesToGive - 1);
+            } else {
+                await changeNumberOwned("user-cards", targetUser.id, cardID, currentOwnedByUser2 + numberOfCopiesToGive);
+            }
+        } else {
+            await changeNumberOwned("user-cards", targetUser.id, cardID, currentOwnedByUser2 + numberOfCopiesToGive);
+        }
+
+        await changeNumberOwned("user-cards", userId, cardID, currentOwnedByUser1 - numberOfCopiesToGive);
+
+        embed.addFields({ 
+            name: `Card ID: ${inlineCode(cardID)}`, 
+            value: `Gifted ${numberOfCopiesToGive} to ${targetUser.username}. You now have ${inlineCode(String(currentOwnedByUser1 - numberOfCopiesToGive))} left.` 
+        });
+        totalGifts += numberOfCopiesToGive;
+    }
+
+    if (totalGifts > 0) {
+        embed.setDescription(`You have successfully gifted a total of ${inlineCode(totalGifts)} cards to ${inlineCode(targetUser.username)}.`);
+    } else {
+        embed.setDescription(`No cards were gifted.`);
+    }
+
+    msg.reply({
+        embeds: [embed],
+        allowedMentions: { repliedUser: false }
+    });
+}
+
+
+module.exports = {giftcards, massGift};
