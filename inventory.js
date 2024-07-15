@@ -144,6 +144,25 @@ const generateRowInv = (page, totalPages) => {
     );
 };
 
+const generateRowInvForGroup = (page, totalPages) => {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("prev")
+            .setLabel("◀")
+            .setStyle("Secondary")
+            .setDisabled(page === 0),
+        new ButtonBuilder()
+            .setCustomId("next")
+            .setLabel("▶")
+            .setStyle("Secondary")
+            .setDisabled(page === totalPages - 1),
+        new ButtonBuilder()
+            .setCustomId("export")
+            .setLabel("Export")
+            .setStyle("Secondary")
+    );
+};
+
 const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) => {
     let currentPage = 0;
     const filter = (i) => i.user.id === msg.author.id;
@@ -175,7 +194,7 @@ const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, 
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
         filter,
-        time: 30000, // How long buttons last
+        time: 60000, // How long buttons last
     });
 
     collector.on("collect", async (i) => {
@@ -184,6 +203,11 @@ const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, 
             currentPage--;
         } else if (i.customId === "next" && currentPage < totalPages - 1) {
             currentPage++;
+        } else if (i.customId === "export") {
+            const exportData = await generateExportData(currentPage, listOfCards, userId);
+            await msg.reply({
+                content: `${Discord.inlineCode(exportData)}`,
+            });
         }
         await embedMessage.edit({
             embeds: [await generateEmbedInvForGroup(currentPage, totalPages, listOfCards, msg, userId)],
@@ -229,4 +253,29 @@ async function getUniqueGroupNames(tableName) {
     return Array.from(uniqueGroupNames);
 }
 
-module.exports = { generateEmbedInv, generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, handleCollectorInvForGroup  };
+const generateExportData = async (page, listOfCards, userId) => {
+    const cardSubset = listOfCards.slice();
+    const exportPromises = cardSubset.map(async (attribute) => {
+        try {
+            const card = await getCardFromTable("cards", attribute["card-id"]);
+            const ownsCard = await checkIfUserOwnsCard("user-cards", userId, attribute["card-id"]);
+            if (ownsCard !== 0) {
+                const cardDataArray = await getUserCard("user-cards", userId, attribute["card-id"]);
+                const cardData = cardDataArray[0];
+                const duplicates = cardData["copies-owned"] - 1;
+                return `${card["card-id"]} ${duplicates} `;
+            }
+        } catch (error) {
+            console.error("Error processing card for export:", error);
+        }
+        return null;
+    });
+
+    const exportResults = await Promise.all(exportPromises);
+    const exportData = exportResults.filter(result => result !== null).join('');
+
+    return exportData;
+};
+
+
+module.exports = { generateEmbedInv, generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, handleCollectorInvForGroup, generateRowInvForGroup  };
