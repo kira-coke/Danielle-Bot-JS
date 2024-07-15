@@ -20,6 +20,7 @@ const commands = [
     { name: ".index [groupName]", description: "View all available cards in the bot (can view cards in a specific group)" },
     { name: ".view or v [card-id] [fc]", description: "View details of a specific card. (fc will default to viewing your current favcard)" },
     { name: ".gift @user card-id amount", description: "Gift another user x amount of cards (note: you must keep at least one copy of the card in your inventory)" },
+    { name: ".massgift/.mg @user card-id amount card-id amount ....", description: "Gift another user up to 10 codes (note: you must keep at least one copy of the card in your inventory)" },
     { name: ".favcard or .fc [card-id]", description: "Set your favorite card." },
     { name: ".favalbum or .fa [albumName]", description: "Set your favorite album." },
     { name: ".toggleprofile [favalbum]/[favcard]", description: "Switch between album or card to show on your profile." },
