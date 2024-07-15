@@ -186,16 +186,21 @@ client.on("messageCreate", async (msg) => {
             await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp);
 
             if (msg.author.bot) return;
+        
+            try{
+                if (command === 'togglelock') {
+                    const REQUIRED_ROLE_NAME = "mod"; // change to "admin" if necessary
+                    const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
+                    if (!role || !msg.member.roles.cache.has(role.id)) {
+                        return msg.channel.send('You do not have the required role to use this command.');
+                    }
 
-            if (command === 'togglelock') {
-                if (!msg.member.permissions.has('mod')) {
-                    return;
-                }
-                isLocked = !isLocked;
-                if(isLocked === true){
+                    isLocked = !isLocked;
+                    const status = isLocked ? 'idle' : 'online';
+                    const statusMessage = `Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`;
                     try {
                         client.user.setPresence({
-                            status: 'idle',
+                            status: status,
                             activities: [{
                                 name: 'Hype Boy',
                                 type: ActivityType.Listening,
@@ -204,25 +209,19 @@ client.on("messageCreate", async (msg) => {
                     } catch (error) {
                         console.error('Error setting presence:', error);
                     }
-                }else{
-                    try {
-                        client.user.setPresence({
-                            status: 'online',
-                            activities: [{
-                                name: 'Hype Boy',
-                                type: ActivityType.Listening,
-                            }],
-                        });
-                    } catch (error) {
-                        console.error('Error setting presence:', error);
+                    return msg.channel.send(statusMessage);
+                }
+
+                if (isLocked) {
+                    const REQUIRED_ROLE_NAME = "mod"; // change to "admin" if necessary
+                    const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
+                    if (!role || !msg.member.roles.cache.has(role.id)) {
+                        return msg.channel.send('Bot is under maintenance, please try again later.');
                     }
                 }
-                return msg.channel.send(`Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`);
+            }catch(error){
+                console.log("Error checking lock status:", error);
             }
-            if (isLocked && !msg.member.permissions.has('mod')) {
-                return msg.channel.send('Bot is under maintenance, please try again later.');
-            }
-
             //check for if theyre blacklisted
             if (userExists) {
                 const userDisabled = await checkUserDisabled(userId);
@@ -836,6 +835,10 @@ client.on("messageCreate", async (msg) => {
                 if(action === "add"){
                     const currentWl = await getUserWishList("Dani-bot-playerbase",userId);
                     let newWl = "";
+                    if(currentWl[0] === "n/a"){
+                        msg.reply("Pleaset set your wishlist with at least one card before trying to add.")
+                        return;
+                    }
                     if((currentWl.length+codes.length) > 10){
                         msg.reply("Your wl will be over 10 codes. You currently have "+ currentWl.length + " codes in your wishlist");
                     }else{
