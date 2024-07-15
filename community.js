@@ -731,6 +731,34 @@ async function checkDgProgress(communityName){
     }
 }
 
+async function resetComDgStats(communityName) {
+    try {
+        const comData = await getCommunityData(communityName);
+        let dgStats = comData.dgStats;
+
+        dgStats = 0;
+
+        const updateParams = {
+            TableName: 'communities',
+            Key: {
+                communityName: communityName
+            },
+            UpdateExpression: 'SET dgStats = :dgStats',
+            ExpressionAttributeValues: {
+                ':dgStats': dgStats
+            },
+            ReturnValues: 'UPDATED_NEW'
+        };
+
+        await dynamodb.update(updateParams).promise();
+        console.log(`Successfully reset dgStats for community ${communityName} to ${dgStats}`);
+    } catch (error) {
+        console.error(`Error resetting dgStats for community ${communityName}:`, error.message);
+        throw error;
+    }
+}
+
+
 async function updateComAssets(communityName, newAssets) {
     const params = {
         TableName: 'communities',
@@ -781,6 +809,7 @@ cron.schedule('0 0 * * MON', async () => {//'0 0 * * MON',
                     await awardAmount(memberId, comData.assets);
                 }
             }
+            await resetComDgStats(communityName);
         }
         console.log('Rewards distribution complete.');
     } catch (error) {
