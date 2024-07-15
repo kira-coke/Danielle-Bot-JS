@@ -38,6 +38,7 @@ const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByG
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const {createAlbum, addCardToAlbum, deleteAlbum, getAlbums, generateAlbumImage, getAlbum, removeCard, replaceCard} = require("./albums.js");
 const {eventRoll} = require("./event_le.js");
+const {checkUserInTable, checkCardTier, checkDaily, checkCardCount, checkTotalExp, handleCollectorAchievements, achievementsCommand, generateRowAchievements} = require("./achievements.js");
 const client = new Discord.Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -1095,7 +1096,8 @@ client.on("messageCreate", async (msg) => {
     
                     try {
                         leveledCards = await getCardsWithLevels("user-cards", userId);
-                        // console.log(leveledCards);
+                        const user = await getUser("1046858875237847162");
+                        console.log(user);
                     } catch (error) {
                         console.error("Error getting leveled cards:", error);
                         return;
@@ -1163,6 +1165,7 @@ client.on("messageCreate", async (msg) => {
     
                         try {
                             listOfCards = await getUserCards("user-cards", userId);
+                            const user = await getUser(userId);
                         } catch (error) {
                             console.log("Error getting user cards:", error);
                             return;
@@ -1623,6 +1626,19 @@ client.on("messageCreate", async (msg) => {
                     }
                 }*/
             }
+
+            /*if (command === "achievements") {
+                let userAchievements = await checkUserInTable(userId);
+                const { embed, totalPages } = achievementsCommand(userAchievements, 0);
+                const components = totalPages > 1 ? [generateRowAchievements(0, totalPages)] : [];
+
+                msg.reply({ embeds: [embed], components: components })
+                    .then((sentMsg) => {
+                        handleCollectorAchievements(sentMsg, msg, userAchievements, totalPages);
+                    })
+                    .catch(console.error); // Catch errors for debugging
+                await checkCardTier(userId, "NJDNSPN");
+            }*/
 
             /*if(command === "eventroll" || command === "er"){
                 const rolls = await getEventRolls(userId);
