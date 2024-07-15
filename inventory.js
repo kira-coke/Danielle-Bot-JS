@@ -211,7 +211,7 @@ const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, 
         }
         await embedMessage.edit({
             embeds: [await generateEmbedInvForGroup(currentPage, totalPages, listOfCards, msg, userId)],
-            components: [generateRowInv(currentPage, totalPages)],
+            components: [generateRowInvForGroup(currentPage, totalPages)],
         });
     });
 
