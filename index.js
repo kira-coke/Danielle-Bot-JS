@@ -12,7 +12,7 @@ AWS.config.update({
 const{work} = require("./work");
 const {forceRaffle, changeRaffleRewards} = require("./raffle");
 const {getCooldowns} = require("./cooldowncommand.js");
-const {giftcards} = require("./gift.js");
+const {giftcards, massGift} = require("./gift.js");
 const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
@@ -729,6 +729,127 @@ client.on("messageCreate", async (msg) => {
                     numberOfCopiesToGive,
                 );
             }
+
+            if (command === "gift") {
+                const cardIDToGift = args[1];
+                let numberOfCopiesToGive = parseFloat(args[2]); // ideally should be !gift @user xyz 3
+                let userId = msg.author.id;
+                let targetUser;
+
+                if (msg.mentions.users.size > 0) {
+                    // uses the mention
+                    targetUser = msg.mentions.users.first();
+                } else {
+                    // If no mention, assume the user ID is provided as the first argument
+                    targetUser = args[0];
+                    if (targetUser) {
+                        targetUser = targetUser.replace(/\D/g, ""); // Remove all non-digit characters
+                    }
+                    try {
+                        targetUser = await msg.client.users.fetch(targetUser);
+                    } catch (error) {
+                        console.error("Error fetching user:", error);
+                        msg.reply("Could not find a user with that ID.");
+                        return;
+                    }
+                }
+
+                if (!targetUser) {
+                    msg.reply("Please mention a user or provide a valid user ID.");
+                    return;
+                }
+                if (targetUser.id === "1251915536065892413") {
+                    msg.reply("** Trying to gift the georgeos danielle? **");
+                    return;
+                }
+
+                if (targetUser === msg.author) {
+                    msg.reply("** Trying to gift yourself? **");
+                    return;
+                }
+                if (isNaN(numberOfCopiesToGive) || args.length < 3) {
+                    numberOfCopiesToGive = 1;
+                }
+                if (isNaN(numberOfCopiesToGive)) {
+                    msg.reply("Please ensure you have entered a valid number.");
+                    return;
+                }
+                if (numberOfCopiesToGive === 0) {
+                    msg.reply("Please give a non zero amount to gift"); // they've tried to give an invalid amount
+                    return;
+                }
+                if (numberOfCopiesToGive === undefined) {
+                    numberOfCopiesToGive = 1;
+                }
+                console.log(numberOfCopiesToGive);
+                await giftcards(msg, cardIDToGift, userId, targetUser, numberOfCopiesToGive);
+            }
+
+            if (command === "mg" || command === "massgift") {
+                const userId = msg.author.id;
+                let targetUser;
+                let argsIndex = 1;
+
+                if (msg.mentions.users.size > 0) {
+                    // uses the mention
+                    targetUser = msg.mentions.users.first();
+                    argsIndex = 1;
+                } else {
+                    // If no mention, assume the user ID is provided as the first argument
+                    targetUser = args[0];
+                    if (targetUser) {
+                        targetUser = targetUser.replace(/\D/g, ""); // Remove all non-digit characters
+                        argsIndex = 1;
+                    }
+                    try {
+                        targetUser = await msg.client.users.fetch(targetUser);
+                    } catch (error) {
+                        console.error("Error fetching user:", error);
+                        msg.reply("Could not find a user with that ID.");
+                        return;
+                    }
+                }
+
+                if (!targetUser) {
+                    msg.reply("Please mention a user or provide a valid user ID.");
+                    return;
+                }
+                if (targetUser.id === "1251915536065892413") {
+                    msg.reply("** Trying to gift the georgeos danielle? **");
+                    return;
+                }
+
+                if (targetUser === msg.author) {
+                    msg.reply("** Trying to gift yourself? **");
+                    return;
+                }
+
+                // Parse the card IDs and numbers of copies
+                const cardGiftArgs = args.slice(argsIndex);
+                console.log(cardGiftArgs);
+                if (cardGiftArgs.length % 2 !== 0) {
+                    msg.reply("Please provide card IDs and number of copies in pairs.");
+                    return;
+                }
+                console.log(cardGiftArgs.length);
+                if(cardGiftArgs.length > 20){
+                    msg.reply("You can only gift 10 sets of cards at a time");
+                    return;
+                }
+                const gifts = [];
+                for (let i = 0; i < cardGiftArgs.length; i += 2) {
+                    const cardID = cardGiftArgs[i];
+                    const numberOfCopiesToGive = parseFloat(cardGiftArgs[i + 1]);
+                    if (isNaN(numberOfCopiesToGive) || numberOfCopiesToGive <= 0) {
+                        msg.reply(`Please provide a valid number of copies for card ID ${cardID}.`);
+                        return;
+                    }
+                    gifts.push({ cardID, numberOfCopiesToGive });
+                }
+
+                await massGift(msg, userId, targetUser, gifts);
+            }
+
 
             if (command === "favcard" || command === "fc") {
                 const newFavCard = args.filter((code) => code.trim() !== "");
