@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -46,7 +46,7 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const {EmbedBuilder, ActivityType, Attachment} = require("discord.js");
+const {EmbedBuilder, ActivityType} = require("discord.js");
 const originalLog = console.log;
 const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
@@ -976,7 +976,24 @@ client.on("messageCreate", async (msg) => {
                 if (!userId || userId === msg.author.id) {
                     userId = msg.author.id;
                 }
-                if (groupName === "customs") {
+                if(groupName === "event"){
+                    let eventcards = await getEventCards();
+                    console.log(eventcards);
+                    const cardsPerPage = 10;
+                    const totalPages = Math.ceil(eventcards.length / cardsPerPage);
+
+                    try {
+                        const embedMessage = await msg.channel.send({
+                            embeds: [
+                                await generateEmbedInvForGroup(0, totalPages, eventcards, msg, userId),
+                            ],
+                            components: [generateRowInv(0, totalPages)],
+                        });
+                        handleCollectorInvForGroup(embedMessage, msg, totalPages, eventcards, userId);
+                    } catch (error) {
+                        console.log("Error:", error);
+                    }
+                } else if (groupName === "customs") {
                     let userCustoms = [];
                     try {
                         userCustoms = await getUserCustomCards(userId);
@@ -1003,6 +1020,7 @@ client.on("messageCreate", async (msg) => {
                     } catch (error) {
                         console.log("Error:", error);
                     }
+                
                 } else if (groupName === "levels") {
                     // Show all leveled cards in user's inventory
                     let leveledCards = [];
