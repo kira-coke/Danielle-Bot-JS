@@ -453,4 +453,29 @@ async function modGiftCard(targetUser, cardIDToGift, msg, copiesToGive){
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard};
+async function getEventCards(){
+    try {
+        const scanParams = {
+            TableName: "cards",
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 3
+            }
+        };
+        const data = await dynamodb.scan(scanParams).promise();
+
+        if (!data.Items || data.Items.length === 0) {
+            throw new Error('No items found in the table');
+        }
+        //console.log(data);
+        return data.Items;
+    } catch (error) {
+        console.error('Error retrieving items from DynamoDB:', error);
+        throw error;
+    }
+}
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards};
