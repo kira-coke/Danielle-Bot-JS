@@ -19,7 +19,7 @@ const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,set
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards} = require("./cards");
 const {getUserProfile} = require("./profile.js");
-const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup } = require("./inventory.js");
+const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup, generateRowInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
 const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
@@ -981,7 +981,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 if(groupName === "event"){
                     let eventcards = await getEventCards();
-                    console.log(eventcards);
+                    //console.log(eventcards);
                     const cardsPerPage = 10;
                     const totalPages = Math.ceil(eventcards.length / cardsPerPage);
 
@@ -990,7 +990,7 @@ client.on("messageCreate", async (msg) => {
                             embeds: [
                                 await generateEmbedInvForGroup(0, totalPages, eventcards, msg, userId),
                             ],
-                            components: [generateRowInv(0, totalPages)],
+                            components: [generateRowInvForGroup(0, totalPages)],
                         });
                         handleCollectorInvForGroup(embedMessage, msg, totalPages, eventcards, userId);
                     } catch (error) {
@@ -1087,7 +1087,7 @@ client.on("messageCreate", async (msg) => {
                                 embeds: [
                                     await generateEmbedInvForGroup(0, totalPages, filteredCards, msg, userId),
                                 ],
-                                components: [generateRowInv(0, totalPages)],
+                                components: [generateRowInvForGroup(0, totalPages)],
                             });
                             handleCollectorInvForGroup(embedMessage, msg, totalPages, filteredCards, userId);
                         } catch (error) {
