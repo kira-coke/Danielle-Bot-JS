@@ -37,7 +37,7 @@ const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handle
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const {createAlbum, addCardToAlbum, deleteAlbum, getAlbums, generateAlbumImage, getAlbum, removeCard, replaceCard} = require("./albums.js");
-const {eventRoll} = require("./event_le.js");
+const {eventRoll, initiateEventRoll} = require("./event_le.js");
 const {checkUserInTable, checkCardTier, checkDaily, checkCardCount, checkTotalExp, handleCollectorAchievements, achievementsCommand, generateRowAchievements} = require("./achievements.js");
 const client = new Discord.Client({
     intents: [
@@ -51,6 +51,7 @@ const {EmbedBuilder, ActivityType} = require("discord.js");
 const originalLog = console.log;
 const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
+const eventRollEmote = '<:event_roll:1261060311813718187>'; 
 
 console.log = function(...args) {
     const timestamp = new Date().toISOString();
@@ -429,6 +430,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 const balWithCommas = numberWithCommas(userBal);
                 const albumTokens = await getAlbumTokens(userId);
+                const evenRollTokens = await getEventRolls(userId);
 
                 const balanceEmbed = new EmbedBuilder()
                     .setColor("#ffa791")
@@ -436,6 +438,8 @@ client.on("messageCreate", async (msg) => {
                     .setDescription(
                         "**Balance: **" + Discord.inlineCode(`${balWithCommas}`) + currencyEmote,
                     )
+                    .addFields(
+                        { name: ' ', value: `**Event roll tokens**: ` + Discord.inlineCode(evenRollTokens.toString()) + eventRollEmote, inline: false }) 
                     .addFields(
                         { name: ' ', value: `**Album Tokens**: ` + Discord.inlineCode(albumTokens.toString()), inline: true } // Assuming albumTokens is the variable holding the token count
                     )
@@ -1643,11 +1647,12 @@ client.on("messageCreate", async (msg) => {
             /*if(command === "eventroll" || command === "er"){
                 const rolls = await getEventRolls(userId);
                 console.log(rolls);
-                if(rolls === 0){
-                    msg.reply("You currently don't have any event rolls.")
+                if(rolls < 2){
+                    msg.reply("You don't have enough event rolls (need minimum 2)");
                     return;
                 }
-                await eventRoll(userId, msg);
+                await initiateEventRoll(userId, msg);
+                //await eventRoll(userId, msg);
             }*/
 
             /*if(command === "gts"){

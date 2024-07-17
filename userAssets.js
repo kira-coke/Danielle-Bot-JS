@@ -91,7 +91,7 @@ async function storeEventRoll(userId) {
 
     try {
         const data = await dynamodb.update(params).promise();
-        console.log('Item updated successfully:', data);
+        //console.log('Item updated successfully:', data);
         return data;
     } catch (err) {
         console.error('Unable to update item:', err);
@@ -134,7 +134,7 @@ async function removeEventRoll(userId) {
 
     try {
         const data = await dynamodb.update(params).promise();
-        console.log('Event roll removed successfully:', data);
+        //console.log('Event roll removed successfully:', data);
         return data;
     } catch (err) {
         console.error('Unable to remove event roll:', err);
