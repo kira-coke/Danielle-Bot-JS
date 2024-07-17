@@ -588,7 +588,7 @@ async function handleCardAction(userId, msg, type){
     const questData = await getUserQuest(userId, questId15);
     if(questData.progress >= 50){
       questData.status = false;
-      await deleteUserQuests(userId, questId14); //remove when finished
+      await deleteUserQuests(userId, questId15); //remove when finished
       const user = await getUser(userId);
       const favCard = user["FavCard"];
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
