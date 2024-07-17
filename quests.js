@@ -401,7 +401,7 @@ async function handleFeedAction(userId, copies, msg) {
   }
   if (quest8) {
     const progress8 = copies; // Example: Increment progress by 1 for each claim
-    await updateUserQuests(userId, questId7, progress8);
+    await updateUserQuests(userId, questId8, progress8);
     const questData = await getUserQuest(userId, questId8);
     if(questData.progress >= 5){
       questData.status = false;
@@ -424,7 +424,7 @@ async function handleFeedAction(userId, copies, msg) {
   }
   if (quest9) {
     const progress9 = copies; // Example: Increment progress by 1 for each claim
-    await updateUserQuests(userId, questId7, progress9);
+    await updateUserQuests(userId, questId9, progress9);
     const questData = await getUserQuest(userId, questId9);
     if(questData.progress >= 5){
       questData.status = false;
@@ -522,6 +522,37 @@ async function handleWorkAction(userId, msg) {
     //console.log(`Quest ${questId12} progress updated.`);
   }
 }
+
+/*async function handleCardAction(userId, msg){
+  const userQuests = await getUserQuests(userId);
+  const questId13 = "13";
+  const questId14 = "14"; 
+  const questId15 = "15";
+  const quest13 = userQuests.find(quest => quest['quest-id'] === questId13); //sees if user has quest 13
+  const quest14 = userQuests.find(quest => quest['quest-id'] === questId14); //sees if user has quest 13
+  const quest15 = userQuests.find(quest => quest['quest-id'] === questId15); //sees if user has quest 13
+  if (quest13) {
+    const progress13 = 1; // Example: Increment progress by 1 for each claim
+    await updateUserQuests(userId, questId13, progress13);
+    const questData = await getUserQuest(userId, questId13);
+    if(questData.progress === 2){
+      questData.status = false;
+      await deleteUserQuests(userId, questId13); //remove when finished
+      const balance = await getUsersBalance(userId);
+      if(questRewardsDoubled === true){
+        await saveUserBalance(userId, balance + 8000);
+        msg.reply("You have completed a quest and received 8000 coins!");
+      }else{
+        await saveUserBalance(userId, balance + 4000);
+        msg.reply("You have completed a quest and received 4000 coins!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
+    }
+    //console.log(`Quest ${questId10} progress updated.`);
+  }
+}*/
 
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
