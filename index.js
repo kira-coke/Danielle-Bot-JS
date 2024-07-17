@@ -33,7 +33,7 @@ const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
-const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards} = require("./quests.js");
+const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards, handleCardAction} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const {createAlbum, addCardToAlbum, deleteAlbum, getAlbums, generateAlbumImage, getAlbum, removeCard, replaceCard} = require("./albums.js");
@@ -339,6 +339,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 getClaim(msg, userId);
                 await handleClaimAction(userId, msg); //quest handling 
+                await handleCardAction(userId, msg);
                 await updateComDgStats(userId, 1);
                 await updateUserDgStats(userId, 1);
             }
@@ -376,6 +377,7 @@ client.on("messageCreate", async (msg) => {
                 //getDrop(msg, userId);
                 getClaim(msg, userId);
                 await handleDropAction(userId, msg);
+                await handleCardAction(userId, msg);
                 await updateComDgStats(userId, 2);
                 await updateUserDgStats(userId, 2);
             }

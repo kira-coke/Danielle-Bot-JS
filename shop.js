@@ -4,6 +4,7 @@ const {getRandomDynamoDBItem,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTota
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient
 const {storePack, storeAlbumToken} = require("./userAssets");
+const {handleCardAction} = require ("./quests");
 
 const emote = '<:DB_currency:1257694003638571048>'; 
 
@@ -210,6 +211,11 @@ async function packOpen(msg, userId) {
         addToTotalCardCount("Dani-bot-playerbase", userId, parseInt(cardCount) + amount).catch((error) => {
             console.error("Error updating card count:", error);
         });
+        await handleCardAction(userId, msg);
+        await handleCardAction(userId, msg);
+        await handleCardAction(userId, msg);
+        await handleCardAction(userId, msg);
+        await handleCardAction(userId, msg);
 
         const embed = new EmbedBuilder()
             .setTitle('Pack Opened')
