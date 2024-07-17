@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const {getUserCard, getHowManyCopiesOwned, changeNumberOwned} = require("./cards.js");
+const {getUserCard, getHowManyCopiesOwned, changeNumberOwned, getCardFromTable} = require("./cards.js");
 const {getUser, updateTotalExp} = require("./users.js");
 const { ActionRowBuilder, ButtonBuilder, EmbedBuilder } = require("discord.js");
 const {storePack} = require("./userAssets.js")
@@ -7,33 +7,39 @@ const {handleFeedAction} = require("./quests.js");
 const dynamodb = new AWS.DynamoDB.DocumentClient
 
 async function awardExp(userId, cardId, numberOfCards, msg){
-  const user = await getUser(userId);
-  const expGiven = numberOfCards * 50; //each card gives 50 exp
-  const card = await getUserCard("user-cards", userId, cardId); //geting the user card with this id
-  if(card[0] === undefined){
-    console.log("User does not own this card");
-    return 0;
-  }
-  const cardData = card[0];
-  if(cardData.level === 20){
-    console.log(cardData.upgradable);
-    cardData.upgradable = true;
-    await updateUserData("user-cards", cardData);
-    console.log("User is already at max level");
-    return 2;
-  }
-  const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
-  if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
-    console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
-    return 1;
-  }
-  if(cardData.level > 20){
-      console.log("Your card is ready to upgrade!");
+    const user = await getUser(userId);
+    let expGiven = numberOfCards * 50; //each card gives 50 exp
+    const card = await getUserCard("user-cards", userId, cardId); //geting the user card with this id
+    if(card[0] === undefined){
+      console.log("User does not own this card");
+      return 0;
+    }
+    const cardData = card[0];
+    if(cardData.level === 20){
+      console.log(cardData.upgradable);
+      cardData.upgradable = true;
+      await updateUserData("user-cards", cardData);
+      console.log("User is already at max level");
       return 2;
-  }
-  if(cardData.level >= 10){
-    awardPack = false;
-  }
+    }
+    const cardsCurrentlyOwned = await getHowManyCopiesOwned("user-cards", userId, cardId);
+    if((cardsCurrentlyOwned === 1)|| (cardsCurrentlyOwned<=numberOfCards)){
+      console.log("User does not own enough cards to feed (you must keep at least 1 copy)");
+      return 1;
+    }
+    if(cardData.level > 20){
+        console.log("Your card is ready to upgrade!");
+        return 2;
+    }
+    if(cardData.level >= 10){
+      awardPack = false;
+    }
+    const cardBaseData = await getCardFromTable("cards", cardId);
+    console.log(cardBaseData.cardRarity);
+    if(cardBaseData.cardRarity != 1 ){
+      expGiven = numberOfCards * 75;
+      //console.log(expGiven);
+    }
     const wasBelowLevel10 = cardData.level < 10;
     const potentialNewExp = cardData.exp + expGiven;
     const potentialNewLevel = calculatePotentialNewLevel(cardData.level, potentialNewExp);
