@@ -532,7 +532,7 @@ async function handleCardAction(userId, msg, type){
   const quest14 = userQuests.find(quest => quest['quest-id'] === questId14); //sees if user has quest 13
   const quest15 = userQuests.find(quest => quest['quest-id'] === questId15); //sees if user has quest 13
   if (quest13) {
-    const progress13 = 1; // Example: Increment progress by 1 for each claim
+    let progress13 = 1; // Example: Increment progress by 1 for each claim
     if(type === "pack"){
        progress13 = 5;
     }
@@ -580,7 +580,7 @@ async function handleCardAction(userId, msg, type){
     //console.log(`Quest ${questId10} progress updated.`);
   }
   if (quest15) {
-    const progress15 = 1; // Example: Increment progress by 1 for each claim
+    let progress15 = 1; // Example: Increment progress by 1 for each claim
     if(type === "pack"){
        progress15 = 5;
     }
