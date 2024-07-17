@@ -535,7 +535,7 @@ async function handleCardAction(userId, msg){
     const progress13 = 1; // Example: Increment progress by 1 for each claim
     await updateUserQuests(userId, questId13, progress13);
     const questData = await getUserQuest(userId, questId13);
-    if(questData.progress === 15){
+    if(questData.progress >= 15){
       questData.status = false;
       await deleteUserQuests(userId, questId13); //remove when finished
       const balance = await getUsersBalance(userId);
@@ -556,7 +556,7 @@ async function handleCardAction(userId, msg){
     const progress14 = 1; // Example: Increment progress by 1 for each claim
     await updateUserQuests(userId, questId14, progress14);
     const questData = await getUserQuest(userId, questId14);
-    if(questData.progress === 30){
+    if(questData.progress >= 30){
       questData.status = false;
       await deleteUserQuests(userId, questId14); //remove when finished
       if(questRewardsDoubled === true){
@@ -577,7 +577,7 @@ async function handleCardAction(userId, msg){
     const progress15 = 1; // Example: Increment progress by 1 for each claim
     await updateUserQuests(userId, questId15, progress15);
     const questData = await getUserQuest(userId, questId15);
-    if(questData.progress === 50){
+    if(questData.progress >= 50){
       questData.status = false;
       await deleteUserQuests(userId, questId14); //remove when finished
       const user = await getUser(userId);
