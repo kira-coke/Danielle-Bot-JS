@@ -284,9 +284,9 @@ client.on("messageCreate", async (msg) => {
                 try{
                     const user = await getUser(userId);
                     console.log(user);
-                    await checkDaily(userId, user.DailyStreak, msg);
-                    await checkCardCount(userId, user.cardCount, msg);
-                    await checkTotalExp(userId, user.TotalExp, msg);
+                    //await checkDaily(userId, user.DailyStreak, msg);
+                    //await checkCardCount(userId, user.cardCount, msg);
+                    //await checkTotalExp(userId, user.TotalExp, msg);
                 }catch(error){
                     console.log("Error checking user data or achievements:", error)
                 }
@@ -682,11 +682,11 @@ client.on("messageCreate", async (msg) => {
                         );
                         console.error("Error:", error);
                     }
-                    try{
+                    /*try{
                         await checkCardTier(userId, cardId, msg);    
                     }catch(error){
                         console.log("Error checking card tier");
-                    }
+                    }*/
                 })();
             }
 
