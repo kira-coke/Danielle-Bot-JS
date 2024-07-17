@@ -261,7 +261,7 @@ async function checkDaily(userId, dailyCount, msg){
 
     if (achievementsToActuallyUpdate.length > 0) {
         await updateDailyAchievements(userId, achievementsToActuallyUpdate);
-        msg.reply("You have recieved achievement rewards for: " + achievementsToActuallyUpdate.join(", "));
+        msg.reply("You have recieved the achievements: " + achievementsToActuallyUpdate.join(", "));
     } else {
         console.log(`No new daily achievements to update for user ${userId}.`);
     }

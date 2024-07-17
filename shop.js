@@ -211,11 +211,7 @@ async function packOpen(msg, userId) {
         addToTotalCardCount("Dani-bot-playerbase", userId, parseInt(cardCount) + amount).catch((error) => {
             console.error("Error updating card count:", error);
         });
-        await handleCardAction(userId, msg);
-        await handleCardAction(userId, msg);
-        await handleCardAction(userId, msg);
-        await handleCardAction(userId, msg);
-        await handleCardAction(userId, msg);
+        await handleCardAction(userId, msg, "pack");
 
         const embed = new EmbedBuilder()
             .setTitle('Pack Opened')

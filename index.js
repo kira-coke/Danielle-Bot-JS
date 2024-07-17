@@ -281,6 +281,15 @@ client.on("messageCreate", async (msg) => {
                 } catch (error) {
                     msg.reply("Please input only the user id");
                 }
+                try{
+                    const user = await getUser(userId);
+                    console.log(user);
+                    await checkDaily(userId, user.DailyStreak, msg);
+                    await checkCardCount(userId, user.cardCount, msg);
+                    await checkTotalExp(userId, user.TotalExp, msg);
+                }catch(error){
+                    console.log("Error checking user data or achievements:", error)
+                }
             }
 
             if(command === "favalbum" || command === "fa"){
@@ -339,7 +348,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 getClaim(msg, userId);
                 await handleClaimAction(userId, msg); //quest handling 
-                await handleCardAction(userId, msg);
+                await handleCardAction(userId, msg, "card");
                 await updateComDgStats(userId, 1);
                 await updateUserDgStats(userId, 1);
             }
@@ -377,7 +386,7 @@ client.on("messageCreate", async (msg) => {
                 //getDrop(msg, userId);
                 getClaim(msg, userId);
                 await handleDropAction(userId, msg);
-                await handleCardAction(userId, msg);
+                await handleCardAction(userId, msg, "card");
                 await updateComDgStats(userId, 2);
                 await updateUserDgStats(userId, 2);
             }
@@ -672,6 +681,11 @@ client.on("messageCreate", async (msg) => {
                             "Could not find card in table with card-id " + cardId,
                         );
                         console.error("Error:", error);
+                    }
+                    try{
+                        await checkCardTier(userId, cardId, msg);    
+                    }catch(error){
+                        console.log("Error checking card tier");
                     }
                 })();
             }
@@ -1642,8 +1656,7 @@ client.on("messageCreate", async (msg) => {
                     .then((sentMsg) => {
                         handleCollectorAchievements(sentMsg, msg, userAchievements, totalPages);
                     })
-                    .catch(console.error); // Catch errors for debugging
-                await checkCardTier(userId, "NJDNSPN");
+                    .catch(console.error); // Catch errors for debugging        
             }*/
 
             /*if(command === "eventroll" || command === "er"){

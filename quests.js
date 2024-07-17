@@ -523,7 +523,7 @@ async function handleWorkAction(userId, msg) {
   }
 }
 
-async function handleCardAction(userId, msg){
+async function handleCardAction(userId, msg, type){
   const userQuests = await getUserQuests(userId);
   const questId13 = "13";
   const questId14 = "14"; 
@@ -533,6 +533,9 @@ async function handleCardAction(userId, msg){
   const quest15 = userQuests.find(quest => quest['quest-id'] === questId15); //sees if user has quest 13
   if (quest13) {
     const progress13 = 1; // Example: Increment progress by 1 for each claim
+    if(type === "pack"){
+       progress13 = 5;
+    }
     await updateUserQuests(userId, questId13, progress13);
     const questData = await getUserQuest(userId, questId13);
     if(questData.progress >= 15){
@@ -553,7 +556,10 @@ async function handleCardAction(userId, msg){
     //console.log(`Quest ${questId10} progress updated.`);
   }
   if (quest14) {
-    const progress14 = 1; // Example: Increment progress by 1 for each claim
+    let progress14 = 1; // Example: Increment progress by 1 for each claim
+    if(type === "pack"){
+       progress14 = 5;
+    }
     await updateUserQuests(userId, questId14, progress14);
     const questData = await getUserQuest(userId, questId14);
     if(questData.progress >= 30){
@@ -575,6 +581,9 @@ async function handleCardAction(userId, msg){
   }
   if (quest15) {
     const progress15 = 1; // Example: Increment progress by 1 for each claim
+    if(type === "pack"){
+       progress15 = 5;
+    }
     await updateUserQuests(userId, questId15, progress15);
     const questData = await getUserQuest(userId, questId15);
     if(questData.progress >= 50){
