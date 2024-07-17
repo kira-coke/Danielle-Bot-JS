@@ -6,7 +6,7 @@ const {storePack, storeEventRoll} = require("./userAssets");
 const {getUser} = require("./users");
 const {getHowManyCopiesOwned, changeNumberOwned} = require("./cards")
 const emote = '<:test:1261060311813718187>'; 
-const isEvent = false;
+const isEvent = true;
 let questRewardsDoubled = false;
 
 async function changeQuestRwards(){
@@ -374,6 +374,8 @@ async function handleFeedAction(userId, copies, msg) {
   const questId8 = "8"; 
   const questId9 = "9";
   const quest7 = userQuests.find(quest => quest['quest-id'] === questId7); //sees if user has quest 1
+  const quest8 = userQuests.find(quest => quest['quest-id'] === questId8);
+  const quest9 = userQuests.find(quest => quest['quest-id'] === questId9);
   if (quest7) {
     const progress7 = copies; // Example: Increment progress by 1 for each claim
     await updateUserQuests(userId, questId7, progress7);
@@ -396,6 +398,51 @@ async function handleFeedAction(userId, copies, msg) {
       }
     }
     //console.log(`Quest ${questId7} progress updated.`);
+  }
+  if (quest8) {
+    const progress8 = copies; // Example: Increment progress by 1 for each claim
+    await updateUserQuests(userId, questId7, progress8);
+    const questData = await getUserQuest(userId, questId8);
+    if(questData.progress >= 5){
+      questData.status = false;
+      await deleteUserQuests(userId, questId8); //remove when finished
+      const user = await getUser(userId);
+      const favCard = user["FavCard"];
+      const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
+      if(questRewardsDoubled === true){
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
+        msg.reply("You have completed a quest and received 2 copy of your favCard!");
+      }else{
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
+        msg.reply("You have completed a quest and received 1 copy of your favCard!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
+    }
+    //console.log(`Quest ${questId7} progress updated.`);
+  }
+  if (quest9) {
+    const progress9 = copies; // Example: Increment progress by 1 for each claim
+    await updateUserQuests(userId, questId7, progress9);
+    const questData = await getUserQuest(userId, questId9);
+    if(questData.progress >= 5){
+      questData.status = false;
+      await deleteUserQuests(userId, questId9); //remove when finished
+      const user = await getUser(userId);
+      const favCard = user["FavCard"];
+      const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
+      if(questRewardsDoubled === true){
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
+        msg.reply("You have completed a quest and received 2 copy of your favCard!");
+      }else{
+        await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
+        msg.reply("You have completed a quest and received 1 copy of your favCard!");
+      }
+      if(isEvent === true){
+        await storeEventRoll(userId);
+      }
+    }
   }
 
 }
