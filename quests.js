@@ -388,7 +388,7 @@ async function handleFeedAction(userId, copies, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copy of your favCard!");
+        msg.reply("You have completed a quest and received 2 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
         msg.reply("You have completed a quest and received 1 copy of your favCard!");
@@ -411,7 +411,7 @@ async function handleFeedAction(userId, copies, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copy of your favCard!");
+        msg.reply("You have completed a quest and received 2 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
         msg.reply("You have completed a quest and received 1 copy of your favCard!");
@@ -434,7 +434,7 @@ async function handleFeedAction(userId, copies, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copy of your favCard!");
+        msg.reply("You have completed a quest and received 2 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
         msg.reply("You have completed a quest and received 1 copy of your favCard!");

@@ -284,9 +284,9 @@ client.on("messageCreate", async (msg) => {
                 try{
                     const user = await getUser(userId);
                     console.log(user);
-                    //await checkDaily(userId, user.DailyStreak, msg);
-                    //await checkCardCount(userId, user.cardCount, msg);
-                    //await checkTotalExp(userId, user.TotalExp, msg);
+                    await checkDaily(userId, user.DailyStreak, msg);
+                    await checkCardCount(userId, user.cardCount, msg);
+                    await checkTotalExp(userId, user.TotalExp, msg);
                 }catch(error){
                     console.log("Error checking user data or achievements:", error)
                 }
@@ -682,11 +682,11 @@ client.on("messageCreate", async (msg) => {
                         );
                         console.error("Error:", error);
                     }
-                    /*try{
+                    try{
                         await checkCardTier(userId, cardId, msg);    
                     }catch(error){
                         console.log("Error checking card tier");
-                    }*/
+                    }
                 })();
             }
 
@@ -1399,7 +1399,7 @@ client.on("messageCreate", async (msg) => {
                         );
                         return;
                     }
-                    if(isNaN(dgToEnter) || dgToEnter === undefined){
+                    if(isNaN(dgToEnter) || dgToEnter === undefined || dgToEnter != "1" || dgToEnter != "2" || dgToEnter != "3"){
                         msg.reply(
                             `Please input a valid dg number to enter.`,
                         );
@@ -1647,7 +1647,7 @@ client.on("messageCreate", async (msg) => {
                 }*/
             }
 
-            /*if (command === "achievements") {
+            if (command === "achievements") {
                 let userAchievements = await checkUserInTable(userId);
                 const { embed, totalPages } = achievementsCommand(userAchievements, 0);
                 const components = totalPages > 1 ? [generateRowAchievements(0, totalPages)] : [];
@@ -1657,7 +1657,7 @@ client.on("messageCreate", async (msg) => {
                         handleCollectorAchievements(sentMsg, msg, userAchievements, totalPages);
                     })
                     .catch(console.error); // Catch errors for debugging        
-            }*/
+            }
 
             /*if(command === "eventroll" || command === "er"){
                 const rolls = await getEventRolls(userId);
