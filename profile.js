@@ -3,15 +3,19 @@ const {EmbedBuilder } = require("discord.js");
 const {getCardFromTable} = require("./cards");
 const Discord = require("discord.js");
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
+const {generateAlbumImage} = require("./albums.js");
 
 async function getUserProfile(msg, userId){
+    
     try{
-         const user = await msg.client.users.fetch(userId);
+          const user = await msg.client.users.fetch(userId);
           const userData = await getUser(userId);
           const userFavcard = await getCardFromTable(
               "cards",
               userData["FavCard"],
           );
+          const userFavAlbum = userData["FavAlbum"];
+          
           const favCardUrl = userFavcard["cardUrl"];
           if(String(userData["Description"]).length === 0){
             String(userData["Description"] = Discord.inlineCode("No bio set"));
@@ -76,9 +80,15 @@ async function getUserProfile(msg, userId){
                   text: msg.author.tag,
                   iconURL: msg.author.displayAvatarURL({ dynamic: true }),
               })
-              .setImage(favCardUrl) //they should be able to change this - change card etc
               .setTimestamp();
-          msg.reply({ embeds: [embed] });
+              if(userData["displayPreference"] === "favAlbum"){
+                    const favAlbumImage = await generateAlbumImage(userId, userFavAlbum, msg);
+                    embed.setImage(`attachment://album.png`) //they should be able to change this - change card etc
+                    msg.reply({ embeds: [embed], files: [{ attachment: favAlbumImage, name: 'album.png' }] });
+              }else{
+                   embed.setImage(favCardUrl);
+                   msg.reply({ embeds: [embed] });
+              }
         
     }catch(error){
         console.log("something went wrong here");

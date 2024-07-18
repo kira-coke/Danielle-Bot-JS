@@ -107,6 +107,35 @@ async function setUserCard(tableName, userId, attribute){
       }
 }
 
+async function setUserAlbum(tableName, userId, attribute){
+    const updateCount = 'SET #FavAlbum = :newFavAlbum';
+    const expressionAttributeValues = {
+        ':newFavAlbum': attribute // New value for 'copies-owned'
+    };
+    const expressionAttributeNames = {
+        '#FavAlbum': 'FavAlbum' // Attribute name alias for 'copies-owned'
+    };
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId, 
+            },
+            UpdateExpression: updateCount,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ReturnValues: "UPDATED_NEW" // Returns only the updated attributes
+        };
+
+        // Call DynamoDB update API
+        const data = await dynamodb.update(params).promise();
+        return data.Attributes; // Return the updated attributes
+      } catch (err) {
+          console.error('Unable to check if user exists:', err);
+          return false;
+      }
+}
+
 async function setUserBio(tableName, userId, attribute){
     const updateCount = 'SET #Description = :newBio';
     const expressionAttributeValues = {
@@ -200,18 +229,54 @@ async function getUserCards(tableName, userId) {
         },
         ExpressionAttributeValues: {
             ':pk': userId // The value you are filtering by
-        }
+        },
+        ReturnConsumedCapacity: 'TOTAL' // Request consumed capacity details
     };
 
-    try {
-        const data = await dynamodb.scan(params).promise();
-        //console.log('Scan succeeded:', data);
-        return data.Items;
-    } catch (error) {
-        console.error('Error scanning table:', error);
-        throw error;
-    }
+    let items = [];
+    let lastEvaluatedKey = null;
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    do {
+        try {
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = lastEvaluatedKey;
+            }
+
+            const data = await dynamodb.scan(params).promise();
+
+            // Log consumed capacity information
+            if (data.ConsumedCapacity) {
+                console.log('Consumed Capacity:', data.ConsumedCapacity);
+            }
+
+            items = items.concat(data.Items);
+            lastEvaluatedKey = data.LastEvaluatedKey;
+
+            // Reset retry count on successful operation
+            retryCount = 0;
+
+        } catch (error) {
+            if (error.code === 'ProvisionedThroughputExceededException') {
+                console.warn('Throttling error:', error);
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    throw new Error('Max retries exceeded');
+                }
+                const delay = Math.pow(2, retryCount) * 100; // Exponential backoff
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                console.error('Error scanning table:', error);
+                throw error;
+            }
+        }
+    } while (lastEvaluatedKey);
+
+    return items;
 }
+
+
 
 async function setAutoReminders(tableName, userId, attribute){
     const updateCount = 'SET #Reminders = :newValue';
@@ -270,4 +335,34 @@ async function updateTotalExp(tableName, userId, attribute){
       }
 }
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList};
+async function setDisplayPreference(tableName, userId, preference) {
+    try {
+        // Validate preference (optional depending on your application logic)
+        if (preference !== 'favCard' && preference !== 'favAlbum') {
+            throw new Error('Invalid preference value');
+        }
+
+        // Construct update parameters
+        const updateParams = {
+            TableName: tableName,
+            Key: {
+                'user-id': userId,
+            },
+            UpdateExpression: 'SET displayPreference = :preference',
+            ExpressionAttributeValues: {
+                ':preference': preference
+            },
+            ReturnValues: "UPDATED_NEW"
+        };
+
+        // Update user profile
+        const data = await dynamodb.update(updateParams).promise();
+        return data.Attributes; // Return the updated attributes
+    } catch (err) {
+        console.error('Error setting display preference:', err);
+        return false;
+    }
+}
+
+
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList, setUserAlbum, setDisplayPreference};

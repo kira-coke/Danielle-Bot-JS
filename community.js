@@ -289,6 +289,19 @@ async function updateMemberList(memberId, communityName, action) {
 }
 
 async function sortCommunityOut(msg, input, userId){
+
+  if(input === undefined){
+    const userInCom = await checkIfUserIsInCommunity(msg.author.id);
+    if(userInCom === false){
+        console.log("User is not in a community");
+        return;
+    }
+    const userCom = await getUserCommunity(msg.author.id);
+    const comData = await getCommunityData(userCom["communityName"]);
+    const embed = communityEmbed(comData);
+    await msg.channel.send({ embeds: [embed] });
+    return;
+  }
   if(input[0] === "create"){
     const communityName = input[1];
     if(communityName === undefined){
@@ -334,7 +347,7 @@ async function sortCommunityOut(msg, input, userId){
         return;
     }
     const applicants = community.applicants;
-    if(applicants.includes(userId)){
+    if(applicants != undefined && applicants.includes(userId)){
         msg.reply("You have already applied to this community.")
         return;
     }
@@ -379,7 +392,7 @@ async function sortCommunityOut(msg, input, userId){
     console.log(com);
     if(communityName === userCom["communityName"]){
       if(com["owner"] === userId){
-        msg.reply("You cannot leave a community you own. Do **.com delete** instead to remove this community completely.")
+        msg.reply("You cannot leave a community you own. Please contact a staff member with reasons why.")
         return;
       }
       await leaveCommunity(userId);
@@ -639,18 +652,6 @@ async function sortCommunityOut(msg, input, userId){
       });
   }
   
-  if(input[0] === undefined){
-    const userInCom = await checkIfUserIsInCommunity(msg.author.id);
-    if(userInCom === false){
-        console.log("User is not in a community");
-        return;
-    }
-    const userCom = await getUserCommunity(msg.author.id);
-    const comData = await getCommunityData(userCom["communityName"]);
-    const embed = communityEmbed(comData);
-    await msg.channel.send({ embeds: [embed] });
-  }
-
 }
 
 async function updateComDgStats(userId, amount){
@@ -730,6 +731,34 @@ async function checkDgProgress(communityName){
     }
 }
 
+async function resetComDgStats(communityName) {
+    try {
+        const comData = await getCommunityData(communityName);
+        let dgStats = comData.dgStats;
+
+        dgStats = 0;
+
+        const updateParams = {
+            TableName: 'communities',
+            Key: {
+                communityName: communityName
+            },
+            UpdateExpression: 'SET dgStats = :dgStats',
+            ExpressionAttributeValues: {
+                ':dgStats': dgStats
+            },
+            ReturnValues: 'UPDATED_NEW'
+        };
+
+        await dynamodb.update(updateParams).promise();
+        console.log(`Successfully reset dgStats for community ${communityName} to ${dgStats}`);
+    } catch (error) {
+        console.error(`Error resetting dgStats for community ${communityName}:`, error.message);
+        throw error;
+    }
+}
+
+
 async function updateComAssets(communityName, newAssets) {
     const params = {
         TableName: 'communities',
@@ -780,6 +809,7 @@ cron.schedule('0 0 * * MON', async () => {//'0 0 * * MON',
                     await awardAmount(memberId, comData.assets);
                 }
             }
+            await resetComDgStats(communityName);
         }
         console.log('Rewards distribution complete.');
     } catch (error) {
@@ -800,6 +830,8 @@ function communityEmbed(com){
       .addFields({name: 'Current assets', value:`${inlineCode(com.assets*memberCount)}${emote}`, inline: true})
       .addFields({name: ' ', value: ' '})
       .addFields({name: 'Current member paycheck', value:`${inlineCode(com.assets)}${emote} \n ${italic("This will be added to your balance every week on Monday at 0:00 BST")}`, inline: true})
+      .addFields({name: ' ', value: ' '})
+      .addFields({name: 'Current community dungeon stats', value:`${inlineCode(com.dgStats)}`, inline: true})
 
   if (com.memberList && com.memberList.length > 0) {
       const memberList = com.memberList.map(member => `<@${member}>`).join(' ');
