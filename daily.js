@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards, storeDiscordCachedUrl} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards, storeDiscordCachedUrl, downloadImage} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 const emote = '<:DB_currency:1257694003638571048>'; 
 const path = require('path');
