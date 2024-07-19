@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup, generateRowInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -25,7 +25,7 @@ const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
 const {getDrop} = require("./drop.js");
 const {getDaily} = require("./daily.js");
-const {GatewayIntentBits, PermissionsBitField} = require("discord.js");
+const {GatewayIntentBits, PermissionsBitField, AttachmentBuilder} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
@@ -47,7 +47,9 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const {EmbedBuilder, ActivityType} = require("discord.js");
+const {EmbedBuilder, ActivityType, inlineCode} = require("discord.js");
+const fs = require('fs');
+const path = require('path');
 const originalLog = console.log;
 const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
@@ -86,8 +88,10 @@ client.on("ready", () => {
     } catch (error) {
         console.error('Error setting presence:', error);
     }
-    schedule.scheduleJob('*/20 * * * *', () => { //change to
-        sendRaffleEmbed();
+    schedule.scheduleJob('*/20 * * * *', () => {
+        if (!isLocked) {
+            sendRaffleEmbed();
+        }
     });
 });
 
@@ -637,48 +641,65 @@ client.on("messageCreate", async (msg) => {
                             .setDescription(
                                 `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}** (${cardToView["Theme"]})`,
                             )
-                            .setImage(cardToView["cardUrl"]); // changed depending on the card recieved
-                        embed.addFields({
-                            name: "You Own: ",
-                            value: Discord.inlineCode(String(numberOfCopies)),
-                            inline: true,
-                        });
-                        if (numberOfCopies != 0) {
-                            const userVerOfCard = await getUserCard(
-                                secondTableName,
-                                userId,
-                                cardToView["card-id"],
-                            );
-                            //get current exp and level
+                            //.setImage(cardToView["cardUrl"]); // changed depending on the card recieved
+                        // Path to your image file
+                        const imageUrl = cardToView["cardUrl"];
+                        if (imageUrl) {
+                            // Ensure the temp directory exists
+                            const tempDir = path.join(__dirname, 'temp');
+                            if (!fs.existsSync(tempDir)) {
+                                fs.mkdirSync(tempDir);
+                            }
+
+                            // Download the image to a temporary file
+                            const tempImagePath = path.join(tempDir, `${cardToView["card-id"]}.jpg`);
+                            console.log(tempImagePath);
+                            await downloadImage(imageUrl, tempImagePath);
+
+                            const file = new AttachmentBuilder(tempImagePath, { name: 'card-image.jpg' });
+                            embed.setImage('attachment://card-image.jpg');
+
                             embed.addFields({
-                                name: "Your total Exp for this card:",
-                                value: `${Discord.inlineCode(String(userVerOfCard[0].totalExp))}`,
-                                inline: false,
+                                name: "You Own: ",
+                                value: inlineCode(String(numberOfCopies)),
+                                inline: true,
                             });
-                            embed.addFields({
-                                name: "Your level for this card:",
-                                value: `${Discord.inlineCode(String(userVerOfCard[0].level))}`,
-                                inline: false,
-                            });
-                            embed.addFields({
-                                name: "Current tier:",
-                                value: `${Discord.inlineCode(String(userVerOfCard[0].tier))}`,
-                                inline: false,
-                            });
-                        }
-                        embed
-                            .setFooter({
+                            if (numberOfCopies != 0) {
+                                const userVerOfCard = await getUserCard(secondTableName, userId, cardToView["card-id"]);
+                                embed.addFields({
+                                    name: "Your total Exp for this card:",
+                                    value: `${inlineCode(String(userVerOfCard[0].totalExp))}`,
+                                    inline: false,
+                                });
+                                embed.addFields({
+                                    name: "Your level for this card:",
+                                    value: `${inlineCode(String(userVerOfCard[0].level))}`,
+                                    inline: false,
+                                });
+                                embed.addFields({
+                                    name: "Current tier:",
+                                    value: `${inlineCode(String(userVerOfCard[0].tier))}`,
+                                    inline: false,
+                                });
+                            }
+                            embed.setFooter({
                                 text: msg.author.tag,
-                                iconURL: msg.author.displayAvatarURL({
-                                    dynamic: true,
-                                }),
-                            })
-                            .setTimestamp();
-                        const sentMessage = await msg.reply({ embeds: [embed] });
-                        //console.log(sentMessage.embeds[0].image);
-                        const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
-                        await storeDiscordCachedUrl(cardToView["card-id"], discordCachedUrl);
-                        //console.log(discordCachedUrl);
+                                iconURL: msg.author.displayAvatarURL({ dynamic: true }),
+                            }).setTimestamp();
+
+                            const sentMessage = await msg.reply({ embeds: [embed], files: [file] });
+                            const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                            await storeDiscordCachedUrl(cardToView["card-id"], discordCachedUrl);
+
+                            // Clean up temporary file
+                            fs.unlink(tempImagePath, err => {
+                                if (err) {
+                                    console.error('Error deleting temporary file:', err);
+                                }
+                            });
+                        } else {
+                            msg.reply("Image not found!");
+                        }
                     } catch (error) {
                         msg.reply("**Please enter a valid card id**");
                         console.log(
