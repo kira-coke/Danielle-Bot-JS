@@ -87,8 +87,8 @@ async function getUserProfile(msg, userId){
                     msg.reply({ embeds: [embed], files: [{ attachment: favAlbumImage, name: 'album.png' }] });
               }else{
                    embed.setImage(favCardUrl);
-                   msg.reply({ embeds: [embed] });
-                  const sentMessage = await msg.reply({ embeds: [embed] });
+                   //msg.reply({ embeds: [embed] });
+                   const sentMessage = await msg.reply({ embeds: [embed] });
                   //console.log(sentMessage.embeds[0].image);
                   const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
                   await storeDiscordCachedUrl(favCardUrl["card-id"], discordCachedUrl);
