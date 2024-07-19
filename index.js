@@ -88,8 +88,10 @@ client.on("ready", () => {
     } catch (error) {
         console.error('Error setting presence:', error);
     }
-    schedule.scheduleJob('*/20 * * * *', () => { //change to
-        sendRaffleEmbed();
+    schedule.scheduleJob('*/20 * * * *', () => {
+        if (!isLocked) {
+            sendRaffleEmbed();
+        }
     });
 });
 
