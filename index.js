@@ -1424,7 +1424,8 @@ client.on("messageCreate", async (msg) => {
                         );
                         return;
                     }
-                    if(isNaN(dgToEnter) || dgToEnter === undefined || dgToEnter != "1" || dgToEnter != "2" || dgToEnter != "3"){
+                    console.log(dgToEnter);
+                    if(isNaN(dgToEnter) || dgToEnter === undefined || ![1, 2, 3].includes(parseInt(dgToEnter))) {
                         msg.reply(
                             `Please input a valid dg number to enter.`,
                         );
