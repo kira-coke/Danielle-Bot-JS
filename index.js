@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup, generateRowInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -25,7 +25,7 @@ const {getUsersBalance} = require("./userBalanceCmds");
 const {getClaim} = require("./claim.js");
 const {getDrop} = require("./drop.js");
 const {getDaily} = require("./daily.js");
-const {GatewayIntentBits, PermissionsBitField} = require("discord.js");
+const {GatewayIntentBits, PermissionsBitField, AttachmentBuilder} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
@@ -34,7 +34,7 @@ const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards, handleCardAction} = require("./quests.js");
-const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
+const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId, removeFromUserInv, addToUserInv, userGlobalTradeStationEmbed, handleCollectorGts, filterTrades, filteredTradeEmbed} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const {createAlbum, addCardToAlbum, deleteAlbum, getAlbums, generateAlbumImage, getAlbum, removeCard, replaceCard} = require("./albums.js");
 const {eventRoll, initiateEventRoll} = require("./event_le.js");
@@ -47,7 +47,9 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMembers, //commend back in and our depending on which bot testing on
     ],
 });
-const {EmbedBuilder, ActivityType} = require("discord.js");
+const {EmbedBuilder, ActivityType, inlineCode} = require("discord.js");
+const fs = require('fs');
+const path = require('path');
 const originalLog = console.log;
 const originalError = console.error;
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
@@ -86,8 +88,10 @@ client.on("ready", () => {
     } catch (error) {
         console.error('Error setting presence:', error);
     }
-    schedule.scheduleJob('*/20 * * * *', () => { //change to
-        sendRaffleEmbed();
+    schedule.scheduleJob('*/20 * * * *', () => {
+        if (!isLocked) {
+            sendRaffleEmbed();
+        }
     });
 });
 
@@ -284,9 +288,9 @@ client.on("messageCreate", async (msg) => {
                 try{
                     const user = await getUser(userId);
                     console.log(user);
-                    //await checkDaily(userId, user.DailyStreak, msg);
-                    //await checkCardCount(userId, user.cardCount, msg);
-                    //await checkTotalExp(userId, user.TotalExp, msg);
+                    await checkDaily(userId, user.DailyStreak, msg);
+                    await checkCardCount(userId, user.cardCount, msg);
+                    await checkTotalExp(userId, user.TotalExp, msg);
                 }catch(error){
                     console.log("Error checking user data or achievements:", error)
                 }
@@ -340,13 +344,13 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your claim is ready!`,
                         );
                     }, claimCd);
                 }
-                getClaim(msg, userId);
+                await getClaim(msg, userId);
                 await handleClaimAction(userId, msg); //quest handling 
                 await handleCardAction(userId, msg, "card");
                 await updateComDgStats(userId, 1);
@@ -377,14 +381,14 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your drop is ready!`,
                         );
                     }, dropCd);
                 }
                 //getDrop(msg, userId);
-                getClaim(msg, userId);
+                await getClaim(msg, userId);
                 await handleDropAction(userId, msg);
                 await handleCardAction(userId, msg, "card");
                 await updateComDgStats(userId, 2);
@@ -637,44 +641,65 @@ client.on("messageCreate", async (msg) => {
                             .setDescription(
                                 `You are viewing **${cardToView["GroupName"]} ${cardToView["GroupMember"]}** (${cardToView["Theme"]})`,
                             )
-                            .setImage(cardToView["cardUrl"]); // changed depending on the card recieved
-                        embed.addFields({
-                            name: "You Own: ",
-                            value: Discord.inlineCode(String(numberOfCopies)),
-                            inline: true,
-                        });
-                        if (numberOfCopies != 0) {
-                            const userVerOfCard = await getUserCard(
-                                secondTableName,
-                                userId,
-                                cardToView["card-id"],
-                            );
-                            //get current exp and level
+                            //.setImage(cardToView["cardUrl"]); // changed depending on the card recieved
+                        // Path to your image file
+                        const imageUrl = cardToView["cardUrl"];
+                        if (imageUrl) {
+                            // Ensure the temp directory exists
+                            const tempDir = path.join(__dirname, 'temp');
+                            if (!fs.existsSync(tempDir)) {
+                                fs.mkdirSync(tempDir);
+                            }
+
+                            // Download the image to a temporary file
+                            const tempImagePath = path.join(tempDir, `${cardToView["card-id"]}.jpg`);
+                            console.log(tempImagePath);
+                            await downloadImage(imageUrl, tempImagePath);
+
+                            const file = new AttachmentBuilder(tempImagePath, { name: 'card-image.jpg' });
+                            embed.setImage('attachment://card-image.jpg');
+
                             embed.addFields({
-                                name: "Your total Exp for this card:",
-                                value: `${Discord.inlineCode(String(userVerOfCard[0].totalExp))}`,
-                                inline: false,
+                                name: "You Own: ",
+                                value: inlineCode(String(numberOfCopies)),
+                                inline: true,
                             });
-                            embed.addFields({
-                                name: "Your level for this card:",
-                                value: `${Discord.inlineCode(String(userVerOfCard[0].level))}`,
-                                inline: false,
-                            });
-                            embed.addFields({
-                                name: "Current tier:",
-                                value: `${Discord.inlineCode(String(userVerOfCard[0].tier))}`,
-                                inline: false,
-                            });
-                        }
-                        embed
-                            .setFooter({
+                            if (numberOfCopies != 0) {
+                                const userVerOfCard = await getUserCard(secondTableName, userId, cardToView["card-id"]);
+                                embed.addFields({
+                                    name: "Your total Exp for this card:",
+                                    value: `${inlineCode(String(userVerOfCard[0].totalExp))}`,
+                                    inline: false,
+                                });
+                                embed.addFields({
+                                    name: "Your level for this card:",
+                                    value: `${inlineCode(String(userVerOfCard[0].level))}`,
+                                    inline: false,
+                                });
+                                embed.addFields({
+                                    name: "Current tier:",
+                                    value: `${inlineCode(String(userVerOfCard[0].tier))}`,
+                                    inline: false,
+                                });
+                            }
+                            embed.setFooter({
                                 text: msg.author.tag,
-                                iconURL: msg.author.displayAvatarURL({
-                                    dynamic: true,
-                                }),
-                            })
-                            .setTimestamp();
-                        msg.reply({ embeds: [embed] });
+                                iconURL: msg.author.displayAvatarURL({ dynamic: true }),
+                            }).setTimestamp();
+
+                            const sentMessage = await msg.reply({ embeds: [embed], files: [file] });
+                            const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                            await storeDiscordCachedUrl(cardToView["card-id"], discordCachedUrl);
+
+                            // Clean up temporary file
+                            fs.unlink(tempImagePath, err => {
+                                if (err) {
+                                    console.error('Error deleting temporary file:', err);
+                                }
+                            });
+                        } else {
+                            msg.reply("Image not found!");
+                        }
                     } catch (error) {
                         msg.reply("**Please enter a valid card id**");
                         console.log(
@@ -682,11 +707,11 @@ client.on("messageCreate", async (msg) => {
                         );
                         console.error("Error:", error);
                     }
-                    /*try{
+                    try{
                         await checkCardTier(userId, cardId, msg);    
                     }catch(error){
                         console.log("Error checking card tier");
-                    }*/
+                    }
                 })();
             }
 
@@ -890,7 +915,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your work is ready!`,
                         );
@@ -1007,7 +1032,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your daily is ready!`,
                         );
@@ -1399,7 +1424,7 @@ client.on("messageCreate", async (msg) => {
                         );
                         return;
                     }
-                    if(isNaN(dgToEnter) || dgToEnter === undefined){
+                    if(isNaN(dgToEnter) || dgToEnter === undefined || dgToEnter != "1" || dgToEnter != "2" || dgToEnter != "3"){
                         msg.reply(
                             `Please input a valid dg number to enter.`,
                         );
@@ -1413,7 +1438,7 @@ client.on("messageCreate", async (msg) => {
                     if (user.Reminders === true) {
                         setTimeout(async () => {
                             const newStatus = await updateCoolDownStatus(userId, command, false);
-                            console.log(newStatus);
+                            //console.log(newStatus);
                             msg.channel.send(
                                 `**Reminder:** <@${msg.author.id}> your dg is ready!`,
                             );
@@ -1647,7 +1672,7 @@ client.on("messageCreate", async (msg) => {
                 }*/
             }
 
-            /*if (command === "achievements") {
+            if (command === "achievements") {
                 let userAchievements = await checkUserInTable(userId);
                 const { embed, totalPages } = achievementsCommand(userAchievements, 0);
                 const components = totalPages > 1 ? [generateRowAchievements(0, totalPages)] : [];
@@ -1657,7 +1682,7 @@ client.on("messageCreate", async (msg) => {
                         handleCollectorAchievements(sentMsg, msg, userAchievements, totalPages);
                     })
                     .catch(console.error); // Catch errors for debugging        
-            }*/
+            }
 
             /*if(command === "eventroll" || command === "er"){
                 const rolls = await getEventRolls(userId);
@@ -1670,20 +1695,38 @@ client.on("messageCreate", async (msg) => {
                 //await eventRoll(userId, msg);
             }*/
 
-            /*if(command === "gts"){
+            if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
-                if(input[0] === undefined){
-                     const embed = await globalTradeStationEmbed();
-                     msg.channel.send({ embeds: [embed] });
-                     return;
+                if (args[0] === undefined) {
+                    const { embeds, components, totalPages, data } = await globalTradeStationEmbed();
+                    const embedMessage = await msg.channel.send({ embeds, components });
+                    handleCollectorGts(embedMessage, msg, totalPages, data); // Handle pagination interactions
+                    return;
                 }
-                if(input[0] === "mine"){
-                    //add embed to show only your trades up
+                if (input[0] === "mine") {
+                    const { embeds, components, totalPages, data } = await userGlobalTradeStationEmbed(userId);
+                    const embedMessage = await msg.channel.send({ embeds, components });
+                    handleCollectorGts(embedMessage, msg, totalPages, data); // Handle pagination interactions
+                    return;
+                }
+                if(input[0] === "id"){
+                    const cardId = input[1];
+                    try{
+                        await getCardFromTable("cards", cardId);
+                    }catch(error){
+                        msg.reply("Please input a valid card id");
+                        return;
+                    }
+                    const filteredTrades = await filterTrades(cardId);
+                    console.log(filteredTrades);
+                    const { embeds, components, totalPages, data } = await filteredTradeEmbed(filteredTrades);
+                    const embedMessage = await msg.channel.send({ embeds, components });
+                    handleCollectorGts(embedMessage, msg, totalPages, data);
+                    return;
                 }
                 if(input[0] === "delete"){
                      const tradeId = input[1];
                      const trade = await getTradeByGlobalTradeId(tradeId);
-                     console.log(trade);
                      if(trade.length === 0){
                          msg.reply("Ensure you have entered a valid trade id");
                          return;
@@ -1692,8 +1735,18 @@ client.on("messageCreate", async (msg) => {
                         msg.reply("This is not a trade you own. You can only delete your own trades");
                         return;
                     }
-                    await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
-                    //return the cardUft to the user
+                    try{
+                        const userId = msg.author.id; 
+                        const cardUft = trade[0]["cardUft"];
+                        const cardCount = await getHowManyCopiesOwned("user-cards", userId, cardUft);
+                        await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
+                        await addToUserInv(userId, cardUft, cardCount);
+                        const embed = new EmbedBuilder().setColor("#b9375e").setTitle(`Trade with ID ${Discord.inlineCode(trade[0]["globalTradeId"])} deleted!`).setTimestamp();
+                        msg.reply({ embeds: [embed] });
+                    }catch(error){
+                        console.log("Issue adding card to users inv")
+                        console.log(error);
+                    }
                 }
                 if(input[0] === "create"){
                     const cardUft = input[1];
@@ -1725,22 +1778,73 @@ client.on("messageCreate", async (msg) => {
                     const tradeId = missingIds[0].toString();
                     const timestamp = Date.now();
                     await addToGTS(userId, tradeId, cardUft, cardLf, timestamp);
-                    //add removing of this card from users inv
+                    try{
+                        await removeFromUserInv(userId, cardUft, cardCount);
+                    }catch(error){
+                        console.log("Issue removing card from users inv");
+                        console.log(error);
+                    }
+                    const embed = new EmbedBuilder().setColor("#93e1d8").setTitle("Trade created!").setTimestamp();
+                    msg.reply({ embeds: [embed] });
                 }else{
                     if(input[0] === "trade"){
-                         const trade = await getTradeByGlobalTradeId(input[0]);
+                         const trade = await getTradeByGlobalTradeId(input[1]);
+                         const tradeData = trade[0];
                          console.log(trade);
                          if(trade.length === 0){
                              msg.reply("Ensure you have entered a valid trade id");
                              return;
                          }
-                         msg.reply("Will add all this stuff later"); 
-                         //add one count of the lf card to the users inv
-                         //add one count of the uft card to the other users inv
-                         //remove trade from table
+                         const userOwnsEnough = await getHowManyCopiesOwned("user-cards", msg.author.id, tradeData["cardLf"]);
+                         if(userOwnsEnough <= 1){
+                             msg.reply("You must own at least 1 duplicate to make this trade");
+                             return;
+                         }
+                         console.log(tradeData);
+                         const user1owns = await getHowManyCopiesOwned("user-cards", tradeData["user-id"], tradeData["cardLf"]);
+                         console.log(user1owns);
+                         await addToUserInv(tradeData["user-id"], tradeData["cardLf"], user1owns);
+                         const user2owns = await getHowManyCopiesOwned("user-cards", msg.author.id, tradeData["cardUft"]);
+                         console.log(user2owns);
+                         await addToUserInv(msg.author.id, tradeData["cardUft"], user2owns);
+                         await removeFromUserInv(msg.author.id, tradeData["cardLf"], userOwnsEnough);
+                         await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
+                         const embed = new Discord.EmbedBuilder()
+                            .setTitle("Trade recieved!")
+                            .setColor("#93e1d8")
+                            .addFields(
+                                { name: " ", value: `You have gotten: ${Discord.inlineCode(tradeData["cardLf"])}  from a trade!`, inline: false },
+                                {
+                                    name: "Trade ID:",
+                                    value: tradeData["globalTradeId"],
+                                    inline: false,
+                                },
+                                { name: " ", value: `Card traded off: ${Discord.inlineCode(tradeData["cardUft"])}`, inline: false },
+                            )
+                            .setTimestamp();
+                         const user = await client.users.fetch(tradeData["user-id"]);
+                         user.send({ embeds: [embed] });
+                         const secondEmbed = new Discord.EmbedBuilder()
+                            .setTitle("Trade recieved!")
+                            .setColor("#93e1d8")
+                            .addFields(
+                                { name: " ", value: `You have gotten: ${Discord.inlineCode(tradeData["cardUft"])}  from a trade!`, inline: false },
+                                {
+                                    name: "Trade ID:",
+                                    value: tradeData["globalTradeId"],
+                                    inline: false,
+                                },
+                                { name: " ", value: `Card traded off: ${Discord.inlineCode(tradeData["cardLf"])}`, inline: false },
+                            )
+                            .setTimestamp();
+                         const user2 = await client.users.fetch(msg.author.id);
+                         user2.send({ embeds: [secondEmbed] });
+                         msg.reply("**Trade successful!**");
+                        //add copies to each user opf the card they wanted
+                        //make sure to remove the lf copy from this user too
                     }
                 }
-            }*/
+            }
 
             if (command === "forcedrop") {
                 const REQUIRED_ROLE_NAME = "mod";

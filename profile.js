@@ -1,6 +1,6 @@
 const {getUser} = require("./users.js");
 const {EmbedBuilder } = require("discord.js");
-const {getCardFromTable} = require("./cards");
+const {getCardFromTable, storeDiscordCachedUrl} = require("./cards");
 const Discord = require("discord.js");
 const currencyEmote = '<:DB_currency:1257694003638571048>'; 
 const {generateAlbumImage} = require("./albums.js");
@@ -88,6 +88,10 @@ async function getUserProfile(msg, userId){
               }else{
                    embed.setImage(favCardUrl);
                    msg.reply({ embeds: [embed] });
+                  const sentMessage = await msg.reply({ embeds: [embed] });
+                  //console.log(sentMessage.embeds[0].image);
+                  const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                  await storeDiscordCachedUrl(favCardUrl["card-id"], discordCachedUrl);
               }
         
     }catch(error){

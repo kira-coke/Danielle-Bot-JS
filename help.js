@@ -49,6 +49,12 @@ const commands = [
     { name: ".community / .com applicants [name] ", description: "For community owners only: view your current applicants"},
     { name: ".community / .com accept/reject [userID] ", description: "For community owners only: accept or reject an applicant."},
     { name: ".community / .com kick [userID] ", description: "For community owners only: kick a current member."},
+    { name: ".gts ", description: "View all active trades."},
+    { name: ".gts mine", description: "View all **your** current active trades."},
+    { name: ".gts delete [tradeID]", description: "Delete a trade."},
+    { name: ".gts create [cardUFT] [cardLF]", description: "View all active trades."},
+    { name: ".gts trade [tradeID]", description: "Complete a trade."},
+    { name: ".gts id [card-id]", description: "Filter trades by a card id."},
     { name: ".leaderboard/.lb [cards] [exp] [bal/balance]", description: "View the current leaderboards."},
     { name: ".remindersOn / remindersOff", description: "Enables or disables auto reminders."}
     

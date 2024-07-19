@@ -2,6 +2,7 @@ const AWS = require('aws-sdk');
 
 const dynamodb = new AWS.DynamoDB.DocumentClient
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode, bold} = require("discord.js");
+const {changeNumberOwned} = require("./cards");
 
 async function getGlobalTradeStationData() {
     const params = {
@@ -23,28 +24,130 @@ async function globalTradeStationEmbed() {
         const data = await getGlobalTradeStationData();
 
         if (data.length === 0) {
-            return new EmbedBuilder()
-                .setTitle("Global Trade Station")
-                .setDescription("No trade entries found.");
+            return {
+                embeds: [new EmbedBuilder()
+                    .setTitle("Global Trade Station")
+                    .setDescription("No trade entries found.")
+                ],
+                components: [],
+                totalPages: 0,
+                data: []
+            };
         }
 
-        const embed = new EmbedBuilder()
-            .setTitle("Global Trade Station")
-            .setColor("#a4133c")
-            .setDescription("Here are the current trades:");
+        const tradesPerPage = 7;
+        const totalPages = Math.ceil(data.length / tradesPerPage);
 
-        data.forEach(trade => {
-          embed.addFields(
-              { name: `Trade ID: ${trade.globalTradeId}` , value: `Card UFT: ${inlineCode(trade.cardUft)}\nCard LF: ${inlineCode(trade.cardLf)}`, inline: false }
-          );
-        });
+        const embed = generateTradeStationEmbed(0, totalPages, data);
+        const row = generateRow(0, totalPages);
 
-        return embed;
+        return {
+            embeds: [embed],
+            components: [row],
+            totalPages,
+            data
+        };
     } catch (error) {
         console.log("There was an error creating the global trade station embed.");
         console.log("Error:", error);
         throw new Error("Could not create global trade station embed");
     }
+}
+
+async function userGlobalTradeStationEmbed(userId) {
+    try {
+        const data = await getUserGTS(userId);
+
+        if (data.length === 0) {
+            return {
+                embeds: [new EmbedBuilder()
+                    .setTitle("Global Trade Station")
+                    .setDescription("No trade entries found.")
+                ],
+                components: [],
+                totalPages: 0,
+                data: []
+            };
+        }
+
+        const tradesPerPage = 7;
+        const totalPages = Math.ceil(data.length / tradesPerPage);
+
+        const embed = generateTradeStationEmbed(0, totalPages, data);
+        const row = generateRow(0, totalPages);
+
+        return {
+            embeds: [embed],
+            components: [row],
+            totalPages,
+            data
+        };
+    } catch (error) {
+        console.log("There was an error creating the global trade station embed.");
+        console.log("Error:", error);
+        throw new Error("Could not create global trade station embed");
+    }
+}
+
+async function filteredTradeEmbed(filteredTrades) {
+    try {
+        if (filteredTrades.length === 0) {
+            return {
+                embeds: [new EmbedBuilder()
+                    .setTitle("Global Trade Station")
+                    .setDescription("No trade entries found for the specified filter.")
+                ],
+                components: [],
+                totalPages: 0,
+                data: []
+            };
+        }
+
+        const tradesPerPage = 7;
+        const totalPages = Math.ceil(filteredTrades.length / tradesPerPage);
+
+        const embed = generateTradeStationEmbed(0, totalPages, filteredTrades);
+        const row = generateRow(0, totalPages);
+
+        return {
+            embeds: [embed],
+            components: [row],
+            totalPages,
+            data: filteredTrades
+        };
+    } catch (error) {
+        console.log("There was an error creating the filtered trade station embed.");
+        console.log("Error:", error);
+        throw new Error("Could not create filtered trade station embed");
+    }
+}
+
+function handleCollectorGts(embedMessage, msg, totalPages, data) {
+    const filter = i => ['previous', 'next'].includes(i.customId) && i.user.id === msg.author.id;
+    const collector = embedMessage.createMessageComponentCollector({ filter, time: 60000 });
+
+    let currentPage = 0;
+
+    collector.on('collect', async i => {
+        if (i.customId === 'previous') {
+            currentPage--;
+        } else if (i.customId === 'next') {
+            currentPage++;
+        }
+
+        const embed = generateTradeStationEmbed(currentPage, totalPages, data);
+        const row = generateRow(currentPage, totalPages);
+
+        await i.update({ embeds: [embed], components: [row] });
+    });
+
+    collector.on('end', async collected => {
+        if (totalPages > 0) {
+            const embed = generateTradeStationEmbed(currentPage, totalPages, data);
+            const row = generateRow(currentPage, totalPages, true); // Disable the buttons
+            await embedMessage.edit({ embeds: [embed], components: [row] });
+        }
+    });
 }
 
 async function getUserGTS(userId){
@@ -60,12 +163,51 @@ async function getUserGTS(userId){
   };
   try {
     const result = await dynamodb.query(params).promise();
+    //console.log(result);
     return result.Items;
   } catch (error) {
     console.log("There was an error fetching the trade entries.");
     console.log("Error:", error);
     throw new Error("Could not fetch trade entries");
   }
+}
+
+function generateTradeStationEmbed(page, totalPages, trades, msg) {
+    const embed = new EmbedBuilder()
+        .setTitle("Global Trade Station")
+        .setDescription(`**ID\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0UFT\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0LF**`)
+        .setColor("#a4133c");
+
+    const tradesPerPage = 7;
+    const start = page * tradesPerPage;
+    const end = Math.min(start + tradesPerPage, trades.length);
+
+    for (let i = start; i < end; i++) {
+        const trade = trades[i];
+        embed.addFields(
+            { name: ` `, value: `${inlineCode(trade.globalTradeId)}     ${inlineCode(trade.cardUft)}       ${inlineCode(trade.cardLf)}`, inline: false }
+        );
+    }
+
+    embed.setFooter({ text: `Page ${page + 1} of ${totalPages}` });
+
+    return embed;
+}
+
+function generateRow(page, totalPages, disabled = false) {
+    const previousButton = new ButtonBuilder()
+        .setCustomId('previous')
+        .setLabel('Previous')
+        .setStyle('Secondary')
+        .setDisabled(disabled || page === 0);
+
+    const nextButton = new ButtonBuilder()
+        .setCustomId('next')
+        .setLabel('Next')
+        .setStyle('Secondary')
+        .setDisabled(disabled || page === totalPages - 1);
+
+    return new ActionRowBuilder().addComponents(previousButton, nextButton);
 }
 
 async function addToGTS(userId, tradeId, cardUft, cardLf, timestamp){
@@ -164,6 +306,27 @@ async function deleteTradeByGlobalTradeId(tradeId) {
     }
 }
 
+async function filterTrades(cardId) {
+    try {
+        const trades = await getGlobalTradeStationData();
+        const filteredTrades = trades.filter(trade => trade["cardUft"] === cardId);
+        return filteredTrades;
+    } catch (error) {
+        console.log("There was an error filtering trades by card ID.");
+        console.log("Error:", error);
+        throw new Error("Could not filter trades by card ID");
+    }
+}
+
+async function addToUserInv(userId, cardId, cardCount){
+    const count = cardCount + 1;
+    await changeNumberOwned("user-cards", userId, cardId, count);
+}
+
+async function removeFromUserInv(userId, cardId, cardCount){
+    const count = cardCount - 1;
+    await changeNumberOwned("user-cards", userId, cardId, count);
+}
 
 function getMissingIds(data) {
   // Extract trade-ids and convert to integers
@@ -189,4 +352,5 @@ function generateShortId(length = 6) {
     return result;
 }
 
-module.exports = {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId};
+
+module.exports = {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId, addToUserInv, removeFromUserInv, userGlobalTradeStationEmbed, handleCollectorGts, filterTrades, filteredTradeEmbed};

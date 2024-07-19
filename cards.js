@@ -3,6 +3,8 @@ const {getUser} = require("./users");
 //const s3 = new AWS.S3();
 const dynamodb = new AWS.DynamoDB.DocumentClient
 const {EmbedBuilder, inlineCode} = require("discord.js");
+const fs = require('fs');
+const axios = require('axios');
 
 async function getRandomDynamoDBItem(tableName) {
     try {
@@ -93,7 +95,11 @@ async function getCardFromTable(tableName, key) {
         if (!data.Item) {
             throw new Error('Item not found in DynamoDB');
         }
-        //console.log('Retrieved item from DynamoDB:', data.Item);
+        if (data.Item.discordCachedUrl) {
+            data.Item.cardUrl = data.Item.discordCachedUrl;
+        } 
+        console.log(data.Item.cardUrl);
+        console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
         //console.error('Error retrieving item from DynamoDB:', error);
@@ -327,6 +333,7 @@ async function getWeightedCard(userId){
         }
     });
     const randomIndex = Math.floor(Math.random() * weightedList.length);
+    console.log(weightedList[randomIndex]);
     return weightedList[randomIndex];
 
 }
@@ -478,4 +485,43 @@ async function getEventCards(){
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards};
+async function storeDiscordCachedUrl(cardId, cachedUrl) {
+    const params = {
+        TableName: 'cards',
+        Key: {
+            'card-id': cardId
+        },
+        UpdateExpression: 'set discordCachedUrl = :url',
+        ExpressionAttributeValues: {
+            ':url': cachedUrl
+        }
+    };
+    await dynamodb.update(params).promise();
+}
+
+async function downloadImage(url, filepath) {
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream'
+    });
+    return new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(filepath);
+        response.data.pipe(writer);
+        let error = null;
+        writer.on('error', err => {
+            error = err;
+            writer.close();
+            reject(err);
+        });
+        writer.on('close', () => {
+            if (!error) {
+                resolve(filepath);
+            }
+        });
+    });
+}
+
+
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage};
