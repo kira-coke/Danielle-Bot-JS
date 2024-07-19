@@ -93,6 +93,10 @@ async function getCardFromTable(tableName, key) {
         if (!data.Item) {
             throw new Error('Item not found in DynamoDB');
         }
+        if (data.Item.discordCachedUrl) {
+            data.Item.cardUrl = data.Item.discordCachedUrl;
+        } 
+        //console.log(data.Item.cardUrl);
         //console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
@@ -327,6 +331,7 @@ async function getWeightedCard(userId){
         }
     });
     const randomIndex = Math.floor(Math.random() * weightedList.length);
+    console.log(weightedList[randomIndex]);
     return weightedList[randomIndex];
 
 }
@@ -478,4 +483,19 @@ async function getEventCards(){
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards};
+async function storeDiscordCachedUrl(cardId, cachedUrl) {
+    const params = {
+        TableName: 'cards',
+        Key: {
+            'card-id': cardId
+        },
+        UpdateExpression: 'set discordCachedUrl = :url',
+        ExpressionAttributeValues: {
+            ':url': cachedUrl
+        }
+    };
+    await dynamodb.update(params).promise();
+}
+
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl};
