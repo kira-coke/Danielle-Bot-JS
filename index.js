@@ -34,7 +34,7 @@ const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards, handleCardAction} = require("./quests.js");
-const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId} = require("./globalTradeStation.js");
+const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId, removeFromUserInv, addToUserInv, userGlobalTradeStationEmbed, handleCollectorGts, filterTrades, filteredTradeEmbed} = require("./globalTradeStation.js");
 const {sortCommunityOut, updateUserDgStats, updateComDgStats} = require("./community.js");
 const {createAlbum, addCardToAlbum, deleteAlbum, getAlbums, generateAlbumImage, getAlbum, removeCard, replaceCard} = require("./albums.js");
 const {eventRoll, initiateEventRoll} = require("./event_le.js");
@@ -1670,20 +1670,38 @@ client.on("messageCreate", async (msg) => {
                 //await eventRoll(userId, msg);
             }*/
 
-            /*if(command === "gts"){
+            if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
-                if(input[0] === undefined){
-                     const embed = await globalTradeStationEmbed();
-                     msg.channel.send({ embeds: [embed] });
-                     return;
+                if (args[0] === undefined) {
+                    const { embeds, components, totalPages, data } = await globalTradeStationEmbed();
+                    const embedMessage = await msg.channel.send({ embeds, components });
+                    handleCollectorGts(embedMessage, msg, totalPages, data); // Handle pagination interactions
+                    return;
                 }
-                if(input[0] === "mine"){
-                    //add embed to show only your trades up
+                if (input[0] === "mine") {
+                    const { embeds, components, totalPages, data } = await userGlobalTradeStationEmbed(userId);
+                    const embedMessage = await msg.channel.send({ embeds, components });
+                    handleCollectorGts(embedMessage, msg, totalPages, data); // Handle pagination interactions
+                    return;
+                }
+                if(input[0] === "id"){
+                    const cardId = input[1];
+                    try{
+                        await getCardFromTable("cards", cardId);
+                    }catch(error){
+                        msg.reply("Please input a valid card id");
+                        return;
+                    }
+                    const filteredTrades = await filterTrades(cardId);
+                    console.log(filteredTrades);
+                    const { embeds, components, totalPages, data } = await filteredTradeEmbed(filteredTrades);
+                    const embedMessage = await msg.channel.send({ embeds, components });
+                    handleCollectorGts(embedMessage, msg, totalPages, data);
+                    return;
                 }
                 if(input[0] === "delete"){
                      const tradeId = input[1];
                      const trade = await getTradeByGlobalTradeId(tradeId);
-                     console.log(trade);
                      if(trade.length === 0){
                          msg.reply("Ensure you have entered a valid trade id");
                          return;
@@ -1692,8 +1710,18 @@ client.on("messageCreate", async (msg) => {
                         msg.reply("This is not a trade you own. You can only delete your own trades");
                         return;
                     }
-                    await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
-                    //return the cardUft to the user
+                    try{
+                        const userId = msg.author.id; 
+                        const cardUft = trade[0]["cardUft"];
+                        const cardCount = await getHowManyCopiesOwned("user-cards", userId, cardUft);
+                        await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
+                        await addToUserInv(userId, cardUft, cardCount);
+                        const embed = new EmbedBuilder().setColor("#b9375e").setTitle(`Trade with ID ${Discord.inlineCode(trade[0]["globalTradeId"])} deleted!`).setTimestamp();
+                        msg.reply({ embeds: [embed] });
+                    }catch(error){
+                        console.log("Issue adding card to users inv")
+                        console.log(error);
+                    }
                 }
                 if(input[0] === "create"){
                     const cardUft = input[1];
@@ -1725,22 +1753,73 @@ client.on("messageCreate", async (msg) => {
                     const tradeId = missingIds[0].toString();
                     const timestamp = Date.now();
                     await addToGTS(userId, tradeId, cardUft, cardLf, timestamp);
-                    //add removing of this card from users inv
+                    try{
+                        await removeFromUserInv(userId, cardUft, cardCount);
+                    }catch(error){
+                        console.log("Issue removing card from users inv");
+                        console.log(error);
+                    }
+                    const embed = new EmbedBuilder().setColor("#93e1d8").setTitle("Trade created!").setTimestamp();
+                    msg.reply({ embeds: [embed] });
                 }else{
                     if(input[0] === "trade"){
-                         const trade = await getTradeByGlobalTradeId(input[0]);
+                         const trade = await getTradeByGlobalTradeId(input[1]);
+                         const tradeData = trade[0];
                          console.log(trade);
                          if(trade.length === 0){
                              msg.reply("Ensure you have entered a valid trade id");
                              return;
                          }
-                         msg.reply("Will add all this stuff later"); 
-                         //add one count of the lf card to the users inv
-                         //add one count of the uft card to the other users inv
-                         //remove trade from table
+                         const userOwnsEnough = await getHowManyCopiesOwned("user-cards", msg.author.id, tradeData["cardLf"]);
+                         if(userOwnsEnough <= 1){
+                             msg.reply("You must own at least 1 duplicate to make this trade");
+                             return;
+                         }
+                         console.log(tradeData);
+                         const user1owns = await getHowManyCopiesOwned("user-cards", tradeData["user-id"], tradeData["cardLf"]);
+                         console.log(user1owns);
+                         await addToUserInv(tradeData["user-id"], tradeData["cardLf"], user1owns);
+                         const user2owns = await getHowManyCopiesOwned("user-cards", msg.author.id, tradeData["cardUft"]);
+                         console.log(user2owns);
+                         await addToUserInv(msg.author.id, tradeData["cardUft"], user2owns);
+                         await removeFromUserInv(msg.author.id, tradeData["cardLf"], userOwnsEnough);
+                         await deleteTradeByGlobalTradeId(trade[0]["globalTradeId"]);
+                         const embed = new Discord.EmbedBuilder()
+                            .setTitle("Trade recieved!")
+                            .setColor("#93e1d8")
+                            .addFields(
+                                { name: " ", value: `You have gotten: ${Discord.inlineCode(tradeData["cardLf"])}  from a trade!`, inline: false },
+                                {
+                                    name: "Trade ID:",
+                                    value: tradeData["globalTradeId"],
+                                    inline: false,
+                                },
+                                { name: " ", value: `Card traded off: ${Discord.inlineCode(tradeData["cardUft"])}`, inline: false },
+                            )
+                            .setTimestamp();
+                         const user = await client.users.fetch(tradeData["user-id"]);
+                         user.send({ embeds: [embed] });
+                         const secondEmbed = new Discord.EmbedBuilder()
+                            .setTitle("Trade recieved!")
+                            .setColor("#93e1d8")
+                            .addFields(
+                                { name: " ", value: `You have gotten: ${Discord.inlineCode(tradeData["cardUft"])}  from a trade!`, inline: false },
+                                {
+                                    name: "Trade ID:",
+                                    value: tradeData["globalTradeId"],
+                                    inline: false,
+                                },
+                                { name: " ", value: `Card traded off: ${Discord.inlineCode(tradeData["cardLf"])}`, inline: false },
+                            )
+                            .setTimestamp();
+                         const user2 = await client.users.fetch(msg.author.id);
+                         user2.send({ embeds: [secondEmbed] });
+                         msg.reply("**Trade successful!**");
+                        //add copies to each user opf the card they wanted
+                        //make sure to remove the lf copy from this user too
                     }
                 }
-            }*/
+            }
 
             if (command === "forcedrop") {
                 const REQUIRED_ROLE_NAME = "mod";
