@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard, getCardFromTable} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard, getCardFromTable, storeDiscordCachedUrl} = require("./cards");
 
 async function getClaim(msg,userId){
     const user = await getUser(userId);
@@ -21,7 +21,8 @@ async function getClaim(msg,userId){
                     try{
                         if(cardFromCards.cardRarity === 1){
                             randomCard = await getWeightedCard(userId);
-                            console.log("Got weighted card");
+                            console.log(randomCard);
+                            //console.log("Got weighted card");
                         }else{
                             randomCard = await getRandomDynamoDBItem(tableName);
                         }
@@ -117,7 +118,10 @@ async function getClaim(msg,userId){
                         }),
                     })
                     .setTimestamp();
-                msg.reply({ embeds: [embed] });
+                const sentMessage = await msg.reply({ embeds: [embed] });
+                const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                console.log(sentMessage.embeds[0]);
+                await storeDiscordCachedUrl(randomCard["card-id"], discordCachedUrl);
             } catch (error) {
                 console.error("Error:", error);
             }

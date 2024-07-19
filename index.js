@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup, generateRowInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -340,13 +340,13 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your claim is ready!`,
                         );
                     }, claimCd);
                 }
-                getClaim(msg, userId);
+                await getClaim(msg, userId);
                 await handleClaimAction(userId, msg); //quest handling 
                 await handleCardAction(userId, msg, "card");
                 await updateComDgStats(userId, 1);
@@ -377,14 +377,14 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your drop is ready!`,
                         );
                     }, dropCd);
                 }
                 //getDrop(msg, userId);
-                getClaim(msg, userId);
+                await getClaim(msg, userId);
                 await handleDropAction(userId, msg);
                 await handleCardAction(userId, msg, "card");
                 await updateComDgStats(userId, 2);
@@ -674,7 +674,11 @@ client.on("messageCreate", async (msg) => {
                                 }),
                             })
                             .setTimestamp();
-                        msg.reply({ embeds: [embed] });
+                        const sentMessage = await msg.reply({ embeds: [embed] });
+                        //console.log(sentMessage.embeds[0].image);
+                        const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                        await storeDiscordCachedUrl(cardToView["card-id"], discordCachedUrl);
+                        //console.log(discordCachedUrl);
                     } catch (error) {
                         msg.reply("**Please enter a valid card id**");
                         console.log(
@@ -890,7 +894,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your work is ready!`,
                         );
@@ -1007,7 +1011,7 @@ client.on("messageCreate", async (msg) => {
                 if (user.Reminders === true) {
                     setTimeout(async () => {
                         const newStatus = await updateCoolDownStatus(userId, command, false);
-                        console.log(newStatus);
+                        //console.log(newStatus);
                         msg.channel.send(
                             `**Reminder:** <@${msg.author.id}> your daily is ready!`,
                         );
@@ -1413,7 +1417,7 @@ client.on("messageCreate", async (msg) => {
                     if (user.Reminders === true) {
                         setTimeout(async () => {
                             const newStatus = await updateCoolDownStatus(userId, command, false);
-                            console.log(newStatus);
+                            //console.log(newStatus);
                             msg.channel.send(
                                 `**Reminder:** <@${msg.author.id}> your dg is ready!`,
                             );

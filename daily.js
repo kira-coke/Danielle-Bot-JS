@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount,getUserCard, getTotalCards, storeDiscordCachedUrl} = require("./cards");
 const {getUsersBalance,saveUserBalance} = require("./userBalanceCmds");
 const emote = '<:DB_currency:1257694003638571048>'; 
 
@@ -173,6 +173,10 @@ async function getDaily(msg,userId){
                     })
                     .setTimestamp();
                 msg.reply({ embeds: [embed] });
+                const sentMessage = await msg.reply({ embeds: [embed] });
+                const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                console.log(sentMessage.embeds[0]);
+                await storeDiscordCachedUrl(randomCard["card-id"], discordCachedUrl);
             } catch (error) {
                 console.error("Error:", error);
             }
