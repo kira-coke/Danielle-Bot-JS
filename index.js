@@ -1824,7 +1824,16 @@ client.on("messageCreate", async (msg) => {
                             )
                             .setTimestamp();
                          const user = await client.users.fetch(tradeData["user-id"]);
-                         user.send({ embeds: [embed] });
+                        try{
+                             user.send({ embeds: [embed] });
+                        }catch (error) {
+                            if (error.code === 50007) {
+                                console.error(`Cannot send messages to this user: ${message.author.tag}`);
+                                // Optionally notify the server or perform another action
+                            } else {
+                                console.error('An unknown error occurred:', error);
+                            }
+                        }
                          const secondEmbed = new Discord.EmbedBuilder()
                             .setTitle("Trade recieved!")
                             .setColor("#93e1d8")
@@ -1839,7 +1848,16 @@ client.on("messageCreate", async (msg) => {
                             )
                             .setTimestamp();
                          const user2 = await client.users.fetch(msg.author.id);
-                         user2.send({ embeds: [secondEmbed] });
+                        try{
+                             user2.send({ embeds: [secondEmbed] });
+                        }catch (error) {
+                            if (error.code === 50007) {
+                                console.error(`Cannot send messages to this user: ${message.author.tag}`);
+                                // Optionally notify the server or perform another action
+                            } else {
+                                console.error('An unknown error occurred:', error);
+                            }
+                        }
                          msg.reply("**Trade successful!**");
                         //add copies to each user opf the card they wanted
                         //make sure to remove the lf copy from this user too
