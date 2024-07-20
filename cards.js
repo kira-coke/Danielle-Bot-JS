@@ -96,8 +96,11 @@ async function getCardFromTable(tableName, key) {
             throw new Error('Item not found in DynamoDB');
         }
         if (data.Item.discordCachedUrl) {
-            data.Item.cardUrl = data.Item.discordCachedUrl;
-        } 
+            const urlValid = await isUrlValid(data.Item.discordCachedUrl);
+            if (urlValid) {
+                data.Item.cardUrl = data.Item.discordCachedUrl;
+            }
+        }
         console.log(data.Item.cardUrl);
         console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
@@ -523,6 +526,14 @@ async function downloadImage(url, filepath) {
     });
 }
 
+async function isUrlValid(url) {
+    try {
+        const response = await axios.head(url);
+        return response.status === 200;
+    } catch (error) {
+        return false;
+    }
+}
 
 
 module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage};
