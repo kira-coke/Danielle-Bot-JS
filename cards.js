@@ -334,7 +334,8 @@ async function getWeightedCard(userId){
     });
     const randomIndex = Math.floor(Math.random() * weightedList.length);
     console.log(weightedList[randomIndex]);
-    return weightedList[randomIndex];
+    const card = await getCardFromTable("cards",weightedList[randomIndex]["card-id"]);
+    return card;
 
 }
 
