@@ -100,15 +100,23 @@ function handleCollectorHelp(embedMessage, msg) {
     const collector = embedMessage.createMessageComponentCollector({ filter, time: 60000 });
 
     collector.on("collect", async (i) => {
-        await i.deferUpdate();
-        if (i.customId === "previous" && currentPage > 0) {
-            currentPage--;
-        } else if (i.customId === "next" && currentPage < pages - 1) {
-            currentPage++;
-        }
+        try {
+            // Check if interaction is still valid before deferring the update
+            if (i.isButton()) {
+                await i.deferUpdate();
 
-        const newEmbed = helpCommand(currentPage);
-        await embedMessage.edit({ embeds: [newEmbed], components: [generateRowHelp(currentPage, pages)] });
+                if (i.customId === "previous" && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === "next" && currentPage < pages - 1) {
+                    currentPage++;
+                }
+
+                const newEmbed = helpCommand(currentPage);
+                await embedMessage.edit({ embeds: [newEmbed], components: [generateRowHelp(currentPage, pages)] });
+            }
+        } catch (error) {
+            console.error("Error handling interaction:", error);
+        }
     });
 
     collector.on("end", () => {

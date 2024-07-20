@@ -129,18 +129,22 @@ function handleCollectorGts(embedMessage, msg, totalPages, data) {
     let currentPage = 0;
 
     collector.on('collect', async i => {
-        if (i.customId === 'previous') {
-            currentPage--;
-        } else if (i.customId === 'next') {
-            currentPage++;
+        try {
+            if (i.customId === 'previous' && currentPage > 0) {
+                currentPage--;
+            } else if (i.customId === 'next' && currentPage < totalPages - 1) {
+                currentPage++;
+            }
+
+            const embed = generateTradeStationEmbed(currentPage, totalPages, data);
+            const row = generateRow(currentPage, totalPages);
+
+            await i.update({ embeds: [embed], components: [row] });
+        } catch (error) {
+            console.error("Error handling interaction:", error);
         }
-
-        const embed = generateTradeStationEmbed(currentPage, totalPages, data);
-        const row = generateRow(currentPage, totalPages);
-
-        await i.update({ embeds: [embed], components: [row] });
     });
-
+    
     collector.on('end', async collected => {
         if (totalPages > 0) {
             const embed = generateTradeStationEmbed(currentPage, totalPages, data);

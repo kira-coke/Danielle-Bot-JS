@@ -172,22 +172,36 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) 
     });
 
     collector.on("collect", async (i) => {
-        await i.deferUpdate();
-        if (i.customId === "prev" && currentPage > 0) {
-            currentPage--;
-        } else if (i.customId === "next" && currentPage < totalPages - 1) {
-            currentPage++;
+        try {
+            // Check if interaction is still valid before deferring the update
+            if (i.isButton()) {
+                await i.deferUpdate();
+
+                if (i.customId === "prev" && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === "next" && currentPage < totalPages - 1) {
+                    currentPage++;
+                }
+
+                await embedMessage.edit({
+                    embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg, userId)],
+                    components: [generateRowInv(currentPage, totalPages)],
+                });
+            }
+        } catch (error) {
+            console.error("Error handling interaction:", error);
         }
-        await embedMessage.edit({
-            embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg, userId)],
-            components: [generateRowInv(currentPage, totalPages)],
-        });
     });
 
-    collector.on("end", (collected) => {
-        embedMessage.edit({ components: [] });
+    collector.on("end", async (collected) => {
+        try {
+            await embedMessage.edit({ components: [] });
+        } catch (error) {
+            console.error("Error handling end of collector:", error);
+        }
     });
 };
+
 
 const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, userId) => {
     let currentPage = 0;
@@ -198,27 +212,41 @@ const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, 
     });
 
     collector.on("collect", async (i) => {
-        await i.deferUpdate();
-        if (i.customId === "prev" && currentPage > 0) {
-            currentPage--;
-        } else if (i.customId === "next" && currentPage < totalPages - 1) {
-            currentPage++;
-        } else if (i.customId === "export") {
-            const exportData = await generateExportData(currentPage, listOfCards, userId);
-            await msg.reply({
-                content: `${Discord.inlineCode(exportData)}`,
-            });
+        try {
+            // Check if interaction is still valid before deferring the update
+            if (i.isButton()) {
+                await i.deferUpdate();
+
+                if (i.customId === "prev" && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === "next" && currentPage < totalPages - 1) {
+                    currentPage++;
+                } else if (i.customId === "export") {
+                    const exportData = await generateExportData(currentPage, listOfCards, userId);
+                    await msg.reply({
+                        content: `${Discord.inlineCode(exportData)}`,
+                    });
+                }
+
+                await embedMessage.edit({
+                    embeds: [await generateEmbedInvForGroup(currentPage, totalPages, listOfCards, msg, userId)],
+                    components: [generateRowInvForGroup(currentPage, totalPages)],
+                });
+            }
+        } catch (error) {
+            console.error("Error handling interaction:", error);
         }
-        await embedMessage.edit({
-            embeds: [await generateEmbedInvForGroup(currentPage, totalPages, listOfCards, msg, userId)],
-            components: [generateRowInvForGroup(currentPage, totalPages)],
-        });
     });
 
-    collector.on("end", (collected) => {
-        embedMessage.edit({ components: [] });
+    collector.on("end", async (collected) => {
+        try {
+            await embedMessage.edit({ components: [] });
+        } catch (error) {
+            console.error("Error handling end of collector:", error);
+        }
     });
 };
+
 
 async function getUniqueGroupNames(tableName) {
     let params = {
