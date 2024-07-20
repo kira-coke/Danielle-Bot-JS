@@ -98,10 +98,10 @@ client.on("ready", () => {
 client.on("messageCreate", async (msg) => {
     if (msg.content.startsWith(prefix)) {
         if (!msg.guild) return;
-        /*if (msg.content === '.crash' && msg.member.permissions.has('mod')){
+        if (msg.content === '.crash' && msg.member.permissions.has('mod')){
             msg.channel.send("Simulating a crash");
             throw new Error('Simulating a crash');
-        }*/
+        }
         if (msg.content === '.restart' && msg.member.permissions.has('mod')) {
             msg.channel.send('Restarting...')
                 .then(() => {
@@ -192,6 +192,7 @@ client.on("messageCreate", async (msg) => {
             await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp);
 
             if (msg.author.bot) return;
+            let lockMessage = '';
         
             try{
                 if (command === 'togglelock') {
@@ -203,7 +204,8 @@ client.on("messageCreate", async (msg) => {
 
                     isLocked = !isLocked;
                     const status = isLocked ? 'idle' : 'online';
-                    const statusMessage = `Bot is now ${isLocked ? 'under maintenance' : 'operational'}.`;
+                    lockMessage = args.join(' ');
+                    const statusMessage = `Bot is now ${isLocked ? 'under maintenance': 'operational'}.`;
                     try {
                         client.user.setPresence({
                             status: status,
@@ -221,8 +223,21 @@ client.on("messageCreate", async (msg) => {
                 if (isLocked) {
                     const REQUIRED_ROLE_NAME = "mod"; // change to "admin" if necessary
                     const role = msg.guild.roles.cache.find(role => role.name === REQUIRED_ROLE_NAME);
+                    const ROLENAME = "coder";
+                    const secondRole = msg.guild.roles.cache.find(secondRole => secondRole.name === ROLENAME);
                     if (!role || !msg.member.roles.cache.has(role.id)) {
-                        return msg.channel.send('Bot is under maintenance, please try again later.');
+                        if(lockMessage.length === 0){
+                            return msg.channel.send('Bot is under maintenance, please try again later.');
+                        }else{
+                            return msg.channel.send(lockMessage);
+                        }
+                    }else{
+                        if (!secondRole || !msg.member.roles.cache.has(secondRole.id)) {
+                            console.log(command);
+                            if (command != "togglelock" && command != "addcard" && command != "index") {
+                                return msg.channel.send('Bots under maint annoying fucks (jk love u but its under maint pookies.)');
+                            }
+                        }
                     }
                 }
             }catch(error){
@@ -2030,8 +2045,8 @@ client.on("messageCreate", async (msg) => {
 function hasRole(member, roleName) {
     return member.roles.cache.some(role => role.name === roleName);
 }
-const ROLE_ID = '1256328712086098040';
 async function sendRaffleEmbed() {
+    const ROLE_ID = '1256328712086098040';
     const channel = client.channels.cache.get('1256331822812500068');
     const role = channel.guild.roles.cache.get(ROLE_ID);
     channel.send(`<@&${ROLE_ID}>`);
@@ -2043,11 +2058,17 @@ async function sendRaffleEmbed() {
 client.login(process.env.Token);
 
 process.on('uncaughtException', (error) => {
+    const ROLE_ID = '1255321385765699604';
     console.error('Uncaught Exception:', error);
+    const channel = client.channels.cache.get('1255577403854426133');
+    channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
     process.exit(1); // Exit and let PM2 restart the bot
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+    const ROLE_ID = '1255321385765699604';
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    const channel = client.channels.cache.get('1255577403854426133');
+    channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
     process.exit(1); // Exit and let PM2 restart the bot
 });
