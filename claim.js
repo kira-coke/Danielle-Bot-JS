@@ -23,9 +23,10 @@ async function getClaim(msg, userId) {
                     try {
                         if (cardFromCards.cardRarity === 1) {
                             randomCard = await getWeightedCard(userId);
-                            console.log(randomCard);
+                            console.log("random weighted card: ", randomCard);
                         } else {
                             randomCard = await getRandomDynamoDBItem(tableName);
+                            console.log("not weighted card: " + randomCard);
                         }
                     } catch (error) {
                         console.log("Issue getting weighted random card");
