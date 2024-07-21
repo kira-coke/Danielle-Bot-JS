@@ -79,6 +79,30 @@ function helpCommand(page) {
     return embed;
 }
 
+function specificHelpCommand(keyword) {
+    const itemsPerPage2 = 20;
+    const filteredCommands = commands.filter(cmd => cmd.name.toLowerCase().includes(keyword.toLowerCase()));
+
+    if (filteredCommands.length === 0) {
+        return new EmbedBuilder()
+            .setColor("#ff0000")
+            .setTitle("No Commands Found")
+            .setDescription(`No commands found containing the keyword: \`${keyword}\``);
+    }
+
+    const pagesCount = Math.ceil(filteredCommands.length / itemsPerPage2);
+
+    // If there's only one page of results, we can just return it directly
+    if (pagesCount === 1) {
+        return new EmbedBuilder()
+            .setColor("#0099ff")
+            .setTitle(`Help for Commands containing: ${keyword}`)
+            .setDescription(filteredCommands.map(cmd => `**${cmd.name}**: ${cmd.description}`).join("\n"))
+            .setTimestamp();
+    }
+
+}
+
 function generateRowHelp(currentPage, totalPages) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -124,4 +148,4 @@ function handleCollectorHelp(embedMessage, msg) {
     });
 }
 
-module.exports = { helpCommand, handleCollectorHelp, generateRowHelp };
+module.exports = { helpCommand, handleCollectorHelp, generateRowHelp, specificHelpCommand };

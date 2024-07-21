@@ -123,7 +123,8 @@ async function filteredTradeEmbed(filteredTrades) {
 }
 
 function handleCollectorGts(embedMessage, msg, totalPages, data) {
-    const filter = i => ['previous', 'next'].includes(i.customId) && i.user.id === msg.author.id;
+    const itemsPerPage = 7;
+    const filter = i => ['previous', 'next', 'export'].includes(i.customId) && i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({ filter, time: 60000 });
 
     let currentPage = 0;
@@ -134,7 +135,14 @@ function handleCollectorGts(embedMessage, msg, totalPages, data) {
                 currentPage--;
             } else if (i.customId === 'next' && currentPage < totalPages - 1) {
                 currentPage++;
+            } else if (i.customId === "export") {
+                const pageData = data.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+                const exportData = generateExportData(pageData);
+                await msg.reply({
+                    content: `${inlineCode(exportData.join(', '))}`, // Use join to format data nicely
+                });
             }
+
 
             const embed = generateTradeStationEmbed(currentPage, totalPages, data);
             const row = generateRow(currentPage, totalPages);
@@ -211,7 +219,13 @@ function generateRow(page, totalPages, disabled = false) {
         .setStyle('Secondary')
         .setDisabled(disabled || page === totalPages - 1);
 
-    return new ActionRowBuilder().addComponents(previousButton, nextButton);
+    const exportButton = new ButtonBuilder()
+        .setCustomId("export")
+        .setLabel("Export")
+        .setStyle("Secondary")
+        .setDisabled(disabled);
+
+    return new ActionRowBuilder().addComponents(previousButton, nextButton, exportButton);
 }
 
 async function addToGTS(userId, tradeId, cardUft, cardLf, timestamp){
@@ -354,6 +368,11 @@ function generateShortId(length = 6) {
     }
 
     return result;
+}
+
+function generateExportData(data){
+    const globalTradeIds = data.map(item => item.globalTradeId);
+    return globalTradeIds;
 }
 
 

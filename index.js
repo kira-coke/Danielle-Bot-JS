@@ -28,7 +28,7 @@ const {getDaily} = require("./daily.js");
 const {GatewayIntentBits, PermissionsBitField, AttachmentBuilder} = require("discord.js");
 const {payCommand} = require("./pay.js");
 const {setUserStreak} = require("./updateDailyStreak.js")
-const { helpCommand, handleCollectorHelp, generateRowHelp } = require("./help.js");
+const { helpCommand, handleCollectorHelp, generateRowHelp, specificHelpCommand } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
 const { getPacks, removePack, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
@@ -1319,15 +1319,21 @@ client.on("messageCreate", async (msg) => {
             }
 
             if (command === "help") {
-                const embed = helpCommand(0);
-                const pages = 4;
-                const components = pages > 1 ? [generateRowHelp(0, pages)] : [];
+                if(args.length === 0){
+                    const embed = helpCommand(0);
+                    const pages = 4;
+                    const components = pages > 1 ? [generateRowHelp(0, pages)] : [];
 
-                msg.reply({ embeds: [embed], components: components })
-                    .then((sentMsg) => {
-                        handleCollectorHelp(sentMsg, msg);
-                    })
-                    .catch(console.error); // Catch errors for debugging
+                    msg.reply({ embeds: [embed], components: components })
+                        .then((sentMsg) => {
+                            handleCollectorHelp(sentMsg, msg);
+                        })
+                        .catch(console.error); 
+                }else {
+                    const specificCommand = args[0];
+                    const embed = specificHelpCommand(specificCommand);
+                    msg.reply({ embeds: [embed] });
+                }
             }
 
             if (command === "remindersoff") {
@@ -2060,7 +2066,7 @@ client.login(process.env.Token);
 process.on('uncaughtException', (error) => {
     const ROLE_ID = '1255321385765699604';
     console.error('Uncaught Exception:', error);
-    const channel = client.channels.cache.get('1255577403854426133');
+    const channel = client.channels.cache.get('1256332210961911939');
     channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
     process.exit(1); // Exit and let PM2 restart the bot
 });
@@ -2068,7 +2074,7 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
     const ROLE_ID = '1255321385765699604';
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    const channel = client.channels.cache.get('1255577403854426133');
+    const channel = client.channels.cache.get('1256332210961911939');
     channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
     process.exit(1); // Exit and let PM2 restart the bot
 });
