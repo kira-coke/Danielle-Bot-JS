@@ -77,6 +77,39 @@ client.once('ready', async () => {
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    process.on('uncaughtException', async (error) => {
+        const ROLE_ID = '1255321385765699604';
+        console.error('Uncaught Exception:', error);
+        try {
+            const channel = client.channels.cache.get('1256332210961911939');
+            if (channel) {
+                await channel.send(`<@&${ROLE_ID}> Bot crashed and restarted due to an uncaught exception.`);
+                console.log('Uncaught exception notification sent to the channel.');
+            } else {
+                console.error('Channel not found.');
+            }
+        } catch (sendError) {
+            console.error('Error sending message to the channel:', sendError);
+        }
+        process.exit(1); // Exit and let PM2 restart the bot
+    });
+
+    process.on('unhandledRejection', async (reason, promise) => {
+        const ROLE_ID = '1255321385765699604';
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+        try {
+            const channel = client.channels.cache.get('1256332210961911939');
+            if (channel) {
+                await channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
+                console.log('Notification sent to the channel.');
+            } else {
+                console.error('Channel not found.');
+            }
+        } catch (sendError) {
+            console.error('Error sending message to the channel:', sendError);
+        }
+        process.exit(1); // Exit and let PM2 restart the bot
+    });
     try {
         client.user.setPresence({
             status: 'online',
@@ -1848,8 +1881,8 @@ client.on("messageCreate", async (msg) => {
                                 { name: " ", value: `Card traded off: ${Discord.inlineCode(tradeData["cardUft"])}`, inline: false },
                             )
                             .setTimestamp();
-                         const user = await client.users.fetch(tradeData["user-id"]);
                         try{
+                             const user = await client.users.fetch(tradeData["user-id"]);
                              user.send({ embeds: [embed] });
                         }catch (error) {
                             if (error.code === 50007) {
@@ -1872,8 +1905,8 @@ client.on("messageCreate", async (msg) => {
                                 { name: " ", value: `Card traded off: ${Discord.inlineCode(tradeData["cardLf"])}`, inline: false },
                             )
                             .setTimestamp();
-                         const user2 = await client.users.fetch(msg.author.id);
                         try{
+                             const user2 = await client.users.fetch(msg.author.id);
                              user2.send({ embeds: [secondEmbed] });
                         }catch (error) {
                             if (error.code === 50007) {
@@ -2067,18 +2100,3 @@ async function sendRaffleEmbed() {
 
 client.login(process.env.Token);
 
-process.on('uncaughtException', (error) => {
-    const ROLE_ID = '1255321385765699604';
-    console.error('Uncaught Exception:', error);
-    const channel = client.channels.cache.get('1256332210961911939');
-    channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
-    process.exit(1); // Exit and let PM2 restart the bot
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    const ROLE_ID = '1255321385765699604';
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    const channel = client.channels.cache.get('1256332210961911939');
-    channel.send(`<@&${ROLE_ID}> Bot crashed and restarted`);
-    process.exit(1); // Exit and let PM2 restart the bot
-});
