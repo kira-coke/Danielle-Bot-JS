@@ -102,7 +102,7 @@ async function getCardFromTable(tableName, key) {
             }
         }
         console.log(data.Item.cardUrl);
-        console.log('Retrieved item from DynamoDB:', data.Item);
+        //console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
         //console.error('Error retrieving item from DynamoDB:', error);
@@ -336,7 +336,7 @@ async function getWeightedCard(userId){
         }
     });
     const randomIndex = Math.floor(Math.random() * weightedList.length);
-    console.log(weightedList[randomIndex]);
+    //console.log(weightedList[randomIndex]);
     const card = await getCardFromTable("cards",weightedList[randomIndex]["card-id"]);
     return card;
 
