@@ -95,6 +95,8 @@ client.on("ready", () => {
     });
 });
 
+let lockMessage = '';
+
 client.on("messageCreate", async (msg) => {
     if (msg.content.startsWith(prefix)) {
         if (!msg.guild) return;
@@ -192,7 +194,6 @@ client.on("messageCreate", async (msg) => {
             await saveUserCooldown(userId, "generalCmdCd", cooldownTimestamp);
 
             if (msg.author.bot) return;
-            let lockMessage = '';
         
             try{
                 if (command === 'togglelock') {
@@ -233,9 +234,12 @@ client.on("messageCreate", async (msg) => {
                         }
                     }else{
                         if (!secondRole || !msg.member.roles.cache.has(secondRole.id)) {
-                            console.log(command);
                             if (command != "togglelock" && command != "addcard" && command != "index") {
-                                return msg.channel.send('Bots under maint annoying fucks (jk love u but its under maint pookies.)');
+                                if(lockMessage.length != 0){
+                                    return msg.channel.send(lockMessage);
+                                }else{
+                                    return msg.channel.send('Bots under maint annoying fucks (jk love u but its under maint pookies.)');
+                                }
                             }
                         }
                     }
