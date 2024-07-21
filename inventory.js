@@ -58,7 +58,6 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
             }
         } catch (error) {
             console.error("Error processing card:", error);
-            console.log(attribute);
             // Optionally handle error or continue with next card
         }
     }
@@ -202,6 +201,7 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) 
         }
     });
 };
+
 
 const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, userId) => {
     let currentPage = 0;

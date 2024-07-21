@@ -221,38 +221,16 @@ async function getUserWishList(tableName, userId) {
 }
 
 async function getUserCards(tableName, userId) {
-    const segmentCount = 4; // Number of segments for parallel scanning
-    const start = Date.now(); // Start timing
-
-    const promises = [];
-    for (let segment = 0; segment < segmentCount; segment++) {
-        promises.push(scanSegment(tableName, userId, segment, segmentCount));
-    }
-
-    try {
-        const results = await Promise.all(promises);
-        const end = Date.now(); // End timing
-        console.log(`Parallel scan completed in ${end - start} ms`);
-        return results.flat();
-    } catch (error) {
-        console.error('Error during parallel scans:', error);
-        throw error;
-    }
-}
-
-async function scanSegment(tableName, userId, segment, totalSegments) {
     const params = {
         TableName: tableName,
         FilterExpression: '#pk = :pk',
         ExpressionAttributeNames: {
-            '#pk': 'user-id'
+            '#pk': 'user-id' // The actual attribute name in the table
         },
         ExpressionAttributeValues: {
-            ':pk': userId
+            ':pk': userId // The value you are filtering by
         },
-        Segment: segment,
-        TotalSegments: totalSegments,
-        ReturnConsumedCapacity: 'TOTAL'
+        ReturnConsumedCapacity: 'TOTAL' // Request consumed capacity details
     };
 
     let items = [];
@@ -268,6 +246,7 @@ async function scanSegment(tableName, userId, segment, totalSegments) {
 
             const data = await dynamodb.scan(params).promise();
 
+            // Log consumed capacity information
             if (data.ConsumedCapacity) {
                 console.log('Consumed Capacity:', data.ConsumedCapacity);
             }
@@ -275,6 +254,7 @@ async function scanSegment(tableName, userId, segment, totalSegments) {
             items = items.concat(data.Items);
             lastEvaluatedKey = data.LastEvaluatedKey;
 
+            // Reset retry count on successful operation
             retryCount = 0;
 
         } catch (error) {
@@ -284,10 +264,10 @@ async function scanSegment(tableName, userId, segment, totalSegments) {
                 if (retryCount >= maxRetries) {
                     throw new Error('Max retries exceeded');
                 }
-                const delay = Math.pow(2, retryCount) * 100;
+                const delay = Math.pow(2, retryCount) * 100; // Exponential backoff
                 await new Promise(resolve => setTimeout(resolve, delay));
             } else {
-                console.error('Error scanning segment:', error);
+                console.error('Error scanning table:', error);
                 throw error;
             }
         }
@@ -295,6 +275,8 @@ async function scanSegment(tableName, userId, segment, totalSegments) {
 
     return items;
 }
+
+
 
 async function setAutoReminders(tableName, userId, attribute){
     const updateCount = 'SET #Reminders = :newValue';

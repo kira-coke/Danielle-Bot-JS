@@ -91,7 +91,6 @@ async function getCardFromTable(tableName, key) {
         };
         // Call DynamoDB getItem API
         const data = await dynamodb.get(params).promise();
-        console.log(data.Item);
 
         if (!data.Item) {
             throw new Error('Item not found in DynamoDB');
@@ -102,7 +101,7 @@ async function getCardFromTable(tableName, key) {
                 data.Item.cardUrl = data.Item.discordCachedUrl;
             }
         }
-        //console.log(data.Item.cardUrl);
+        console.log(data.Item.cardUrl);
         //console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
@@ -163,38 +162,32 @@ async function getUserCard(tableName, key, secondaryKeyValue){
     }
 }
 
-async function getTotalCards(tableName) {
-    const segmentCount = 4; // Number of parallel segments
-    const promises = [];
-
-    const params = {
-        TableName: tableName,
-        FilterExpression: '#rarity = :rarityValue',
-        ExpressionAttributeNames: {
-            '#rarity': 'cardRarity'
-        },
-        ExpressionAttributeValues: {
-            ':rarityValue': 1
-        }
-    };
-
-    for (let segment = 0; segment < segmentCount; segment++) {
-        promises.push(scanSegment(params, segment, segmentCount));
-    }
-
+async function getTotalCards(tableName){
+    //get all items from table
     try {
-        const results = await Promise.all(promises);
-        const allItems = results.flat();
-        if (allItems.length === 0) {
+        // Scan the table to get all items
+        const scanParams = {
+            TableName: tableName,
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 1
+            }
+        };
+        const data = await dynamodb.scan(scanParams).promise();
+
+        if (!data.Items || data.Items.length === 0) {
             throw new Error('No items found in the table');
         }
-        return allItems; // Returning all items found
+        //console.log(data);
+        return data;
     } catch (error) {
         console.error('Error retrieving items from DynamoDB:', error);
         throw error;
     }
 }
-
 
 async function changeNumberOwned(tableName, primaryKeyValue, secondaryKeyValue, count){
     const updateCount = 'SET #copiesOwned = :newCopiesOwned';
@@ -284,12 +277,9 @@ async function checkTotalCardCount(tableName, primaryKeyValue){
 }
 
 async function filterByAttribute(tableName, attribute, value) {
-    const segmentCount = 4; // Number of parallel segments
-    const promises = [];
-
     const params = {
         TableName: tableName,
-        FilterExpression: '#attr = :val',
+        FilterExpression: `#attr = :val`,
         ExpressionAttributeNames: {
             '#attr': attribute
         },
@@ -298,19 +288,11 @@ async function filterByAttribute(tableName, attribute, value) {
         }
     };
 
-    for (let segment = 0; segment < segmentCount; segment++) {
-        promises.push(scanSegment(params, segment, segmentCount));
-    }
-
     try {
-        const results = await Promise.all(promises);
-        const allItems = results.flat();
-        if (allItems.length === 0) {
-            throw new Error('No items found in the table');
-        }
-        return allItems;
+        const data = await dynamodb.scan(params).promise();
+        return data.Items;
     } catch (error) {
-        console.error('Error retrieving items from DynamoDB:', error);
+        console.error('Error filtering items:', error);
         throw error;
     }
 }
@@ -482,83 +464,29 @@ async function modGiftCard(targetUser, cardIDToGift, msg, copiesToGive){
     }
 }
 
-async function getEventCards() {
-    const segmentCount = 4; // Number of parallel segments
-    const promises = [];
-
-    const params = {
-        TableName: "cards",
-        FilterExpression: '#rarity = :rarityValue',
-        ExpressionAttributeNames: {
-            '#rarity': 'cardRarity'
-        },
-        ExpressionAttributeValues: {
-            ':rarityValue': 3
-        }
-    };
-
-    for (let segment = 0; segment < segmentCount; segment++) {
-        promises.push(scanSegment(params, segment, segmentCount));
-    }
-
+async function getEventCards(){
     try {
-        const results = await Promise.all(promises);
-        const allItems = results.flat();
-        if (allItems.length === 0) {
+        const scanParams = {
+            TableName: "cards",
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 3
+            }
+        };
+        const data = await dynamodb.scan(scanParams).promise();
+
+        if (!data.Items || data.Items.length === 0) {
             throw new Error('No items found in the table');
         }
-        return allItems;
+        //console.log(data);
+        return data.Items;
     } catch (error) {
         console.error('Error retrieving items from DynamoDB:', error);
         throw error;
     }
-}
-
-async function scanSegment(params, segment, totalSegments) {
-    const scanParams = {
-        ...params,
-        Segment: segment,
-        TotalSegments: totalSegments
-    };
-
-    let items = [];
-    let lastEvaluatedKey = null;
-    const maxRetries = 5;
-    let retryCount = 0;
-
-    do {
-        try {
-            if (lastEvaluatedKey) {
-                scanParams.ExclusiveStartKey = lastEvaluatedKey;
-            }
-
-            const data = await dynamodb.scan(scanParams).promise();
-
-            if (data.ConsumedCapacity) {
-                console.log('Consumed Capacity:', data.ConsumedCapacity);
-            }
-
-            items = items.concat(data.Items);
-            lastEvaluatedKey = data.LastEvaluatedKey;
-
-            retryCount = 0;
-        } catch (error) {
-            if (error.code === 'ProvisionedThroughputExceededException') {
-                console.warn('Throttling error:', error);
-                retryCount++;
-                if (retryCount >= maxRetries) {
-                    throw new Error('Max retries exceeded');
-                }
-                const delay = Math.pow(2, retryCount) * 100;
-                await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-                console.error('Error scanning segment:', error);
-                throw error;
-            }
-        }
-    } while (lastEvaluatedKey);
-
-    return items;
 }
 
 async function storeDiscordCachedUrl(cardId, cachedUrl) {

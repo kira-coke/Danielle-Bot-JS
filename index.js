@@ -1225,6 +1225,7 @@ client.on("messageCreate", async (msg) => {
     
                         try {
                             listOfCards = await getUserCards("user-cards", userId);
+                            const user = await getUser(userId);
                         } catch (error) {
                             console.log("Error getting user cards:", error);
                             return;
