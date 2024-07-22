@@ -17,7 +17,7 @@ const {awardExp, upgrade} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage, writeToDynamoDB} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup, generateRowInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -1861,8 +1861,23 @@ client.on("messageCreate", async (msg) => {
                          }
                          console.log(tradeData);
                          const user1owns = await getHowManyCopiesOwned("user-cards", tradeData["user-id"], tradeData["cardLf"]);
+                         let item = {};
+                         if(user1owns === 0){
+                             item = {
+                                 "user-id": tradeData["user-id"], // primary key
+                                 "card-id": tradeData["cardLf"], // secondary key
+                                 exp: 0,
+                                 level: 0,
+                                 upgradable: false,
+                                 "copies-owned": 1,
+                                 tier: 1,
+                                 totalExp: 0
+                             };
+                             await writeToDynamoDB("user-cards", item);
+                         }else{
+                              await addToUserInv(tradeData["user-id"], tradeData["cardLf"], user1owns);
+                         }
                          console.log(user1owns);
-                         await addToUserInv(tradeData["user-id"], tradeData["cardLf"], user1owns);
                          const user2owns = await getHowManyCopiesOwned("user-cards", msg.author.id, tradeData["cardUft"]);
                          console.log(user2owns);
                          await addToUserInv(msg.author.id, tradeData["cardUft"], user2owns);
