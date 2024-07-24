@@ -231,10 +231,10 @@ async function handleClaimAction(userId, msg) {
       const balance = await getUsersBalance(userId);
       if(questRewardsDoubled === true){
         await saveUserBalance(userId, balance + 6000);
-        msg.reply("You have completed a quest and received 6000 coins!");
+        msg.reply("You have completed the quest claim 10 times and received 6000 coins!");
       }else{
         await saveUserBalance(userId, balance + 3000);
-        msg.reply("You have completed a quest and received 3000 coins!");
+        msg.reply("You have completed the quest claim 10 times and received 3000 coins!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -254,9 +254,9 @@ async function handleClaimAction(userId, msg) {
       await storePack(userId);
       if(questRewardsDoubled === true){
         await storePack(userId);
-        msg.reply("You have completed a quest and received 2 packs!");
+        msg.reply("You have completed the quest claim 20 times and received 2 packs!");
       }else{
-        msg.reply("You have completed a quest and received 1 pack!");
+        msg.reply("You have completed the quest claim 20 times and received 1 pack!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -277,10 +277,10 @@ async function handleClaimAction(userId, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
-        msg.reply("You have completed a quest and received 4 copies of your favCard!");
+        msg.reply("You have completed the quest claim 30 times and received 4 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copies of your favCard!");
+        msg.reply("You have completed the quest claim 30 times and received 2 copies of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -306,10 +306,10 @@ async function handleDropAction(userId, msg){
       const balance = await getUsersBalance(userId);
       if(questRewardsDoubled === true){
         await saveUserBalance(userId, balance + 6000);
-        msg.reply("You have completed a quest and received 6000 coins!");
+        msg.reply("You have completed the quest drop 5 times and received 6000 coins!");
       }else{
         await saveUserBalance(userId, balance + 3000);
-        msg.reply("You have completed a quest and received 3000 coins!");
+        msg.reply("You have completed the quest drop 5 times and received 3000 coins!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -329,9 +329,9 @@ async function handleDropAction(userId, msg){
       await storePack(userId);
       if(questRewardsDoubled === true){
         await storePack(userId);
-        msg.reply("You have completed a quest and received 2 packs!");
+        msg.reply("You have completed the quest drop 15 times and received 2 packs!");
       }else{
-        msg.reply("You have completed a quest and received 1 pack!");
+        msg.reply("You have completed the quest drop 15 times and received 1 pack!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -352,10 +352,10 @@ async function handleDropAction(userId, msg){
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 6);
-        msg.reply("You have completed a quest and received 6 copies of your favCard!");
+        msg.reply("You have completed the quest drop 25 times and received 6 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 3);
-        msg.reply("You have completed a quest and received 3 copies of your favCard!");
+        msg.reply("You have completed the quest drop 25 times and received 3 copies of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -388,10 +388,10 @@ async function handleFeedAction(userId, copies, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copies of your favCard!");
+        msg.reply("You have completed the quest feed 5 times and received 2 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
-        msg.reply("You have completed a quest and received 1 copy of your favCard!");
+        msg.reply("You have completed the quest feed 5 times and received 1 copy of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -411,10 +411,10 @@ async function handleFeedAction(userId, copies, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copies of your favCard!");
+        msg.reply("You have completed the quest feed 5 times and received 2 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
-        msg.reply("You have completed a quest and received 1 copy of your favCard!");
+        msg.reply("You have completed the quest feed 5 times and received 1 copy of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -434,10 +434,10 @@ async function handleFeedAction(userId, copies, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copies of your favCard!");
+        msg.reply("You have completed the quest feed 5 times and received 2 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 1);
-        msg.reply("You have completed a quest and received 1 copy of your favCard!");
+        msg.reply("You have completed the quest feed 5 times and received 1 copy of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -464,10 +464,10 @@ async function handleWorkAction(userId, msg) {
       const balance = await getUsersBalance(userId);
       if(questRewardsDoubled === true){
         await saveUserBalance(userId, balance + 8000);
-        msg.reply("You have completed a quest and received 8000 coins!");
+        msg.reply("You have completed the quest work 2 times and received 8000 coins!");
       }else{
         await saveUserBalance(userId, balance + 4000);
-        msg.reply("You have completed a quest and received 4000 coins!");
+        msg.reply("You have completed the quest work 2 times and received 4000 coins!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -487,9 +487,9 @@ async function handleWorkAction(userId, msg) {
       await storePack(userId);
       if(questRewardsDoubled === true){
         await storePack(userId);
-        msg.reply("You have completed a quest and received 2 packs!");
+        msg.reply("You have completed the quest work 4 times and received 2 packs!");
       }else{
-        msg.reply("You have completed a quest and received 1 pack!");
+        msg.reply("You have completed the quest work 4 times and received 1 pack!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -510,10 +510,10 @@ async function handleWorkAction(userId, msg) {
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 8);
-        msg.reply("You have completed a quest and received 8 copies of your favCard!");
+        msg.reply("You have completed the quest work 6 times and received 8 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
-        msg.reply("You have completed a quest and received 4 copies of your favCard!");
+        msg.reply("You have completed the quest work 6 times and received 4 copies of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -544,10 +544,10 @@ async function handleCardAction(userId, msg, type){
       const balance = await getUsersBalance(userId);
       if(questRewardsDoubled === true){
         await saveUserBalance(userId, balance + 4000);
-        msg.reply("You have completed a quest and received 4000 coins!");
+        msg.reply("You have completed the quest get 15 cards and received 4000 coins!");
       }else{
         await saveUserBalance(userId, balance + 2000);
-        msg.reply("You have completed a quest and received 2000 coins!");
+        msg.reply("You have completed the quest get 15 cards and received 2000 coins!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -568,10 +568,10 @@ async function handleCardAction(userId, msg, type){
       if(questRewardsDoubled === true){
         await storePack(userId);
         await storePack(userId);
-        msg.reply("You have completed a quest and received 2 packs!");
+        msg.reply("You have completed the quest get 30 cards and received 2 packs!");
       }else{
         await storePack(userId);
-        msg.reply("You have completed a quest and received 1 pack!");
+        msg.reply("You have completed the quest get 30 cards and received 1 pack!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
@@ -594,10 +594,10 @@ async function handleCardAction(userId, msg, type){
       const numberOwned = await getHowManyCopiesOwned("user-cards", userId, favCard);
       if(questRewardsDoubled === true){
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 4);
-        msg.reply("You have completed a quest and received 4 copies of your favCard!");
+        msg.reply("You have completed the quest get 50 cards and received 4 copies of your favCard!");
       }else{
         await changeNumberOwned("user-cards", userId, favCard, numberOwned + 2);
-        msg.reply("You have completed a quest and received 2 copies of your favCard!");
+        msg.reply("You have completed the quest get 50 cards and received 2 copies of your favCard!");
       }
       if(isEvent === true){
         await storeEventRoll(userId);
