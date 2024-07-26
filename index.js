@@ -1556,6 +1556,17 @@ client.on("messageCreate", async (msg) => {
 
             if(command === "shop" || command === "s"){
                 const userBal = await getUsersBalance(userId);
+                const command = "packBuy";
+                const packBuyCd = 5 * 1000; // 300 seconds
+                const remainingCooldown = await getUserCooldown(userId, command);
+                if (remainingCooldown !== "0m 0s") {
+                    msg.reply(
+                        `You must wait ${remainingCooldown} before trying to buy a pack.`,
+                    );
+                    return;
+                }
+                const cooldownTimestamp = Date.now() + packBuyCd;
+                await saveUserCooldown(userId, command, cooldownTimestamp);
                 if ((args[0] === 'buy' || args[0] === 'b') && args[1] === "1") {
                     const itemId = "5_pack";
                     if(userBal < 10000){
