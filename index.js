@@ -1002,8 +1002,8 @@ client.on("messageCreate", async (msg) => {
                         msg.reply("Pleaset set your wishlist with at least one card before trying to add.")
                         return;
                     }
-                    if((currentWl.length+codes.length) > 10){
-                        msg.reply("Your wl will be over 10 codes. You currently have "+ currentWl.length + " codes in your wishlist");
+                    if((currentWl.length+codes.length) > 15){
+                        msg.reply("Your wl will be over 15 codes. You currently have "+ currentWl.length + " codes in your wishlist");
                     }else{
                         for (let i = 0; i < codes.length; i++) {
                             try {
@@ -1032,8 +1032,8 @@ client.on("messageCreate", async (msg) => {
                     }
                 }
                 if(action === "set"){
-                    if (codes.length > 10) {
-                        msg.reply("**The limit is 10 codes**");
+                    if (codes.length > 15) {
+                        msg.reply("**The limit is 15 codes**");
                         return;
                     } else {
                         for (let i = 0 ; i < codes.length; i++) {
