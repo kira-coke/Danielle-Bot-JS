@@ -101,7 +101,7 @@ async function getCardFromTable(tableName, key) {
                 data.Item.cardUrl = data.Item.discordCachedUrl;
             }
         }
-        console.log(data.Item.cardUrl);
+        //console.log(data.Item.cardUrl);
         //console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
