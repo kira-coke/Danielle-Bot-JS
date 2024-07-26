@@ -37,6 +37,7 @@ const commands = [
     { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory." },
     { name: ".inv levels [@user]", description: "View your or someone else's currently leveled cards." },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
+    { name: ".feed all [groupName]", description: "Feed all member cards of a group (note: cards that are already level 20 or **would** reach level 20 after leveling up will be skipped."},
     { name: ".upgrade or .u card-id", description: "Upgrade a card to increase its tier."},
     { name: ".quest / .q", description: "View your current quests."},
     { name: ".community / .com create [name] ", description: "Create a community (max 20 members)."},

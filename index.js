@@ -13,7 +13,7 @@ const{work} = require("./work");
 const {forceRaffle, changeRaffleRewards} = require("./raffle");
 const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards, massGift} = require("./gift.js");
-const {awardExp, upgrade} = require("./cardExpSystem.js");
+const {awardExp, upgrade, groupFeed} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
@@ -1290,6 +1290,50 @@ client.on("messageCreate", async (msg) => {
                 const input = args.filter((code) => code.trim() !== "");
                 let cardId = input[0];
                 let numberOfCards = input[1];
+                let groupToFeed = ' ';
+                if(input[0] === "all"){
+                    try {
+                        groupToFeed = args.slice(1).join(" ").toLowerCase().trim();
+                        let uniqueGroupNames = [];
+                        try {
+                            uniqueGroupNames = await getUniqueGroupNames("cards");
+                        } catch (error) {
+                            console.error(
+                                "Error fetching unique group names:",
+                                error,
+                            );
+                        }
+                        const namesToLowerCase = uniqueGroupNames.map((name) =>
+                            name.toLowerCase(),
+                        );
+
+                        const nameIndex = namesToLowerCase.indexOf(groupToFeed);
+                        if (nameIndex === -1) {
+                            msg.reply(
+                                "The specified group name does not exist. Ensure spelling is correct.",
+                            );
+                            return;
+                        }
+                        const originalGroupName = uniqueGroupNames[nameIndex];
+                        msg.reply(`You are feeding all cards from ${originalGroupName} (cards that will reach level 20/are level 20 will be skipped)`);
+                        try {
+                            filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
+                            filteredCards = filteredCards.filter((card) => card.cardRarity === 1);
+                        } catch (error) {
+                            console.error("Error filtering cards by group name:", error);
+                            return;
+                        }
+                        try{
+                            const embed = await groupFeed(userId, filteredCards);
+                            msg.channel.send({ embeds: [embed] });
+                        }catch(error){
+                            console.log("Something went wrong with group feed");
+                        }
+                    }catch(error){
+                        console.log("No valid group name provided");
+                    }
+                    return;
+                }
                 if(cardId === "fc" || cardId === "FC" || cardId === "fC"|| cardId === "Fc"){
                     const user = await getUser(userId);
                     console.log(user);
@@ -1320,14 +1364,14 @@ client.on("messageCreate", async (msg) => {
                     String(cardId),
                     numberOfCards,
                     msg,
-                    input[1],
+                    "single",
                 );
-                const amountOwnedBefore = await getHowManyCopiesOwned(
+                /*const amountOwnedBefore = await getHowManyCopiesOwned(
                     "user-cards",
                     userId,
                     cardId,
                 );
-                const newAmountOwned = amountOwnedBefore - numberOfCards;
+                const newAmountOwned = amountOwnedBefore - numberOfCards;*/
 
                 if (temp === 0) {
                     msg.reply("**You do not own this card**");
@@ -1553,9 +1597,24 @@ client.on("messageCreate", async (msg) => {
                 const args = msg.content.toLowerCase().split(/ +/);
                 const command = args[1];
                 if(command === "open"){
+                    const command = "packOpen";
+                    const packOpenCd = 5 * 1000; // 300 seconds
+                    const remainingCooldown = await getUserCooldown(userId, command);
+                    if (remainingCooldown !== "0m 0s") {
+                        msg.reply(
+                            `You must wait ${remainingCooldown} before trying to open a pack.`,
+                        );
+                        return;
+                    }
+                    const cooldownTimestamp = Date.now() + packOpenCd;
+                    await saveUserCooldown(userId, command, cooldownTimestamp);
                     const packNumber = await getPacks(userId);
                     if(packNumber === 0){
                         msg.reply("You do not have any packs");
+                        return;
+                    }
+                    if(packNumber < 0){
+                        msg.reply("You have a negative number of packs, please report to bugs!");
                         return;
                     }
                     await packOpen(msg, userId); 
