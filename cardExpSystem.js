@@ -262,7 +262,11 @@ async function groupFeed(userId, filteredCards){
       }
   });
 
-  await Promise.all(cardProcessingPromises);
+  try{
+    await Promise.all(cardProcessingPromises);
+  }catch(error){
+    console.log("Something went wrong processing all the cards");
+  }
 
   const embed = {
     title: "Group Feed Results",

@@ -1317,15 +1317,19 @@ client.on("messageCreate", async (msg) => {
                         const originalGroupName = uniqueGroupNames[nameIndex];
                         msg.reply(`You are feeding all cards from ${originalGroupName} (cards that will reach level 20/are level 20 will be skipped)`);
                         try {
+                            console.log("Trying to filter cards for group feed");
                             filteredCards = await filterByAttribute("cards", "GroupName", originalGroupName);
                             filteredCards = filteredCards.filter((card) => card.cardRarity === 1);
+                            console.log("Filtered cards for group feed");
                         } catch (error) {
                             console.error("Error filtering cards by group name:", error);
                             return;
                         }
                         try{
+                            console.log("Trying to send embed");
                             const embed = await groupFeed(userId, filteredCards);
                             msg.channel.send({ embeds: [embed] });
+                            console.log("Embed sent");
                         }catch(error){
                             console.log("Something went wrong with group feed");
                         }
@@ -1543,7 +1547,7 @@ client.on("messageCreate", async (msg) => {
                             const newStatus = await updateCoolDownStatus(userId, command, false);
                             //console.log(newStatus);
                             msg.channel.send(
-                                `**Reminder:** <@${msg.author.id}> your dg is ready!`,
+                                `**Reminder:** <@${msg.author.id}> your dungeon is ready!`,
                             );
                         }, 14400 * 1000);
                     }
