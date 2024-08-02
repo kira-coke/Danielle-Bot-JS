@@ -6,7 +6,6 @@ const currencyEmote = '<:DB_currency:1257694003638571048>';
 const {generateAlbumImage} = require("./albums.js");
 
 async function getUserProfile(msg, userId){
-    
     try{
           const user = await msg.client.users.fetch(userId);
           const userData = await getUser(userId);
