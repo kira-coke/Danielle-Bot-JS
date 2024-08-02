@@ -15,7 +15,7 @@ const {getCooldowns} = require("./cooldowncommand.js");
 const {giftcards, massGift} = require("./gift.js");
 const {awardExp, upgrade, groupFeed} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
-const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference} = require("./users.js");
+const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference, getFavAlbum} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
 const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage, writeToDynamoDB} = require("./cards");
 const {getUserProfile} = require("./profile.js");
@@ -363,11 +363,20 @@ client.on("messageCreate", async (msg) => {
 
             if(command === "toggleprofile"){
                 let preferance = args[0];
+                if(preferance != "favcard" && preferance != "favalbum"){
+                    msg.reply("Please specifiy either favalbum or favcard as a preferance.");
+                    return;
+                }
                 if(preferance === "favcard"){
                     preferance = "favCard";
                 }
                 if(preferance === "favalbum"){
                     preferance = "favAlbum";
+                }
+                const hasFavAlbum = await getFavAlbum("Dani-bot-playerbase", userId);
+                if(hasFavAlbum === null){
+                    msg.reply("You do not have a favourite album set. Do .favalbum [name] to set one.");
+                    return;
                 }
                 await setDisplayPreference("Dani-bot-playerbase", userId, preferance);
                 msg.reply("You have successfully changed your display preference to: " + Discord.inlineCode(preferance));
@@ -1473,7 +1482,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 if (code === "3") {
                     msg.reply(
-                        `Challange the boss SM to recieve 2-3 cards of your chosen card and between 10000 - 15000 ${currencyEmote} on win!`,
+                        `Challange the boss HYBE to recieve 2-3 cards of your chosen card and between 10000 - 15000 ${currencyEmote} on win!`,
                     );
                     return;
                 }
@@ -1701,7 +1710,7 @@ client.on("messageCreate", async (msg) => {
                         }
                         const embed = new EmbedBuilder()
                             .setTitle('Your Albums')
-                            .setDescription(Discord.inlineCode(albumNames.join('\n')))
+                            .setDescription(albumNames.map(album => Discord.inlineCode(album)).join('\n'))
                             .setColor('#a2d2ff');
 
                         msg.channel.send({ embeds: [embed] });

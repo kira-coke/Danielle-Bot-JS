@@ -136,6 +136,32 @@ async function setUserAlbum(tableName, userId, attribute){
       }
 }
 
+async function getFavAlbum(tableName, userId) {
+    const params = {
+        TableName: tableName,
+        Key: {
+            'user-id': userId
+        },
+        ProjectionExpression: 'FavAlbum' // Only retrieve the FavAlbum attribute
+    };
+
+    try {
+        // Call DynamoDB get API
+        const data = await dynamodb.get(params).promise();
+
+        if (data.Item) {
+            // Return the favorite album if it exists
+            return data.Item.FavAlbum || null; // Return null if FavAlbum attribute is not present
+        } else {
+            // User does not exist
+            return null;
+        }
+    } catch (err) {
+        console.error('Unable to get user favorite album:', err);
+        return null;
+    }
+}
+
 async function setUserBio(tableName, userId, attribute){
     const updateCount = 'SET #Description = :newBio';
     const expressionAttributeValues = {
@@ -365,4 +391,4 @@ async function setDisplayPreference(tableName, userId, preference) {
 }
 
 
-module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList, setUserAlbum, setDisplayPreference};
+module.exports = {checkUserDisabled, checkUserExists, saveUserData, getUser, setUserCard, setUserBio, setUserWishList, getUserCards, setAutoReminders, updateTotalExp, getUserWishList, setUserAlbum, setDisplayPreference, getFavAlbum};
