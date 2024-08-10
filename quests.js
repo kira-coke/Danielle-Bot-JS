@@ -6,7 +6,7 @@ const {storePack, storeEventRoll} = require("./userAssets");
 const {getUser} = require("./users");
 const {getHowManyCopiesOwned, changeNumberOwned} = require("./cards")
 const emote = '<:test:1261060311813718187>'; 
-const isEvent = false;
+const isEvent = true;
 let questRewardsDoubled = false;
 
 async function changeQuestRwards(){

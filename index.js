@@ -1826,7 +1826,7 @@ client.on("messageCreate", async (msg) => {
                     .catch(console.error); // Catch errors for debugging        
             }
 
-            /*if(command === "eventroll" || command === "er"){
+            if(command === "eventroll" || command === "er"){
                 const rolls = await getEventRolls(userId);
                 console.log(rolls);
                 if(rolls < 2){
@@ -1835,7 +1835,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 await initiateEventRoll(userId, msg);
                 //await eventRoll(userId, msg);
-            }*/
+            }
 
             if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
