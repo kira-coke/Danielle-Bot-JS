@@ -1301,7 +1301,7 @@ client.on("messageCreate", async (msg) => {
                 let numberOfCards = input[1];
                 let groupToFeed = ' ';
                 if(input[0] === "all"){
-                    try {
+                    /*try {
                         groupToFeed = args.slice(1).join(" ").toLowerCase().trim();
                         let uniqueGroupNames = [];
                         try {
@@ -1345,6 +1345,8 @@ client.on("messageCreate", async (msg) => {
                     }catch(error){
                         console.log("No valid group name provided");
                     }
+                    return;*/
+                    msg.channel.send("Group feed is disabled for the time being.");
                     return;
                 }
                 if(cardId === "fc" || cardId === "FC" || cardId === "fC"|| cardId === "Fc"){
