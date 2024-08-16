@@ -904,7 +904,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === "favcard" || command === "fc") {
                 const newFavCard = args.filter((code) => code.trim() !== "");
-                console.log(newFavCard[0]);
+                //console.log(newFavCard[0]);
                 if (newFavCard[0] === undefined) {
                     msg.reply("**Please input a code**");
                     return;
@@ -921,9 +921,14 @@ client.on("messageCreate", async (msg) => {
                 }
                 //check newfaveCard is valid
                 const tableName = "Dani-bot-playerbase";
-
+                const card = await checkIfUserOwnsCard("user-cards", userId, newFavCard[0]);
+                if (card === 0) {
+                    msg.reply("You do not own this card");
+                    return;
+                }
                 (async () => {
                     try {
+                        if(card)
                         await setUserCard(tableName, userId, newFavCard[0]);
                         msg.reply(
                             `Your favourite card has been set to **${newFavCard[0]}**`,
