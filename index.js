@@ -65,7 +65,7 @@ console.error = function(...args) {
 };
 client.once('ready', async () => {
     console.log('Bot is online!');
-    try {
+try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
@@ -921,14 +921,13 @@ client.on("messageCreate", async (msg) => {
                 }
                 //check newfaveCard is valid
                 const tableName = "Dani-bot-playerbase";
-                const card = await checkIfUserOwnsCard("user-cards", userId, newFavCard[0]);
-                if (card === 0) {
+                const userOwns = await checkIfUserOwnsCard("user-cards", userId, newFavCard[0]);
+                if (userOwns === 0) {
                     msg.reply("You do not own this card");
                     return;
                 }
                 (async () => {
                     try {
-                        if(card)
                         await setUserCard(tableName, userId, newFavCard[0]);
                         msg.reply(
                             `Your favourite card has been set to **${newFavCard[0]}**`,
