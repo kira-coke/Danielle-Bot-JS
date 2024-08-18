@@ -31,7 +31,7 @@ const {setUserStreak} = require("./updateDailyStreak.js")
 const { helpCommand, handleCollectorHelp, generateRowHelp, specificHelpCommand } = require("./help.js");
 const{enterDg, dgWinRates} = require("./dungeons.js");
 const {openShop, purchaseItem, packOpen} = require("./shop.js");
-const { getPacks, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
+const { getPacks, removePack, getEventRolls, getAlbumTokens, removeAlbumToken} = require("./userAssets");
 const {displayLeaderboard} = require("./leaderboards.js");
 const {setUserQuests, getUserQuests, createQuestEmbed, handleClaimAction, handleDropAction, handleWorkAction, changeQuestRwards, handleCardAction} = require("./quests.js");
 const {addToGTS, getUserGTS, getMissingIds, globalTradeStationEmbed, getTradeByGlobalTradeId, deleteTradeByGlobalTradeId, removeFromUserInv, addToUserInv, userGlobalTradeStationEmbed, handleCollectorGts, filterTrades, filteredTradeEmbed} = require("./globalTradeStation.js");
@@ -1647,7 +1647,11 @@ client.on("messageCreate", async (msg) => {
                         msg.reply("You have a negative number of packs, please report to bugs!");
                         return;
                     }
-                    await packOpen(msg, userId); 
+                    const packOpened = await packOpen(msg, userId); 
+                    console.log(packOpened);
+                    if(packOpened === true){
+                        await removePack(userId);
+                    }
                 }
             }
             
