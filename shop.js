@@ -3,7 +3,7 @@ const {getUser} = require("./users");
 const {getRandomDynamoDBItem,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard} = require("./cards");
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient
-const {storePack, storeAlbumToken} = require("./userAssets");
+const {storePack, storeAlbumToken, removePack} = require("./userAssets");
 const {handleCardAction} = require ("./quests");
 
 const emote = '<:DB_currency:1257694003638571048>'; 
@@ -224,6 +224,7 @@ async function packOpen(msg, userId) {
             })));
 
         msg.reply({ embeds: [embed] });
+        await removePack(userId);
     } catch (error) {
         console.error('Error opening pack:', error);
         msg.channel.send('An error occurred while opening the pack. Please try again later.');
