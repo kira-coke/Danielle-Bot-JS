@@ -36,6 +36,8 @@ const commands = [
     { name: ".wishlist or .wl add [card-is...]", description: "Adds onto your current wl." },
     { name: ".inv [groupName] [@user]", description: "View your or someone else's inventory." },
     { name: ".inv levels [@user]", description: "View your or someone else's currently leveled cards." },
+    { name: ".inv customs [@user]", description: "View your or someone else's custom cards." },
+    { name: ".inv event [@user]", description: "View your or someone else's event cards cards." },
     { name: ".feed card-id amount", description: "Feed copies of a card to upgrade its level. (note: you must keep at least one copy of the card in your inventory)"},
     { name: ".feed all [groupName]", description: "Feed all member cards of a group (note: cards that are already level 20 or **would** reach level 20 after leveling up will be skipped."},
     { name: ".upgrade or .u card-id", description: "Upgrade a card to increase its tier."},
@@ -72,7 +74,7 @@ function helpCommand(page) {
     const embed = new EmbedBuilder()
         .setColor("#0099ff")
         .setTitle("Danielle Bot Commands")
-        .setDescription("List of available commands for Danielle Bot:")
+        .setDescription("List of available commands for Danielle Bot:\nDo **.help [keyword]** to get command specific help")
         .addFields(newPageCommands.map(cmd => ({ name: cmd.name, value: cmd.description })))
         .setFooter({ text: `Page ${page + 1} of ${pages}`})
         .setTimestamp();
