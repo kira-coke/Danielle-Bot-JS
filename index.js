@@ -349,16 +349,16 @@ client.on("messageCreate", async (msg) => {
             }
 
             if(command === "favalbum" || command === "fa"){
-                const newFavALbum = args.filter((code) => code.trim() !== "");
-                console.log(newFavALbum[0]);
+                const albumName = args.slice(0).join(' ');
+                console.log(albumName);
                 try{
-                    await getAlbum(userId, newFavALbum[0]);
+                    await getAlbum(userId, albumName);
                 }catch(error){
                     msg.reply("You do not have an album with that name");
                     return;
                 }
-                await setUserAlbum("Dani-bot-playerbase", userId, newFavALbum[0]);
-                msg.reply("You have set your favourite album to " + newFavALbum[0]);
+                await setUserAlbum("Dani-bot-playerbase", userId, albumName);
+                msg.reply("You have set your favourite album to " + albumName);
             }
 
             if(command === "toggleprofile"){
@@ -1745,9 +1745,17 @@ client.on("messageCreate", async (msg) => {
                     msg.channel.send({ embeds: [embed], files: [{ attachment: buffer, name: 'album.png' }] });
                 }
                 if(args[0] === "add"){
-                    const albumName = args[1];
-                    const cardId = args[2];
-                    const position = parseInt(args[3]);
+                    const input = args.join(" ");
+                    const quoteMatch = input.match(/["'“‘](.*?)["'”’]/);
+                    let albumName;
+                    let cardId;
+                    let position;
+                    albumName = quoteMatch[1];  // Extract the album name from the matched group
+                    const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
+                    console.log(remainingArgs);
+                    cardId = remainingArgs[1];
+                    position = remainingArgs[2];
+
                     try{
                         await getAlbum(userId, albumName);
                     }catch(error){
@@ -1781,8 +1789,15 @@ client.on("messageCreate", async (msg) => {
 
                 }
                 if(args[0] === "remove"){
-                    const albumName = args[1];
-                    const position = parseInt(args[2]);
+                    const input = args.join(" ");
+                    const quoteMatch = input.match(/["'“‘](.*?)["'”’]/);
+                    let albumName;
+                    let position;
+                    albumName = quoteMatch[1];  // Extract the album name from the matched group
+                    const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
+                    console.log(remainingArgs);
+                    position = remainingArgs[1];
+
                     if(position < 1 || position > 8 || isNaN(position)){
                         msg.reply("Give a number between 1 and 8");
                         return;
