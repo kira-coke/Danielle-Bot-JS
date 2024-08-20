@@ -206,7 +206,7 @@ client.on("messageCreate", async (msg) => {
 
             if (command === 'addcard' && msg.member.permissions.has('mod')) {
                 const contentWithoutPrefix = msg.content.slice(prefix.length).trim();
-                const [cmd, ...args] = contentWithoutPrefix.match(/(?:[^\s"]+|"[^"]*")+/g).map(arg => arg.replace(/"/g, ''));
+                const [cmd, ...args] = contentWithoutPrefix.match(/("[^"]*"|\S+)/g).map(arg => arg.replace(/"/g, ''));
                 console.log(args);
                 if (args.length < 7) {
                     return msg.reply('Not enough arguments provided. Usage: .addcard card-id cardRarity cardUrl GroupMember GroupName Theme version');
