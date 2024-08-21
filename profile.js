@@ -1,16 +1,20 @@
 const {getUser} = require("./users.js");
 const {EmbedBuilder } = require("discord.js");
-const {getCardFromTable} = require("./cards");
+const {getCardFromTable, storeDiscordCachedUrl} = require("./cards");
 const Discord = require("discord.js");
+const currencyEmote = '<:DB_currency:1257694003638571048>'; 
+const {generateAlbumImage} = require("./albums.js");
 
 async function getUserProfile(msg, userId){
     try{
-         const user = await msg.client.users.fetch(userId);
+          const user = await msg.client.users.fetch(userId);
           const userData = await getUser(userId);
           const userFavcard = await getCardFromTable(
               "cards",
               userData["FavCard"],
           );
+          const userFavAlbum = userData["FavAlbum"];
+          
           const favCardUrl = userFavcard["cardUrl"];
           if(String(userData["Description"]).length === 0){
             String(userData["Description"] = Discord.inlineCode("No bio set"));
@@ -19,16 +23,29 @@ async function getUserProfile(msg, userId){
               .setColor("#fffac2") //should be able to change colour
               .setTitle(user.username + "'s Profile")
               .setDescription(userData["Description"]) //should be able to change description
-              .addFields({
+                .addFields(
+                    {
+                    name:
+                        "**Daily Streak: **" +
+                        Discord.inlineCode(
+                            String(numberWithCommas(userData["DailyStreak"]))
+                                .toString()
+                                .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+                        ),
+                    value: " ",
+                    inline: true,
+                })
+              .addFields(
+                  {
                   name:
                       "**Balance: **" +
                       Discord.inlineCode(
-                          String(userData["Balance"])
+                          String(numberWithCommas(userData["Balance"]))
                               .toString()
                               .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-                      ),
+                      ) + currencyEmote,
                   value: " ",
-                  inline: true,
+                  inline: false,
               })
               .addFields(
                   {
@@ -47,14 +64,14 @@ async function getUserProfile(msg, userId){
               .addFields({
                   name:
                       "**Card Count: **" +
-                      Discord.inlineCode(String(userData["cardCount"])),
+                      Discord.inlineCode(String(numberWithCommas(userData["cardCount"]))),
                   value: " ",
                   inline: false,
               })
               .addFields({
                     name:
                         "**Total EXP: **" +
-                        Discord.inlineCode(String(userData.TotalExp)),
+                        Discord.inlineCode(String(numberWithCommas(userData.TotalExp))),
                     value: " ",
                     inline: false,
                 })
@@ -62,15 +79,29 @@ async function getUserProfile(msg, userId){
                   text: msg.author.tag,
                   iconURL: msg.author.displayAvatarURL({ dynamic: true }),
               })
-              .setImage(favCardUrl) //they should be able to change this - change card etc
               .setTimestamp();
-          msg.reply({ embeds: [embed] });
+              if(userData["displayPreference"] === "favAlbum"){
+                    const favAlbumImage = await generateAlbumImage(userId, userFavAlbum, msg);
+                    embed.setImage(`attachment://album.png`) //they should be able to change this - change card etc
+                    msg.reply({ embeds: [embed], files: [{ attachment: favAlbumImage, name: 'album.png' }] });
+              }else{
+                   embed.setImage(favCardUrl);
+                   //msg.reply({ embeds: [embed] });
+                   const sentMessage = await msg.reply({ embeds: [embed] });
+                  //console.log(sentMessage.embeds[0].image);
+                  const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                  await storeDiscordCachedUrl(favCardUrl["card-id"], discordCachedUrl);
+              }
         
     }catch(error){
         console.log("something went wrong here");
         console.log(error);
     }
  
+}
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 module.exports = {getUserProfile};

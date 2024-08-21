@@ -1,56 +1,40 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const Discord = require("discord.js");
-const {getUser} = require("./users.js");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getTotalCards} = require("./cards");
+const {getUser} = require("./users");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard, getCardFromTable, storeDiscordCachedUrl, downloadImage} = require("./cards");
+const fs = require('fs');
+const path = require('path');
 
-async function getClaim(msg,userId){
-    const user= await getUser(userId);
+async function getClaim(msg, userId) {
+    const user = await getUser(userId);
     const userFavCard = user["FavCard"];
-    const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
+    const userFavCardData = await getUserCard("user-cards", userId, userFavCard);
     const cardData = userFavCardData[0];
-    let cardWeights = {};
-    if(cardData.tier === 2){
-        cardWeights = {
-            [userFavCard]: 2, 
-        };
-    }
-    if(cardData.tier >= 3){
-        cardWeights = {
-            [userFavCard]: 3, 
-        };
-    }
-    async function getWeightedRandomCard(tableName) {
-        const allCards = await getTotalCards(tableName); // Function to get all cards from the table
-        if (!Array.isArray(allCards.Items)) {
-            console.error("Expected an array but received:", allCards);
-            throw new TypeError("Expected an array of cards");
-        }
-        const weightedList = [];
-
-        allCards.Items.forEach(card => {
-            const weight = cardWeights[[card["card-id"]]] || 1; ; // Default weight is 1 if not specified
-            for (let i = 0; i < weight; i++) {
-                weightedList.push(card);
-            }
-        });
-        const randomIndex = Math.floor(Math.random() * weightedList.length);
-        return weightedList[randomIndex];
-    }
-
+    const cardFromCards = await getCardFromTable("cards", userFavCard);
 
     (async () => {
         try {
             const tableName = "cards";
             let randomCard = "";
-            if(cardData.tier >=2){
-                try{
-                    randomCard = await getWeightedRandomCard(tableName);
-                }catch(error){
-                    console.log("Issue getting weighted random card");
-                    console.log(error);
-                }
-            }else{
+            if (cardData === undefined) {
                 randomCard = await getRandomDynamoDBItem(tableName);
+            } else {
+                if (cardData.tier >= 2) {
+                    try {
+                        if (cardFromCards.cardRarity === 1) {
+                            randomCard = await getWeightedCard(userId);
+                            console.log("random weighted card: ", randomCard);
+                        } else {
+                            randomCard = await getRandomDynamoDBItem(tableName);
+                            console.log("not weighted card: " + randomCard);
+                        }
+                    } catch (error) {
+                        console.log("Issue getting weighted random card");
+                        console.log(error);
+                    }
+                } else {
+                    randomCard = await getRandomDynamoDBItem(tableName);
+                }
             }
             try {
                 const secondTableName = "user-cards";
@@ -60,14 +44,14 @@ async function getClaim(msg,userId){
                 const cardExistsForUser = await checkIfUserOwnsCard(
                     secondTableName,
                     userId,
-                    randomCard["card-id"],
+                    randomCard["card-id"]
                 );
                 const userCard = await getUserCard(secondTableName, userId, randomCard["card-id"]);
                 const userCardData = userCard[0];
                 if (cardExistsForUser === 0) {
                     item = {
-                        "user-id": userId, //primary key
-                        "card-id": randomCard["card-id"], //secondary key
+                        "user-id": userId, // primary key
+                        "card-id": randomCard["card-id"], // secondary key
                         exp: 0,
                         level: 0,
                         upgradable: false,
@@ -80,63 +64,83 @@ async function getClaim(msg,userId){
                         secondTableName,
                         userId,
                         randomCard["card-id"],
-                        attributeName,
+                        attributeName
                     );
                     item = {
-                        "user-id": userId, //primary key
-                        "card-id": randomCard["card-id"], //secondary key
+                        "user-id": userId, // primary key
+                        "card-id": randomCard["card-id"], // secondary key
                         exp: userCardData.exp,
                         level: userCardData.level,
                         upgradable: false,
                         "copies-owned": numberOfCopies + 1,
-                         tier: userCardData.tier,
-                         totalExp: userCardData.totalExp,
+                        tier: userCardData.tier,
+                        totalExp: userCardData.totalExp
                     };
                 }
                 const cardCount = await checkTotalCardCount(
                     "Dani-bot-playerbase",
-                    userId,
+                    userId
                 ).catch((error) => {
-                    console.error(
-                        "Error getting total card count:",
-                        error,
-                    );
+                    console.error("Error getting total card count:", error);
                 });
                 addToTotalCardCount(
                     "Dani-bot-playerbase",
                     userId,
-                    parseInt(cardCount) + 1,
+                    parseInt(cardCount) + 1
                 ).catch((error) => {
                     console.error("Error updating card count:", error);
                 });
-                writeToDynamoDB(secondTableName, item)
-                    .catch((error) => {
-                        console.error("Error:", error);
-                    });
+                writeToDynamoDB(secondTableName, item).catch((error) => {
+                    console.error("Error:", error);
+                });
 
                 const embed = new EmbedBuilder()
                     .setColor("#ffd5b3")
-                    .setTitle("**You have dropped**")
+                    .setTitle("**You have claimed**")
                     .setDescription(
-                        `**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`,
+                        `**${Discord.inlineCode(randomCard["card-id"])} ${randomCard["GroupName"]} ${randomCard["GroupMember"]}** (${randomCard["Theme"]})`
                     )
-                    .addFields(
-                        {
-                            name: `Copies now Owned: ${Discord.inlineCode(
-                                String(numberOfCopies + 1))}`,
-                            value: " ",
-                            inline: true,
-                        }, // You can set inline to true if you want the field to display inline.
-                    )
-                    .setImage(randomCard["cardUrl"]) // changed depending on the card recieved
-                    .setFooter({
+                    .addFields({
+                        name: `Copies now Owned: ${Discord.inlineCode(String(numberOfCopies + 1))}`,
+                        value: " ",
+                        inline: true
+                    });
+
+                // Fetch the image URL from the DynamoDB table
+                const imageUrl = randomCard["cardUrl"];
+                if (imageUrl) {
+                    // Ensure the temp directory exists
+                    const tempDir = path.join(__dirname, 'temp');
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir);
+                    }
+
+                    // Download the image to a temporary file
+                    const tempImagePath = path.join(tempDir, `${randomCard["card-id"]}.jpg`);
+                    await downloadImage(imageUrl, tempImagePath);
+
+                    // Attach the downloaded image
+                    const file = new AttachmentBuilder(tempImagePath, { name: 'card-image.jpg' });
+                    embed.setImage('attachment://card-image.jpg');
+
+                    embed.setFooter({
                         text: msg.author.tag,
-                        iconURL: msg.author.displayAvatarURL({
-                            dynamic: true,
-                        }),
-                    })
-                    .setTimestamp();
-                msg.reply({ embeds: [embed] });
+                        iconURL: msg.author.displayAvatarURL({ dynamic: true })
+                    }).setTimestamp();
+
+                    const sentMessage = await msg.reply({ embeds: [embed], files: [file] });
+                    const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                    await storeDiscordCachedUrl(randomCard["card-id"], discordCachedUrl);
+
+                    // Clean up temporary file
+                    fs.unlink(tempImagePath, err => {
+                        if (err) {
+                            console.error('Error deleting temporary file:', err);
+                        }
+                    });
+                } else {
+                    msg.reply("Image not found!");
+                }
             } catch (error) {
                 console.error("Error:", error);
             }

@@ -27,7 +27,7 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
             }),
         });
 
-    const cardsPerPage = 4; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 10; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,
@@ -45,10 +45,11 @@ async function generateEmbedInv(page, totalPages, listOfCards, msg, userId) {
             if (ownsCard !== 0) {
                 const cardDataArray = await getUserCard("user-cards", userId, attribute["card-id"]);
                 const cardData = cardDataArray[0];
+                const levelUpExp = calculateLevelUpXP(cardData.level);
                 embed.addFields(
                     { 
-                        name: "\u200B", 
-                        value: `${Discord.blockQuote(Discord.bold(String(card["GroupMember"])))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp) + "/100")} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        name: " ", 
+                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp))}/${Discord.inlineCode(levelUpExp)} | ${Discord.inlineCode("Tier "+String(cardData.tier))} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
                 );
@@ -85,7 +86,7 @@ async function generateEmbedInvForGroup(page, totalPages, listOfCards, msg, user
             }),
         });
 
-    const cardsPerPage = 4; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 10; // Ensure this matches the value in the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,
@@ -107,7 +108,7 @@ async function generateEmbedInvForGroup(page, totalPages, listOfCards, msg, user
                 embed.addFields(
                     { 
                         name: " ", 
-                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp))}/${Discord.inlineCode(levelUpExp)} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
+                        value: `${Discord.blockQuote(Discord.inlineCode(String(card["card-id"])))} ${Discord.bold(String(card["GroupMember"]))} (${Discord.bold(String(card["Theme"]))}) ${Discord.inlineCode(String(cardData.exp))}/${Discord.inlineCode(levelUpExp)} | ${Discord.inlineCode("Tier "+String(cardData.tier))} | ${Discord.inlineCode("Lvl." + String(cardData.level))} | ${Discord.inlineCode(String(cardData["copies-owned"]))}`, 
                         inline: false 
                     }
                 );
@@ -143,6 +144,25 @@ const generateRowInv = (page, totalPages) => {
     );
 };
 
+const generateRowInvForGroup = (page, totalPages) => {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("prev")
+            .setLabel("◀")
+            .setStyle("Secondary")
+            .setDisabled(page === 0),
+        new ButtonBuilder()
+            .setCustomId("next")
+            .setLabel("▶")
+            .setStyle("Secondary")
+            .setDisabled(page === totalPages - 1),
+        new ButtonBuilder()
+            .setCustomId("export")
+            .setLabel("Export")
+            .setStyle("Secondary")
+    );
+};
+
 const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) => {
     let currentPage = 0;
     const filter = (i) => i.user.id === msg.author.id;
@@ -152,46 +172,78 @@ const handleCollectorInv = (embedMessage, msg, totalPages, listOfCards, userId) 
     });
 
     collector.on("collect", async (i) => {
-        await i.deferUpdate();
-        if (i.customId === "prev" && currentPage > 0) {
-            currentPage--;
-        } else if (i.customId === "next" && currentPage < totalPages - 1) {
-            currentPage++;
+        try {
+            // Check if interaction is still valid before deferring the update
+            if (i.isButton()) {
+                await i.deferUpdate();
+
+                if (i.customId === "prev" && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === "next" && currentPage < totalPages - 1) {
+                    currentPage++;
+                }
+
+                await embedMessage.edit({
+                    embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg, userId)],
+                    components: [generateRowInv(currentPage, totalPages)],
+                });
+            }
+        } catch (error) {
+            console.error("Error handling interaction:", error);
         }
-        await embedMessage.edit({
-            embeds: [await generateEmbedInv(currentPage, totalPages, listOfCards, msg, userId)],
-            components: [generateRowInv(currentPage, totalPages)],
-        });
     });
 
-    collector.on("end", (collected) => {
-        embedMessage.edit({ components: [] });
+    collector.on("end", async (collected) => {
+        try {
+            await embedMessage.edit({ components: [] });
+        } catch (error) {
+            console.error("Error handling end of collector:", error);
+        }
     });
 };
+
 
 const handleCollectorInvForGroup = (embedMessage, msg, totalPages, listOfCards, userId) => {
     let currentPage = 0;
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
         filter,
-        time: 30000, // How long buttons last
+        time: 60000, // How long buttons last
     });
 
     collector.on("collect", async (i) => {
-        await i.deferUpdate();
-        if (i.customId === "prev" && currentPage > 0) {
-            currentPage--;
-        } else if (i.customId === "next" && currentPage < totalPages - 1) {
-            currentPage++;
+        try {
+            // Check if interaction is still valid before deferring the update
+            if (i.isButton()) {
+                await i.deferUpdate();
+
+                if (i.customId === "prev" && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === "next" && currentPage < totalPages - 1) {
+                    currentPage++;
+                } else if (i.customId === "export") {
+                    const exportData = await generateExportData(currentPage, listOfCards, userId);
+                    await msg.reply({
+                        content: `${Discord.inlineCode(exportData)}`,
+                    });
+                }
+
+                await embedMessage.edit({
+                    embeds: [await generateEmbedInvForGroup(currentPage, totalPages, listOfCards, msg, userId)],
+                    components: [generateRowInvForGroup(currentPage, totalPages)],
+                });
+            }
+        } catch (error) {
+            console.error("Error handling interaction:", error);
         }
-        await embedMessage.edit({
-            embeds: [await generateEmbedInvForGroup(currentPage, totalPages, listOfCards, msg, userId)],
-            components: [generateRowInv(currentPage, totalPages)],
-        });
     });
 
-    collector.on("end", (collected) => {
-        embedMessage.edit({ components: [] });
+    collector.on("end", async (collected) => {
+        try {
+            await embedMessage.edit({ components: [] });
+        } catch (error) {
+            console.error("Error handling end of collector:", error);
+        }
     });
 };
 
@@ -228,4 +280,30 @@ async function getUniqueGroupNames(tableName) {
     await scanDynamoDB();
     return Array.from(uniqueGroupNames);
 }
-module.exports = { generateEmbedInv, generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, handleCollectorInvForGroup  };
+
+const generateExportData = async (page, listOfCards, userId) => {
+    const cardSubset = listOfCards.slice();
+    const exportPromises = cardSubset.map(async (attribute) => {
+        try {
+            const card = await getCardFromTable("cards", attribute["card-id"]);
+            const ownsCard = await checkIfUserOwnsCard("user-cards", userId, attribute["card-id"]);
+            if (ownsCard !== 0) {
+                const cardDataArray = await getUserCard("user-cards", userId, attribute["card-id"]);
+                const cardData = cardDataArray[0];
+                const duplicates = cardData["copies-owned"] - 1;
+                return `${card["card-id"]} ${duplicates} `;
+            }
+        } catch (error) {
+            console.error("Error processing card for export:", error);
+        }
+        return null;
+    });
+
+    const exportResults = await Promise.all(exportPromises);
+    const exportData = exportResults.filter(result => result !== null).join('');
+
+    return exportData;
+};
+
+
+module.exports = { generateEmbedInv, generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, handleCollectorInvForGroup, generateRowInvForGroup  };

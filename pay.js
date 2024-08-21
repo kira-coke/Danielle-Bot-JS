@@ -1,6 +1,7 @@
 const {getUsersBalance, saveUserBalance } = require("./userBalanceCmds");
 const {checkUserExists} = require("./users");
 const { EmbedBuilder } = require("discord.js");
+const emote = '<:DB_currency:1257694003638571048>'; 
 
 async function payCommand(msg, userId, targetUser, amount ){
   const userExists = await checkUserExists(targetUser.id);
@@ -14,15 +15,16 @@ async function payCommand(msg, userId, targetUser, amount ){
 
     // Load balances for both users
     const userBalance = await getUsersBalance(userId);
+      console.log(userBalance);
     const targetUserBalance = await getUsersBalance(targetUserId);
 
     if (userBalance === null) {
-        msg.replysend("No balance found for you.");
+        msg.reply("No balance found for you.");
         return;
     }
 
     if (userBalance < amount) {
-        msg.reply.send("Insufficient funds.");
+        msg.reply("Insufficient funds.");
         return;
     }
 
@@ -37,7 +39,7 @@ async function payCommand(msg, userId, targetUser, amount ){
         .setColor("#90ee90")
         .setTitle("Currency Transaction")
         .setDescription(
-            `**You have paid ${amount} to ${targetUser.username}**`,
+            `**You have paid ${amount}${emote} to ${targetUser.username}**`,
         )
         .setTimestamp();
 

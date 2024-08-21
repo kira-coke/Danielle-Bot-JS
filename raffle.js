@@ -1,11 +1,19 @@
-const prizes = ['1', '2', '3'];
-const exp = [100, 200, 300];
+const prizes = ['1', '2','3'];
+let exp = [100, 200, 300];
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, inlineCode} = require("discord.js");
-const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard} = require("./cards");
+const {getRandomDynamoDBItem, changeNumberOwned, addToTotalCardCount, checkIfUserOwnsCard, writeToDynamoDB, getHowManyCopiesOwned, getUserCard, checkTotalCardCount} = require("./cards");
 const {getUsersBalance, saveUserBalance} = require("./userBalanceCmds");
 const {getUser, updateTotalExp} = require("./users");
 const {updateUserData, calculateLevelUpXP} = require("./cardExpSystem");
+const {storePack} = require("./userAssets");
 const raffleEntries = new Set();
+
+let raffleRewardsDoubled = false;
+
+async function changeRaffleRewards(){
+    raffleRewardsDoubled = !raffleRewardsDoubled;
+    return raffleRewardsDoubled;
+}
 
 async function forceRaffle(channel, client){
     raffleEntries.clear();
@@ -15,11 +23,18 @@ async function forceRaffle(channel, client){
 async function raffle(channel, client){
   const prize = prizes[Math.floor(Math.random() * prizes.length)];
   const card = await getRandomDynamoDBItem('cards');
-  const amountOfCards = Math.floor(Math.random() * 4) + 1;
-  const amountOfCoins = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
-  const coinsWithCommas = numberWithCommas(amountOfCoins);
-  const randomIndex = Math.floor(Math.random() * exp.length);
-  const randomExp = exp[randomIndex];
+  let amountOfCards = Math.floor(Math.random() * 4) + 1;
+  let amountOfCoins = Math.floor(Math.random() * (4000- 2000 + 1)) + 2000
+  let coinsWithCommas = numberWithCommas(amountOfCoins);
+  let randomIndex = Math.floor(Math.random() * exp.length);
+  let randomExp = exp[randomIndex];
+  if(raffleRewardsDoubled === true){
+      amountOfCards *= 2;
+      amountOfCoins *= 2;
+      coinsWithCommas = numberWithCommas(amountOfCoins);
+      exp = [200, 400, 600];
+      randomExp = exp[randomIndex];
+  }
   const embed = new EmbedBuilder()
   .setTitle('Raffle Time!')
   .setDescription('Click the button below to enter the raffle! You can only enter once.')
@@ -53,7 +68,12 @@ async function raffle(channel, client){
           await interaction.reply({ content: 'You have already entered the raffle.', ephemeral: true });
       } else {
           raffleEntries.add(interaction.user.id);
-          await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+          try {
+            await interaction.reply({ content: 'Your entry has been noted.', ephemeral: true });
+          } catch (error) {
+            console.error('Error while sending reply:', error);
+          }
+
       }
   });
   collector.on('end', () => {
@@ -94,6 +114,7 @@ async function cardWin(winnerId, amount, card){
     try{
         const owned = await checkIfUserOwnsCard('user-cards', winnerId, card["card-id"]);
         let userOwns = await getHowManyCopiesOwned('user-cards', winnerId, card["card-id"]);
+        let userTotalCount = await checkTotalCardCount('Dani-bot-playerbase', winnerId);
         if(owned === 0){
             const item = {
                 "user-id": winnerId, //primary key
@@ -113,9 +134,10 @@ async function cardWin(winnerId, amount, card){
             if(amount > 1){
                 await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + (amount-1));
             }
-            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userOwns)+ amount)
+            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userTotalCount)+ amount);
         }else{
             await changeNumberOwned("user-cards", winnerId, card["card-id"], parseInt(userOwns) + amount);
+            await addToTotalCardCount("Dani-bot-playerbase", winnerId, parseInt(userTotalCount)+ amount)
         }   
     }catch(error){
         console.log("Error awarding cards from raffle");
@@ -134,12 +156,16 @@ async function awardMoney(winnerId, amount){
 }
 
 async function awardExp(winnerId, exp){
+    let awardPack = true;
     try{
         let expGiven = exp;
         const user = await getUser(winnerId);
         const userFavCard = user["FavCard"];
         const userCardData = await getUserCard("user-cards", winnerId, userFavCard);
         let currentLevel = userCardData[0].level;
+        if(currentLevel > 10){
+            awardPack = false;
+        }
         let currentExp = parseInt(userCardData[0].exp);
         while (expGiven > 0 && currentLevel < 20) {
             const levelUpXP = calculateLevelUpXP(currentLevel);
@@ -155,7 +181,13 @@ async function awardExp(winnerId, exp){
                 expGiven = 0; // All expGiven is now added
             }
         }
-
+        if(currentLevel === 20){
+            await storePack(winnerId);
+            await storePack(winnerId);
+        }
+        if(awardPack === true && currentLevel < 20){
+            await storePack(winnerId);
+        }
         userCardData[0].level = currentLevel;
         userCardData[0].exp = currentExp;
         userCardData[0].totalExp = parseInt(userCardData[0].totalExp) + (exp-expGiven);
@@ -172,4 +204,4 @@ function numberWithCommas(x) {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-module.exports = {forceRaffle, raffle};
+module.exports = {forceRaffle, raffle, changeRaffleRewards};

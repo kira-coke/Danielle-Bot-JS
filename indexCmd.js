@@ -18,7 +18,7 @@ const generateEmbed = (page, totalPages, filteredCards, msg) => {
             }),
         });
 
-    const cardsPerPage = 4; //eunsure this matches the value on the index constant too otherwise will end up with extra blank pages
+    const cardsPerPage = 7; //eunsure this matches the value on the index constant too otherwise will end up with extra blank pages
     const startIndex = page * cardsPerPage;
     const endIndex = Math.min(
         startIndex + cardsPerPage,
@@ -87,25 +87,39 @@ const handleCollector = (embedMessage, msg, totalPages, listOfCards) => {
     const filter = (i) => i.user.id === msg.author.id;
     const collector = embedMessage.createMessageComponentCollector({
         filter,
-        time: 60000, //how long buttons last
+        time: 60000, // How long buttons last
     });
 
     collector.on("collect", async (i) => {
-        await i.deferUpdate();
-        if (i.customId === "prev" && currentPage > 0) {
-            currentPage--;
-        } else if (i.customId === "next" && currentPage < totalPages - 1) {
-            currentPage++;
+        try {
+            // Check if interaction is still valid before deferring the update
+            if (i.isButton()) {
+                await i.deferUpdate();
+
+                if (i.customId === "prev" && currentPage > 0) {
+                    currentPage--;
+                } else if (i.customId === "next" && currentPage < totalPages - 1) {
+                    currentPage++;
+                }
+
+                await embedMessage.edit({
+                    embeds: [generateEmbed(currentPage, totalPages, listOfCards, msg)],
+                    components: [generateRow(currentPage, totalPages)],
+                });
+            }
+        } catch (error) {
+            console.error("Error handling interaction:", error);
         }
-        await embedMessage.edit({
-            embeds: [generateEmbed(currentPage, totalPages, listOfCards, msg)],
-            components: [generateRow(currentPage, totalPages)],
-        });
     });
 
-    collector.on("end", (collected) => {
-        embedMessage.edit({ components: [] });
+    collector.on("end", async (collected) => {
+        try {
+            await embedMessage.edit({ components: [] });
+        } catch (error) {
+            console.error("Error handling end of collector:", error);
+        }
     });
 };
+
 
 module.exports = { generateEmbed, generateRow, handleCollector };

@@ -1,12 +1,23 @@
 const AWS = require('aws-sdk');
+const {getUser} = require("./users");
 //const s3 = new AWS.S3();
 const dynamodb = new AWS.DynamoDB.DocumentClient
+const {EmbedBuilder, inlineCode} = require("discord.js");
+const fs = require('fs');
+const axios = require('axios');
 
 async function getRandomDynamoDBItem(tableName) {
     try {
         // Scan the table to get all items
         const scanParams = {
-            TableName: tableName
+            TableName: tableName,
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 1
+            }
         };
         const data = await dynamodb.scan(scanParams).promise();
 
@@ -84,6 +95,13 @@ async function getCardFromTable(tableName, key) {
         if (!data.Item) {
             throw new Error('Item not found in DynamoDB');
         }
+        if (data.Item.discordCachedUrl) {
+            const urlValid = await isUrlValid(data.Item.discordCachedUrl);
+            if (urlValid) {
+                data.Item.cardUrl = data.Item.discordCachedUrl;
+            }
+        }
+        //console.log(data.Item.cardUrl);
         //console.log('Retrieved item from DynamoDB:', data.Item);
         return data.Item; // Return the retrieved item
     } catch (error) {
@@ -149,7 +167,14 @@ async function getTotalCards(tableName){
     try {
         // Scan the table to get all items
         const scanParams = {
-            TableName: tableName
+            TableName: tableName,
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 1
+            }
         };
         const data = await dynamodb.scan(scanParams).promise();
 
@@ -272,4 +297,243 @@ async function filterByAttribute(tableName, attribute, value) {
     }
 }
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute};
+async function getWeightedCard(userId){
+    const user = await getUser(userId);
+    const userFavCard = user["FavCard"];
+    const userFavCardData = await getUserCard("user-cards",userId,userFavCard);
+    const cardData = userFavCardData[0];
+    const cardFromCards = await getCardFromTable("cards",cardData["card-id"]);
+    if(cardFromCards.cardRarity != 1){
+        console.log("User fav card is custom/le/event.")
+        return;
+    }
+    let cardWeights = {};
+    if(cardData === undefined){
+    }else{
+        if(cardData.tier === 2){
+            cardWeights = {
+                [userFavCard]: 2, 
+            };
+        }
+        if(cardData.tier >= 3){
+            cardWeights = {
+                [userFavCard]: 3, 
+            };
+        }
+    }
+
+    const allCards = await getTotalCards("cards"); // Function to get all cards from the table
+    if (!Array.isArray(allCards.Items)) {
+        console.error("Expected an array but received:", allCards);
+        throw new TypeError("Expected an array of cards");
+    }
+    const weightedList = [];
+
+    allCards.Items.forEach(card => {
+        const weight = cardWeights[[card["card-id"]]] || 1; ; // Default weight is 1 if not specified
+        for (let i = 0; i < weight; i++) {
+            weightedList.push(card);
+        }
+    });
+    const randomIndex = Math.floor(Math.random() * weightedList.length);
+    //console.log(weightedList[randomIndex]);
+    const card = await getCardFromTable("cards",weightedList[randomIndex]["card-id"]);
+    return card;
+
+}
+
+async function getCardsWithLevels(tableName, userId) {
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: '#userId = :userId',
+        FilterExpression: '#lvl > :level',
+        ExpressionAttributeNames: {
+            '#userId': 'user-id',
+            '#lvl': 'level'
+        },
+        ExpressionAttributeValues: {
+            ':userId': userId,
+            ':level': 1
+        }
+    };
+
+    try {
+        const data = await dynamodb.query(params).promise();
+        return data.Items;
+    } catch (err) {
+        console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+        throw new Error('Error querying the database');
+    }
+}
+
+async function getUserCustomCards(userId) {
+    try {
+        const customCards = await filterByAttribute("cards", "cardRarity", 4);
+        let userOwnedCustomCards = [];
+        for (const card of customCards) {
+            const userOwns = await checkIfUserOwnsCard("user-cards", userId, card["card-id"]);
+            if(userOwns != 0){
+                userOwnedCustomCards.push(card);
+            }
+        }
+        return userOwnedCustomCards;
+    } catch (error) {
+        console.error("Error fetching user custom cards:", error);
+        throw error;
+    }
+}
+
+async function addcardToCards(args, msg){
+    const [cardId, cardRarity, cardUrl, groupMember, groupName, theme, version] = args;
+    const params = {
+        TableName: 'cards',
+        Item: {
+            'card-id': cardId,
+            cardRarity: parseInt(cardRarity), // Assuming cardRarity should be a number
+            cardUrl: cardUrl,
+            GroupMember: groupMember,
+            GroupName: groupName,
+            Theme: theme,
+            version: parseInt(version), // Assuming version should be a number
+        },
+        ConditionExpression: 'attribute_not_exists(#cardId)', // Ensure card-id does not already exist
+        ExpressionAttributeNames: {
+            '#cardId': 'card-id'
+        }
+    };
+    try {
+        await dynamodb.put(params).promise();
+        msg.reply(`Card '${cardId}' added successfully.`);
+    } catch (error) {
+        console.error('Error adding card:', error);
+        if (error.statusCode === 400) {
+            msg.reply('Failed to add card. Likely due to duplicate code.');
+        }else{
+            msg.reply('Failed to add card. Please try again later.');
+        }
+    }
+}
+
+async function modGiftCard(targetUser, cardIDToGift, msg, copiesToGive){
+    let cardData = " ";
+    try{
+        cardData = await getCardFromTable("cards", cardIDToGift);
+    }catch(error){
+        msg.reply("Please ensure the card id is valid");
+        return;
+    }
+    if(targetUser){
+        let item = {};
+        try{
+            const totalCount = await getHowManyCopiesOwned("user-cards", targetUser.id, cardIDToGift);
+            if(totalCount === 0){
+                item = {
+                    "user-id": targetUser.id, //primary key
+                    "card-id": cardIDToGift, //secondary key
+                    exp: 0,
+                    level: 0,
+                    upgradable: false,
+                    "copies-owned": copiesToGive,
+                    tier: 1,
+                    totalExp: 0
+                };
+                writeToDynamoDB("user-cards", item)
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+            }else{
+                const amount = parseInt(totalCount) + copiesToGive;
+                changeNumberOwned("user-cards", targetUser.id, cardIDToGift, amount);
+            }
+        }catch(error){
+            console.log(error);
+        }
+        const totalOwned = await checkTotalCardCount("Dani-bot-playerbase", targetUser.id)
+        await addToTotalCardCount("Dani-bot-playerbase", targetUser.id, parseInt(totalOwned) + copiesToGive);
+        const embed = new EmbedBuilder()
+            .setColor('#dd2d4a')
+            .setTitle('Card Gifted!')
+            .setDescription(`<@${targetUser.id}> has been gifted ${inlineCode(copiesToGive)} copies of: ${inlineCode(cardIDToGift)}`)
+            .setThumbnail(cardData["cardUrl"])
+            .setTimestamp();
+
+        msg.channel.send({ embeds: [embed] });
+    }else{
+        msg.reply("Please mention a user.")
+        return;
+    }
+}
+
+async function getEventCards(){
+    try {
+        const scanParams = {
+            TableName: "cards",
+            FilterExpression: '#rarity = :rarityValue',
+            ExpressionAttributeNames: {
+                '#rarity': 'cardRarity'
+            },
+            ExpressionAttributeValues: {
+                ':rarityValue': 3
+            }
+        };
+        const data = await dynamodb.scan(scanParams).promise();
+
+        if (!data.Items || data.Items.length === 0) {
+            throw new Error('No items found in the table');
+        }
+        //console.log(data);
+        return data.Items;
+    } catch (error) {
+        console.error('Error retrieving items from DynamoDB:', error);
+        throw error;
+    }
+}
+
+async function storeDiscordCachedUrl(cardId, cachedUrl) {
+    const params = {
+        TableName: 'cards',
+        Key: {
+            'card-id': cardId
+        },
+        UpdateExpression: 'set discordCachedUrl = :url',
+        ExpressionAttributeValues: {
+            ':url': cachedUrl
+        }
+    };
+    await dynamodb.update(params).promise();
+}
+
+async function downloadImage(url, filepath) {
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream'
+    });
+    return new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(filepath);
+        response.data.pipe(writer);
+        let error = null;
+        writer.on('error', err => {
+            error = err;
+            writer.close();
+            reject(err);
+        });
+        writer.on('close', () => {
+            if (!error) {
+                resolve(filepath);
+            }
+        });
+    });
+}
+
+async function isUrlValid(url) {
+    try {
+        const response = await axios.head(url);
+        return response.status === 200;
+    } catch (error) {
+        return false;
+    }
+}
+
+
+module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage};
