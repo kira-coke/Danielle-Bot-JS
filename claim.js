@@ -1,7 +1,7 @@
 const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const Discord = require("discord.js");
 const {getUser} = require("./users");
-const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard, getCardFromTable, storeDiscordCachedUrl, downloadImage} = require("./cards");
+const {getRandomDynamoDBItem,writeToDynamoDB,getHowManyCopiesOwned,checkIfUserOwnsCard,addToTotalCardCount,checkTotalCardCount, getUserCard, getWeightedCard, getCardFromTable, storeDiscordCachedUrl, downloadImage, getRandomCardFromCSV, updateCsvFile} = require("./cards");
 const fs = require('fs');
 const path = require('path');
 
@@ -13,11 +13,12 @@ async function getClaim(msg, userId) {
     const cardFromCards = await getCardFromTable("cards", userFavCard);
 
     (async () => {
+        const filePath = './results.csv';  // Path to your CSV file
         try {
-            const tableName = "cards";
+            //const tableName = "cards";
             let randomCard = "";
             if (cardData === undefined) {
-                randomCard = await getRandomDynamoDBItem(tableName);
+                randomCard = await getRandomCardFromCSV(filePath, 1);
             } else {
                 if (cardData.tier >= 2) {
                     try {
@@ -25,7 +26,7 @@ async function getClaim(msg, userId) {
                             randomCard = await getWeightedCard(userId);
                             console.log("random weighted card: ", randomCard);
                         } else {
-                            randomCard = await getRandomDynamoDBItem(tableName);
+                            randomCard = await getRandomCardFromCSV(filePath, 1);
                             console.log("not weighted card: " + randomCard);
                         }
                     } catch (error) {
@@ -33,7 +34,8 @@ async function getClaim(msg, userId) {
                         console.log(error);
                     }
                 } else {
-                    randomCard = await getRandomDynamoDBItem(tableName);
+                    randomCard = await getRandomCardFromCSV(filePath, 1);
+                    console.log("not weighted card: " + randomCard);
                 }
             }
             try {
@@ -130,6 +132,7 @@ async function getClaim(msg, userId) {
 
                     const sentMessage = await msg.reply({ embeds: [embed], files: [file] });
                     const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
+                    await updateCsvFile(filePath, randomCard["card-id"], discordCachedUrl);
                     await storeDiscordCachedUrl(randomCard["card-id"], discordCachedUrl);
 
                     // Clean up temporary file

@@ -17,7 +17,7 @@ const {awardExp, upgrade, groupFeed} = require("./cardExpSystem.js");
 const {saveUserBalance} = require("./userBalanceCmds.js");
 const {saveUserData,checkUserExists,checkUserDisabled,setUserCard,setUserBio,setUserWishList,getUser,setAutoReminders, getUserCards, getUserWishList, setUserAlbum, setDisplayPreference, getFavAlbum} = require("./users.js");
 const {saveUserCooldown,getUserCooldown, setPendingReminders, getCoolDownStatus, updateCoolDownStatus} = require("./cooldowns");
-const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage, writeToDynamoDB} = require("./cards");
+const {getHowManyCopiesOwned,getCardFromTable,getTotalCards,changeNumberOwned, filterByAttribute, getUserCard, checkIfUserOwnsCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage, writeToDynamoDB, updateCsvFile} = require("./cards");
 const {getUserProfile} = require("./profile.js");
 const {generateEmbedInvForGroup, generateRowInv, handleCollectorInv, getUniqueGroupNames, generateEmbedInv, handleCollectorInvForGroup, generateRowInvForGroup } = require("./inventory.js");
 const {generateEmbed, generateRow, handleCollector } = require("./indexCmd.js");
@@ -65,14 +65,14 @@ console.error = function(...args) {
 };
 client.once('ready', async () => {
     console.log('Bot is online!');
-try {
+/*try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
     } catch (error) {
         console.log("Error setting pending reminders", error);
-    }
+    }*/
 });
 
 client.on("ready", () => {
@@ -751,6 +751,7 @@ client.on("messageCreate", async (msg) => {
                             const sentMessage = await msg.reply({ embeds: [embed], files: [file] });
                             const discordCachedUrl = sentMessage.embeds[0].image.proxyURL;
                             await storeDiscordCachedUrl(cardToView["card-id"], discordCachedUrl);
+                            await updateCsvFile('./results.csv', cardToView["card-id"], discordCachedUrl);
 
                             // Clean up temporary file
                             fs.unlink(tempImagePath, err => {

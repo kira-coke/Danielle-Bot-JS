@@ -5,8 +5,10 @@ const dynamodb = new AWS.DynamoDB.DocumentClient
 const {EmbedBuilder, inlineCode} = require("discord.js");
 const fs = require('fs');
 const axios = require('axios');
+const csvParser = require('csv-parser');
+const { createObjectCsvWriter } = require('csv-writer');
 
-async function getRandomDynamoDBItem(tableName) {
+/*async function getRandomDynamoDBItem(tableName) {
     try {
         // Scan the table to get all items
         const scanParams = {
@@ -32,6 +34,40 @@ async function getRandomDynamoDBItem(tableName) {
         return randomItem;
     } catch (error) {
         console.error('Error retrieving items from DynamoDB:', error);
+        throw error;
+    }
+}*/
+
+async function getRandomCardFromCSV(filePath, desiredRarity) {
+    try {
+        const cards = [];
+
+        // Read and parse the CSV file
+        return new Promise((resolve, reject) => {
+            fs.createReadStream(filePath)
+                .pipe(csvParser())
+                .on('data', (row) => {
+                    // Check if the card matches the desired rarity
+                    if (parseInt(row.cardRarity) === desiredRarity) {
+                        cards.push(row);
+                    }
+                })
+                .on('end', () => {
+                    if (cards.length === 0) {
+                        reject(new Error('No cards found with the specified rarity.'));
+                        return;
+                    }
+
+                    // Select a random card
+                    const randomIndex = Math.floor(Math.random() * cards.length);
+                    const randomCard = cards[randomIndex];
+
+                    resolve(randomCard);
+                })
+                .on('error', reject);
+        });
+    } catch (error) {
+        console.error('Error processing CSV file:', error);
         throw error;
     }
 }
@@ -307,39 +343,30 @@ async function getWeightedCard(userId){
         console.log("User fav card is custom/le/event.")
         return;
     }
-    let cardWeights = {};
+    const filePath = './results.csv';  // Path to your CSV file
+    let selectedCard = await getRandomCardFromCSV(filePath, 1);
+    if (selectedCard["card-id"] === cardData["card-id"]) {
+        console.log("User's favorite card was rolled");
+        return selectedCard;
+    }
     if(cardData === undefined){
     }else{
         if(cardData.tier === 2){
-            cardWeights = {
-                [userFavCard]: 2, 
-            };
+            selectedCard = await getRandomCardFromCSV(filePath, 1);
+            if (selectedCard["card-id"] === cardData["card-id"]) {
+                console.log("User's favorite card was rolled");
+                return selectedCard;
+            }
         }
         if(cardData.tier >= 3){
-            cardWeights = {
-                [userFavCard]: 3, 
-            };
+            selectedCard = await getRandomCardFromCSV(filePath, 1);
+            if (selectedCard["card-id"] === cardData["card-id"]) {
+                console.log("User's favorite card was rolled");
+                return selectedCard;
+            }
         }
     }
-
-    const allCards = await getTotalCards("cards"); // Function to get all cards from the table
-    if (!Array.isArray(allCards.Items)) {
-        console.error("Expected an array but received:", allCards);
-        throw new TypeError("Expected an array of cards");
-    }
-    const weightedList = [];
-
-    allCards.Items.forEach(card => {
-        const weight = cardWeights[[card["card-id"]]] || 1; ; // Default weight is 1 if not specified
-        for (let i = 0; i < weight; i++) {
-            weightedList.push(card);
-        }
-    });
-    const randomIndex = Math.floor(Math.random() * weightedList.length);
-    //console.log(weightedList[randomIndex]);
-    const card = await getCardFromTable("cards",weightedList[randomIndex]["card-id"]);
-    return card;
-
+    return selectedCard;
 }
 
 async function getCardsWithLevels(tableName, userId) {
@@ -501,6 +528,7 @@ async function storeDiscordCachedUrl(cardId, cachedUrl) {
         }
     };
     await dynamodb.update(params).promise();
+    
 }
 
 async function downloadImage(url, filepath) {
@@ -535,5 +563,35 @@ async function isUrlValid(url) {
     }
 }
 
+async function updateCsvFile(filePath, cardId, newUrl) {
+    const cards = [];
+    const readStream = fs.createReadStream(filePath).pipe(csvParser({ separator: ',' }));
 
-module.exports = { getRandomDynamoDBItem, writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage};
+    readStream.on('data', (row) => {
+        if (row["card-id"] === cardId) {
+            row.discordCachedUrl = newUrl; 
+            console.log(row);
+        }
+        cards.push(row);
+    });
+
+    // Handle stream end and errors
+    await new Promise((resolve, reject) => {
+        readStream.on('end', resolve);
+        readStream.on('error', reject);
+    });
+
+    if (cards.length === 0) {
+        throw new Error('No cards found in CSV file.');
+    }
+
+    // Write the updated data back to the CSV file
+    const csvWriter = createObjectCsvWriter({
+        path: filePath,
+        header: Object.keys(cards[0]).map(key => ({ id: key, title: key }))
+    });
+    
+    await csvWriter.writeRecords(cards);
+}
+
+module.exports = { writeToDynamoDB, getHowManyCopiesOwned, getCardFromTable, getTotalCards, checkIfUserOwnsCard, changeNumberOwned, addToTotalCardCount, checkTotalCardCount, getUserCard, filterByAttribute, getWeightedCard, getCardsWithLevels, addcardToCards, getUserCustomCards, modGiftCard, getEventCards, storeDiscordCachedUrl, downloadImage, getRandomCardFromCSV, updateCsvFile};
