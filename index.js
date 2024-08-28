@@ -65,14 +65,14 @@ console.error = function(...args) {
 };
 client.once('ready', async () => {
     console.log('Bot is online!');
-try {
+/*try {
         await setPendingReminders(client); // comment in and out depending on which bot testing on
         setInterval(async () => {
             await setPendingReminders(client);
         }, 2 * 60 * 1000); // comment in and out depending on which bot testing on
     } catch (error) {
         console.log("Error setting pending reminders", error);
-    }
+    }*/
 });
 
 client.on("ready", () => {
@@ -1754,8 +1754,8 @@ client.on("messageCreate", async (msg) => {
                         albumName = quoteMatch[1];
                         const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
                         console.log(remainingArgs);
-                        cardId = remainingArgs[0];
-                        position = remainingArgs[1];
+                        cardId = remainingArgs[1];
+                        position = remainingArgs[2];
                     } else {
                         const remainingArgs = input.split(/\s+/);
                         albumName = remainingArgs[1];
