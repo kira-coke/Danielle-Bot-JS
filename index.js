@@ -1803,12 +1803,11 @@ client.on("messageCreate", async (msg) => {
                     if (quoteMatch) {
                         albumName = quoteMatch[1];
                         const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
-                        console.log(remainingArgs);
-                        position = remainingArgs[0];
+                        position = remainingArgs[1];
                     } else {
                         const remainingArgs = input.split(/\s+/);
-                        albumName = remainingArgs[0];
-                        position = remainingArgs[1];
+                        albumName = remainingArgs[1];
+                        position = remainingArgs[2];
                     }
 
 
