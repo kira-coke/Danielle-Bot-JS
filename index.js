@@ -1750,11 +1750,18 @@ client.on("messageCreate", async (msg) => {
                     let albumName;
                     let cardId;
                     let position;
-                    albumName = quoteMatch[1];  // Extract the album name from the matched group
-                    const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
-                    console.log(remainingArgs);
-                    cardId = remainingArgs[1];
-                    position = remainingArgs[2];
+                    if (quoteMatch) {
+                        albumName = quoteMatch[1];
+                        const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
+                        console.log(remainingArgs);
+                        cardId = remainingArgs[0];
+                        position = remainingArgs[1];
+                    } else {
+                        const remainingArgs = input.split(/\s+/);
+                        albumName = remainingArgs[1];
+                        cardId = remainingArgs[2];
+                        position = remainingArgs[3];
+                    }
 
                     try{
                         await getAlbum(userId, albumName);
@@ -1793,10 +1800,17 @@ client.on("messageCreate", async (msg) => {
                     const quoteMatch = input.match(/["'“‘](.*?)["'”’]/);
                     let albumName;
                     let position;
-                    albumName = quoteMatch[1];  // Extract the album name from the matched group
-                    const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
-                    console.log(remainingArgs);
-                    position = remainingArgs[1];
+                    if (quoteMatch) {
+                        albumName = quoteMatch[1];
+                        const remainingArgs = input.replace(quoteMatch[0], '').trim().split(/\s+/);
+                        console.log(remainingArgs);
+                        position = remainingArgs[0];
+                    } else {
+                        const remainingArgs = input.split(/\s+/);
+                        albumName = remainingArgs[0];
+                        position = remainingArgs[1];
+                    }
+
 
                     if(position < 1 || position > 8 || isNaN(position)){
                         msg.reply("Give a number between 1 and 8");
