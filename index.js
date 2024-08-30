@@ -506,7 +506,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 const balWithCommas = numberWithCommas(userBal);
                 const albumTokens = await getAlbumTokens(userId);
-                const evenRollTokens = await getEventRolls(userId);
+                //const evenRollTokens = await getEventRolls(userId);
 
                 const balanceEmbed = new EmbedBuilder()
                     .setColor("#ffa791")
@@ -514,8 +514,8 @@ client.on("messageCreate", async (msg) => {
                     .setDescription(
                         "**Balance: **" + Discord.inlineCode(`${balWithCommas}`) + currencyEmote,
                     )
-                    .addFields(
-                        { name: ' ', value: `**Event roll tokens**: ` + Discord.inlineCode(evenRollTokens.toString()) + eventRollEmote, inline: false }) 
+                    //.addFields(
+                        //{ name: ' ', value: `**Event roll tokens**: ` + Discord.inlineCode(evenRollTokens.toString()) + eventRollEmote, inline: false })
                     .addFields(
                         { name: ' ', value: `**Album Tokens**: ` + Discord.inlineCode(albumTokens.toString()), inline: true } // Assuming albumTokens is the variable holding the token count
                     )
@@ -1863,7 +1863,7 @@ client.on("messageCreate", async (msg) => {
                     .catch(console.error); // Catch errors for debugging        
             }
 
-            if(command === "eventroll" || command === "er"){
+            /*if(command === "eventroll" || command === "er"){
                 const rolls = await getEventRolls(userId);
                 console.log(rolls);
                 if(rolls < 2){
@@ -1872,7 +1872,7 @@ client.on("messageCreate", async (msg) => {
                 }
                 await initiateEventRoll(userId, msg);
                 //await eventRoll(userId, msg);
-            }
+            }*/
 
             if(command === "gts"){
                 const input = args.filter((code) => code.trim() !== "");
